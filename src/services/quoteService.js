@@ -1,6 +1,7 @@
 import { collection, addDoc, updateDoc, doc, getDoc, deleteDoc, query, where, getDocs, orderBy, Timestamp } from 'firebase/firestore'
 import { db } from '../firebase/init'
 import { notifierClient, notifierAdmins } from './notificationService'
+import { calculerPrixUnitaire, calculerMontant, estSurDevis } from '../utils/pricing'
 
 // Génère un numéro de devis lisible: UC-2026-0625-AB
 function genererNumero() {
@@ -15,8 +16,10 @@ function genererNumero() {
 // Créer UN SEUL devis (jamais découpé), toujours "En attente"
 export const creerDevis = async (clientId, clientEmail, data) => {
   const surface = Number(data.surface) || 0
-  const pricePerM2 = 15000
-  const totalTTC = surface * pricePerM2
+  const avecPeinture = !!data.avecPeinture
+  const surDevis = estSurDevis(data.type)
+  const pricePerM2 = calculerPrixUnitaire(data.type, avecPeinture) || 0
+  const totalTTC = calculerMontant(data.type, surface, avecPeinture)
 
   const devis = {
     clientId: clientId || 'inconnu',
@@ -26,6 +29,8 @@ export const creerDevis = async (clientId, clientEmail, data) => {
     description: data.description || '',
     type: data.type || '',
     surface,
+    avecPeinture,
+    surDevis,
     pricePerM2,
     totalTTC,
     localisation: data.localisation || 'Dakar',

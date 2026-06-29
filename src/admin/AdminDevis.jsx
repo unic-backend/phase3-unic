@@ -4,6 +4,7 @@ import { creerFacture } from '../services/invoiceService'
 import SearchBar from '../components/SearchBar'
 import SortSelect from '../components/SortSelect'
 import { trierListe, OPTIONS_TRI } from '../utils/tri'
+import { formatMontant } from '../utils/pricing'
 import { Check, X, RotateCcw, FileText, Trash2, Clock, CheckCircle2, XCircle } from 'lucide-react'
 
 export default function AdminDevis() {
@@ -159,7 +160,7 @@ export default function AdminDevis() {
                 </div>
                 <div className="flex justify-between">
                   <span style={{ color: 'var(--text-muted)' }}>Montant</span>
-                  <span className="font-semibold" style={{ color: 'var(--gold)' }}>{(devis.totalTTC || 0).toLocaleString('fr-FR')} FCFA</span>
+                  <span className="font-semibold" style={{ color: 'var(--gold)' }}>{formatMontant(devis)}</span>
                 </div>
               </div>
 
@@ -189,7 +190,11 @@ export default function AdminDevis() {
                   </button>
 
                   {devis.status === 'Approuvé' && (
-                    factures[devis.id] ? (
+                    devis.surDevis ? (
+                      <p className="text-center text-xs p-2.5 rounded-xl" style={{ background: 'rgba(96,165,250,0.08)', color: 'var(--text-secondary)' }}>
+                        ⚠️ Prix "sur devis" — fixe le montant final avec le client avant de créer la facture (pas encore possible directement dans l'app).
+                      </p>
+                    ) : factures[devis.id] ? (
                       <p className="text-center text-xs font-semibold py-2 rounded-xl badge-success">
                         Facture créée — visible chez le client
                       </p>
