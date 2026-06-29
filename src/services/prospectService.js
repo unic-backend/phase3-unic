@@ -19,7 +19,8 @@ export async function demarrerSession() {
     await setDoc(ref, {
       uid,
       messages: [],
-      statut: 'en_cours',
+      formulaireComplete: false,
+      statut: 'nouveau',
       createdAt: Timestamp.now(),
       updatedAt: Timestamp.now(),
     })
@@ -27,14 +28,43 @@ export async function demarrerSession() {
   return uid
 }
 
-// Écoute la conversation en temps réel (utile si le prospect rouvre le lien plus tard)
+// Écoute la conversation/données en temps réel
 export function ecouterConversation(uid, callback) {
   return onSnapshot(doc(db, 'prospects', uid), (snap) => {
     callback(snap.exists() ? snap.data() : null)
   })
 }
 
-// Envoie un message du prospect, obtient la réponse de l'IA, et sauvegarde les deux.
+// Soumission du formulaire de demande de devis (étape 1 de /discussion).
+// C'est la SOURCE FIABLE des infos structurées — contrairement à une extraction
+// IA depuis du texte libre, ici c'est le client qui tape directement les champs.
+export async function soumettreFormulaireProspect(uid, donnees) {
+  const ref = doc(db, 'prospects', uid)
+  const messageAccueil = {
+    role: 'assistant',
+    content: `Merci ${donnees.nom || ''} ! J'ai bien noté ta demande${donnees.typeProjet ? ` (${donnees.typeProjet})` : ''}${donnees.localisation ? ` à ${donnees.localisation}` : ''}. Ousmane va l'examiner et te recontactera avec un devis personnalisé. Tu peux ajouter une précision ici si besoin, ou continuer la discussion directement sur WhatsApp.`,
+    timestamp: Timestamp.now(),
+  }
+  await updateDoc(ref, {
+    coordonnees: { nom: donnees.nom || '', telephone: donnees.telephone || '' },
+    infosCollectees: {
+      typeProjet: donnees.typeProjet || '',
+      surfaceM2: donnees.surfaceM2 ? Number(donnees.surfaceM2) : null,
+      avecPeinture: donnees.avecPeinture ?? null,
+      localisation: donnees.localisation || '',
+      budgetIndicatif: donnees.budgetIndicatif || '',
+      delaiSouhaite: donnees.delaiSouhaite || '',
+      exigencesParticulieres: donnees.exigencesParticulieres || '',
+    },
+    photos: donnees.photos || [],
+    formulaireComplete: true,
+    statut: 'nouveau',
+    messages: arrayUnion(messageAccueil),
+    updatedAt: Timestamp.now(),
+  })
+}
+
+// Envoie un message du prospect (étape 2, après le formulaire) et obtient la réponse de l'IA.
 export async function envoyerMessageProspect(uid, texte) {
   const ref = doc(db, 'prospects', uid)
   const snap = await getDoc(ref)
@@ -56,7 +86,7 @@ export async function envoyerMessageProspect(uid, texte) {
   const res = await fetch('/.netlify/functions/prospect-chat', {
     method: 'POST',
     headers: { 'content-type': 'application/json', authorization: `Bearer ${idToken}` },
-    body: JSON.stringify({ messages: historique }),
+    body: JSON.stringify({ messages: historique, contexteConnu: { ...data.coordonnees, ...data.infosCollectees } }),
   })
 
   const result = await res.json().catch(() => ({}))
@@ -82,5 +112,29 @@ export const getTousProspects = async () => {
   } catch (e) {
     console.error('getTousProspects:', e)
     return []
+  }
+}
+
+// Marquer un prospect comme traité / pas encore traité (suivi admin)
+export const marquerProspectStatut = async (uid, statut) => {
+  try {
+    await updateDoc(doc(db, 'prospects', uid), { statut, updatedAt: Timestamp.now() })
+    return true
+  } catch (e) {
+    console.error('marquerProspectStatut:', e)
+    return false
+  }
+}
+
+// Sauvegarder le résultat de l'analyse IA à la demande (admin uniquement, jamais automatique)
+export const enregistrerAnalyseIA = async (uid, texte) => {
+  try {
+    await updateDoc(doc(db, 'prospects', uid), {
+      analyseIA: { texte, dateAnalyse: Timestamp.now() },
+    })
+    return true
+  } catch (e) {
+    console.error('enregistrerAnalyseIA:', e)
+    return false
   }
 }
