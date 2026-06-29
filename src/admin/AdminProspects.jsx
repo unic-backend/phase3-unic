@@ -193,12 +193,12 @@ export default function AdminProspects() {
       {selectionne && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.6)' }}>
           <div className="card-dark w-full max-w-md max-h-[85vh] flex flex-col animate-fade-in">
-            <div className="flex items-center justify-between p-4" style={{ borderBottom: '1px solid var(--dark-border)' }}>
+            <div className="flex items-center justify-between p-4 shrink-0" style={{ borderBottom: '1px solid var(--dark-border)' }}>
               <p className="font-bold text-white">Détail de la demande</p>
               <button onClick={() => setSelectionne(null)} style={{ color: 'var(--text-muted)' }}><X size={20} /></button>
             </div>
 
-            <div className="p-4 space-y-3" style={{ borderBottom: '1px solid var(--dark-border)' }}>
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
               <FicheInfos prospect={selectionne} />
 
               {selectionne.analyseIA?.texte && (
@@ -217,20 +217,22 @@ export default function AdminProspects() {
                 style={{ background: 'var(--dark-elevated)', border: '1px solid var(--dark-border)', color: 'var(--gold)' }}>
                 <Sparkles size={15} /> {analyseEnCours ? 'Analyse en cours...' : selectionne.analyseIA ? 'Relancer l\'analyse IA' : 'Analyser avec l\'IA'}
               </button>
-            </div>
 
-            <div className="flex-1 overflow-y-auto p-4 space-y-3">
-              {(selectionne.messages || []).map((m, i) => (
-                <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div className="max-w-[85%] rounded-2xl px-3.5 py-2 text-sm whitespace-pre-wrap"
-                    style={m.role === 'user' ? { background: 'var(--gold)', color: '#060D18' } : { background: 'var(--dark-elevated)', border: '1px solid var(--dark-border)', color: 'white' }}>
-                    {m.content}
-                  </div>
+              {(selectionne.messages || []).length > 0 && (
+                <div className="space-y-3 pt-2" style={{ borderTop: '1px solid var(--dark-border)', marginTop: '8px' }}>
+                  {(selectionne.messages || []).map((m, i) => (
+                    <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                      <div className="max-w-[85%] rounded-2xl px-3.5 py-2 text-sm whitespace-pre-wrap"
+                        style={m.role === 'user' ? { background: 'var(--gold)', color: '#060D18' } : { background: 'var(--dark-elevated)', border: '1px solid var(--dark-border)', color: 'white' }}>
+                        {m.content}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              )}
             </div>
 
-            <div className="p-3" style={{ borderTop: '1px solid var(--dark-border)' }}>
+            <div className="p-3 shrink-0" style={{ borderTop: '1px solid var(--dark-border)' }}>
               <button onClick={() => basculerStatut(selectionne)}
                 className="w-full py-2.5 rounded-xl font-semibold text-sm btn-press transition"
                 style={selectionne.statut === 'traite' ? { background: 'var(--dark-elevated)', color: 'var(--text-secondary)' } : { background: 'var(--gold)', color: '#060D18' }}>

@@ -49,8 +49,8 @@ export default function Discussion() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: 'var(--dark-bg)' }}>
-      <div className="px-4 py-3 flex items-center gap-3 sticky top-0 z-10 glass-dark"
+    <div className="h-screen flex flex-col overflow-hidden" style={{ background: 'var(--dark-bg)' }}>
+      <div className="px-4 py-3 flex items-center gap-3 shrink-0 glass-dark"
         style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))', borderBottom: '1px solid var(--dark-border)' }}>
         <img src={logo} alt="UniC Plaquiste" className="h-9 w-auto" />
         <div>
@@ -60,7 +60,7 @@ export default function Discussion() {
       </div>
 
       {!prospect?.formulaireComplete
-        ? <Formulaire uid={uid} />
+        ? <div className="flex-1 overflow-y-auto"><Formulaire uid={uid} /></div>
         : <Chat uid={uid} prospect={prospect} />}
     </div>
   )
@@ -124,7 +124,7 @@ function Formulaire({ uid }) {
   }
 
   return (
-    <form onSubmit={envoyer} className="flex-1 px-4 py-5 space-y-4 max-w-lg w-full mx-auto pb-10">
+    <form onSubmit={envoyer} className="px-4 py-5 space-y-4 max-w-lg w-full mx-auto pb-10">
       <div className="animate-fade-in">
         <h1 className="text-xl font-bold text-white">Décris ton projet</h1>
         <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Ousmane te recontactera avec un devis personnalisé.</p>
@@ -276,7 +276,7 @@ function Chat({ uid, prospect }) {
         <div ref={finDesMessages} />
       </div>
 
-      <form onSubmit={envoyer} className="p-3 flex gap-2 sticky bottom-0" style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))', borderTop: '1px solid var(--dark-border)', background: 'var(--dark-bg)' }}>
+      <form onSubmit={envoyer} className="p-3 flex gap-2 shrink-0" style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))', borderTop: '1px solid var(--dark-border)', background: 'var(--dark-bg)' }}>
         <input
           type="text" value={texte} onChange={(e) => setTexte(e.target.value)}
           placeholder={limiteAtteinte ? 'Discussion terminée' : 'Ajouter une précision...'}
