@@ -22,12 +22,17 @@ export function AuthProvider({ children }) {
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       clearTimeout(safety)
-      if (firebaseUser) {
+
+      // Sessions anonymes (page publique /discussion) : ce ne sont pas des
+      // utilisateurs "client" ou "admin" de l'app. On les ignore ici pour ne
+      // pas planter sur firebaseUser.email (null pour un compte anonyme) —
+      // la page Discussion lit auth.currentUser directement, sans passer par ici.
+      if (firebaseUser && !firebaseUser.isAnonymous) {
         // 1) Connecter IMMÉDIATEMENT avec les infos Firebase Auth (pas d'attente)
         setUser({
           id: firebaseUser.uid,
           email: firebaseUser.email,
-          emailLower: firebaseUser.email.toLowerCase(),
+          emailLower: (firebaseUser.email || '').toLowerCase(),
           nom: firebaseUser.displayName || 'Utilisateur',
           telephone: ''
         })
@@ -42,7 +47,7 @@ export function AuthProvider({ children }) {
                 ...prev,
                 id: firebaseUser.uid,
                 email: firebaseUser.email,
-                emailLower: firebaseUser.email.toLowerCase(),
+                emailLower: (firebaseUser.email || '').toLowerCase(),
                 nom: profile.nom || 'Utilisateur',
                 telephone: profile.telephone || '',
                 isAdmin: profile.isAdmin || false,
