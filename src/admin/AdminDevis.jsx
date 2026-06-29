@@ -1,0 +1,220 @@
+import { useState, useEffect, useMemo } from 'react'
+import { getTousDevis, changerStatutDevis, supprimerDevis } from '../services/quoteService'
+import { creerFacture } from '../services/invoiceService'
+import SearchBar from '../components/SearchBar'
+import SortSelect from '../components/SortSelect'
+import { trierListe, OPTIONS_TRI } from '../utils/tri'
+import { Check, X, RotateCcw, FileText, Trash2, Clock, CheckCircle2, XCircle } from 'lucide-react'
+
+export default function AdminDevis() {
+  const [devisList, setDevisList] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [message, setMessage] = useState('')
+  const [factures, setFactures] = useState({})
+  const [search, setSearch] = useState('')
+  const [filter, setFilter] = useState('Tous')
+  const [sortKey, setSortKey] = useState('date_desc')
+
+  const charger = async () => { setLoading(true); setDevisList(await getTousDevis()); setLoading(false) }
+  useEffect(() => { charger() }, [])
+
+  const formatDate = (d) => {
+    if (!d) return '-'
+    if (d.seconds) return new Date(d.seconds * 1000).toLocaleDateString('fr-FR')
+    return String(d)
+  }
+
+  const handleDelete = async (devis) => {
+    if (!window.confirm(`Supprimer définitivement le devis ${devis.quoteNumber} ?`)) return
+    const ok = await supprimerDevis(devis.id)
+    if (ok) { setDevisList(prev => prev.filter(d => d.id !== devis.id)); flash('Devis supprimé') }
+    else flash('Erreur: suppression impossible')
+  }
+
+  const flash = (t) => { setMessage(t); setTimeout(() => setMessage(''), 3000) }
+
+  const decider = async (devis, statut) => {
+    if (await changerStatutDevis(devis.id, statut)) {
+      flash(`Devis ${devis.quoteNumber} : ${statut}`)
+      setDevisList(prev => prev.map(d => d.id === devis.id ? { ...d, status: statut } : d))
+    }
+  }
+
+  const genererFacture = async (devis) => {
+    const fac = await creerFacture(devis.clientId, devis.clientEmail, {
+      amount: devis.totalTTC, status: 'En attente', issueDate: new Date().toISOString().slice(0, 10)
+    })
+    if (fac) {
+      setFactures(prev => ({ ...prev, [devis.id]: true }))
+      flash(`Facture créée pour ${devis.quoteNumber}`)
+    } else flash('Erreur lors de la création')
+  }
+
+  const badge = (s) =>
+    s === 'En attente' ? 'badge-warning' :
+    s === 'Approuvé' ? 'badge-success' : 'badge-danger'
+
+  const filteredDevis = useMemo(() => {
+    let list = devisList
+    if (filter !== 'Tous') list = list.filter(d => d.status === filter)
+    if (search.trim()) {
+      const q = search.trim().toLowerCase()
+      list = list.filter(d =>
+        (d.quoteNumber || '').toLowerCase().includes(q) ||
+        (d.clientEmail || '').toLowerCase().includes(q) ||
+        (d.type || '').toLowerCase().includes(q)
+      )
+    }
+    return trierListe(list, sortKey, 'createdAt', 'totalTTC')
+  }, [devisList, search, filter, sortKey])
+
+  const filters = [
+    { key: 'Tous', icon: FileText, color: '#60A5FA' },
+    { key: 'En attente', icon: Clock, color: '#FBBF24' },
+    { key: 'Approuvé', icon: CheckCircle2, color: '#34D399' },
+    { key: 'Rejeté', icon: XCircle, color: '#F87171' },
+  ]
+
+  return (
+    <div className="space-y-5 max-w-5xl mx-auto">
+      <div className="animate-fade-in">
+        <h1 className="text-2xl md:text-3xl font-bold text-white">Gérer Devis</h1>
+        <p className="mt-1" style={{ color: 'var(--text-secondary)' }}>Demandes de devis des clients</p>
+      </div>
+
+      {message && (
+        <div className="px-4 py-2.5 rounded-2xl text-sm font-semibold badge-success animate-scale-in">{message}</div>
+      )}
+
+      <SearchBar value={search} onChange={setSearch} placeholder="Rechercher un devis, un client..." dark />
+
+      <div className="flex gap-2 flex-wrap items-center justify-between">
+        <div className="flex gap-2 flex-wrap">
+          {filters.map(f => {
+            const Icon = f.icon
+            const active = filter === f.key
+            return (
+              <button
+                key={f.key}
+                onClick={() => setFilter(f.key)}
+                className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition active:scale-95 flex items-center gap-1.5 ${
+                  active ? 'text-white' : ''
+                }`}
+                style={active
+                  ? { background: `${f.color}20`, color: f.color, border: `1px solid ${f.color}40` }
+                  : { background: 'var(--dark-surface)', border: '1px solid var(--dark-border)', color: 'var(--text-muted)' }
+                }
+              >
+                <Icon size={14} /> {f.key}
+              </button>
+            )
+          })}
+        </div>
+        <SortSelect value={sortKey} onChange={setSortKey} options={OPTIONS_TRI} dark />
+      </div>
+
+      {loading && (
+        <div className="space-y-3">
+          {[1,2,3,4].map(i => <div key={i} className="skeleton-dark h-40 rounded-2xl" />)}
+        </div>
+      )}
+
+      {!loading && devisList.length === 0 && (
+        <div className="card-dark p-10 text-center">
+          <FileText size={36} className="mx-auto mb-3" style={{ color: 'var(--text-muted)' }} />
+          <p className="font-semibold text-white">Aucune demande de devis</p>
+          <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>Les nouvelles demandes apparaîtront ici.</p>
+        </div>
+      )}
+
+      {!loading && devisList.length > 0 && filteredDevis.length === 0 && (
+        <div className="card-dark p-8 text-center" style={{ color: 'var(--text-muted)' }}>
+          Aucun résultat pour cette recherche.
+        </div>
+      )}
+
+      {!loading && filteredDevis.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {filteredDevis.map((devis, i) => (
+            <div key={devis.id} className="card-dark p-4 space-y-3 animate-fade-in" style={{ opacity: 0, animationDelay: `${i * 50}ms` }}>
+              <div className="flex justify-between items-start gap-2">
+                <div className="min-w-0">
+                  <p className="font-semibold text-white truncate">{devis.quoteNumber}</p>
+                  <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>{devis.clientEmail || 'client'}</p>
+                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{formatDate(devis.createdAt)}</p>
+                </div>
+                <span className={`px-2.5 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap ${badge(devis.status)}`}>
+                  {devis.status}
+                </span>
+              </div>
+
+              <div className="text-sm space-y-1.5" style={{ borderTop: '1px solid var(--dark-border)', paddingTop: '10px' }}>
+                <div className="flex justify-between">
+                  <span style={{ color: 'var(--text-muted)' }}>Type</span>
+                  <span className="font-medium text-white">{devis.type}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span style={{ color: 'var(--text-muted)' }}>Surface</span>
+                  <span className="font-medium text-white">{devis.surface} m²</span>
+                </div>
+                <div className="flex justify-between">
+                  <span style={{ color: 'var(--text-muted)' }}>Montant</span>
+                  <span className="font-semibold" style={{ color: 'var(--gold)' }}>{(devis.totalTTC || 0).toLocaleString('fr-FR')} FCFA</span>
+                </div>
+              </div>
+
+              {devis.description && (
+                <p className="text-xs p-2.5 rounded-xl" style={{ background: 'var(--dark-elevated)', color: 'var(--text-secondary)' }}>{devis.description}</p>
+              )}
+
+              {devis.status === 'En attente' ? (
+                <div className="flex gap-2 pt-1">
+                  <button onClick={() => decider(devis, 'Approuvé')}
+                    className="flex-1 py-2.5 rounded-xl font-semibold text-sm transition btn-press flex items-center justify-center gap-1.5"
+                    style={{ background: 'rgba(52,211,153,0.15)', color: '#34D399' }}>
+                    <Check size={16}/> Approuver
+                  </button>
+                  <button onClick={() => decider(devis, 'Rejeté')}
+                    className="flex-1 py-2.5 rounded-xl font-semibold text-sm transition btn-press flex items-center justify-center gap-1.5"
+                    style={{ background: 'rgba(248,113,113,0.15)', color: '#F87171' }}>
+                    <X size={16}/> Rejeter
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-2 pt-1">
+                  <button onClick={() => decider(devis, 'En attente')}
+                    className="w-full py-2 rounded-xl font-semibold text-xs transition btn-press flex items-center justify-center gap-1.5"
+                    style={{ background: 'var(--dark-elevated)', color: 'var(--text-secondary)' }}>
+                    <RotateCcw size={14}/> Remettre en attente
+                  </button>
+
+                  {devis.status === 'Approuvé' && (
+                    factures[devis.id] ? (
+                      <p className="text-center text-xs font-semibold py-2 rounded-xl badge-success">
+                        Facture créée — visible chez le client
+                      </p>
+                    ) : (
+                      <button onClick={() => genererFacture(devis)}
+                        className="w-full py-2.5 rounded-xl font-semibold text-sm transition btn-press flex items-center justify-center gap-1.5"
+                        style={{ background: 'var(--gold)', color: '#060D18' }}>
+                        <FileText size={15}/> Créer la facture
+                      </button>
+                    )
+                  )}
+
+                  {devis.status === 'Rejeté' && (
+                    <button onClick={() => handleDelete(devis)}
+                      className="w-full py-2 rounded-xl font-semibold text-xs transition btn-press flex items-center justify-center gap-1.5"
+                      style={{ background: 'rgba(248,113,113,0.1)', color: '#F87171' }}>
+                      <Trash2 size={14}/> Supprimer
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}

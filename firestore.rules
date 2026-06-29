@@ -1,0 +1,124 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ==================== HELPERS ====================
+
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return request.auth.uid == uid;
+    }
+
+    // Email du token (le bon chemin: request.auth.token.email)
+    function emailEstAdmin() {
+      return isAuth()
+        && request.auth.token.email != null
+        && request.auth.token.email.lower() in [
+          'admin@unicplaquiste.com',
+          'unicplaquiste@gmail.com',
+          'odiop2020@gmail.com'
+        ];
+    }
+
+    // Le profil users/{uid} porte le flag isAdmin == true
+    // exists() évite l'erreur si le profil n'existe pas (PAS de try/catch en Firestore)
+    function profilEstAdmin() {
+      return isAuth()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
+
+    function isAdmin() {
+      return emailEstAdmin() || profilEstAdmin();
+    }
+
+    // ==================== users ====================
+    match /users/{userId} {
+      allow read:   if isAuth() && (isOwner(userId) || isAdmin());
+      allow create: if isAuth() && isOwner(userId);
+      allow update: if isAuth() && (isOwner(userId) || isAdmin());
+      allow delete: if false;
+    }
+
+    // ==================== quotes (devis) ====================
+    match /quotes/{quoteId} {
+      allow create: if isAuth() && request.resource.data.clientId == request.auth.uid;
+      allow read:   if isAuth() && (resource.data.clientId == request.auth.uid || isAdmin());
+      allow update: if isAuth() && isAdmin();
+      // Suppression: uniquement un devis Rejeté (sans valeur business active),
+      // par le client concerné ou l'admin. Jamais En attente ou Approuvé.
+      allow delete: if isAuth() && resource.data.status == 'Rejeté'
+        && (resource.data.clientId == request.auth.uid || isAdmin());
+    }
+
+    // ==================== invoices (factures) ====================
+    match /invoices/{invoiceId} {
+      allow read:   if isAuth() && (resource.data.clientId == request.auth.uid || isAdmin());
+      allow create: if isAuth() && isAdmin();
+      // Admin: tout modifier. Client: seulement passer SA facture en "En vérification"
+      allow update: if isAuth() && (
+        isAdmin() ||
+        (resource.data.clientId == request.auth.uid
+          && request.resource.data.status == 'En vérification'
+          && request.resource.data.amount == resource.data.amount
+          && request.resource.data.clientId == resource.data.clientId)
+      );
+      allow delete: if isAuth() && isAdmin() && resource.data.status != 'Payée';
+    }
+
+    // ==================== messages (chat) ====================
+    match /messages/{messageId} {
+      // Lecture: le client voit sa conversation, l'admin voit tout
+      allow read: if isAuth() && (resource.data.clientId == request.auth.uid || isAdmin());
+      // Création: le client ne peut écrire QUE dans SA propre conversation,
+      // l'admin peut écrire dans n'importe quelle conversation
+      allow create: if isAuth() && request.resource.data.senderId == request.auth.uid && (
+        (request.resource.data.senderRole == 'client' && request.resource.data.clientId == request.auth.uid) ||
+        (isAdmin() && request.resource.data.senderRole == 'admin')
+      );
+      // Mise à jour (marquer lu): même accès que la lecture
+      allow update: if isAuth() && (resource.data.clientId == request.auth.uid || isAdmin());
+      // Suppression: seulement l'auteur du message (annuler son propre envoi),
+      // ou un admin pour modération
+      allow delete: if isAuth() && (resource.data.senderId == request.auth.uid || isAdmin());
+    }
+
+    // ==================== projects (projets) ====================
+    match /projects/{projectId} {
+      allow read:   if isAuth() && (resource.data.clientId == request.auth.uid || isAdmin());
+      allow create: if isAuth() && isAdmin();
+      allow update: if isAuth() && isAdmin();
+      allow delete: if false;
+    }
+
+    // ==================== notifications ====================
+    match /notifications/{notifId} {
+      // Lecture: le client voit les siennes, l'admin voit celles marquées forAdmins
+      allow read: if isAuth() && (
+        (resource.data.forAdmins == true && isAdmin()) ||
+        resource.data.userId == request.auth.uid
+      );
+      // Création: un admin peut notifier n'importe qui (client précis).
+      // Un client ne peut créer QUE des notifications partagées admin (forAdmins),
+      // jamais cibler un autre client.
+      allow create: if isAuth() && (
+        isAdmin() ||
+        (request.resource.data.forAdmins == true && request.resource.data.userId == null)
+      );
+      // Mise à jour (marquer lue): même règle que la lecture
+      allow update: if isAuth() && (
+        (resource.data.forAdmins == true && isAdmin()) ||
+        resource.data.userId == request.auth.uid
+      );
+      allow delete: if false;
+    }
+
+    // ==================== DÉFAUT: tout bloquer ====================
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
