@@ -28,10 +28,31 @@ async function verifierToken(authHeader) {
 
 const SYSTEM_PROMPT = `Tu es l'assistant en ligne de UniC Plaquiste, entreprise de plaquisterie (BA13), cloisons et décoration intérieure à Dakar, Sénégal.
 Tu discutes avec un prospect qui arrive depuis WhatsApp pour décrire un projet de travaux.
-Pose des questions simples, une à la fois, pour récolter progressivement : type de projet, localisation, surface approximative (m²), budget indicatif, délai souhaité, et toute exigence particulière.
+Pose des questions simples, une à la fois, pour récolter progressivement : type de projet, localisation, surface approximative (m²), souhait peinture incluse ou non, budget indicatif, délai souhaité, et toute exigence particulière.
 Reste chaleureux, concis, professionnel, en français.
 Ne donne JAMAIS de prix précis toi-même — dis que Ousmane (le gérant) étudiera la demande et reviendra avec un devis personnalisé.
-Quand tu juges avoir assez d'informations pour permettre un devis, remercie le prospect et explique qu'Ousmane va examiner sa demande et le recontacter rapidement, sur WhatsApp ou via cette même page.`
+Quand tu juges avoir assez d'informations pour permettre un devis, remercie le prospect et explique qu'Ousmane va examiner sa demande et le recontacter rapidement, sur WhatsApp ou via cette même page.
+
+IMPORTANT : chaque fois qu'une information pertinente est mentionnée ou confirmée (même partiellement), appelle l'outil "mettre_a_jour_profil_projet" avec TOUTES les informations connues jusqu'ici (pas seulement les nouvelles) — en plus de ta réponse conversationnelle normale.`
+
+const OUTILS = [
+  {
+    name: 'mettre_a_jour_profil_projet',
+    description: "Enregistre ou met à jour les informations connues sur le projet du prospect. À appeler chaque fois qu'une information pertinente est mentionnée, avec l'ensemble des informations connues jusqu'ici.",
+    input_schema: {
+      type: 'object',
+      properties: {
+        typeProjet: { type: 'string', description: "Identifiant si possible : faux-plafond, cloison, peinture, doublage, corniche, renovation. Sinon description libre." },
+        localisation: { type: 'string', description: 'Ville ou quartier du chantier' },
+        surfaceM2: { type: 'number', description: 'Surface approximative en m²' },
+        avecPeinture: { type: 'boolean', description: 'true si peinture incluse souhaitée, false sinon (surtout pertinent pour faux-plafond)' },
+        budgetIndicatif: { type: 'string', description: 'Budget mentionné par le client, tel quel' },
+        delaiSouhaite: { type: 'string', description: 'Délai souhaité pour les travaux' },
+        exigencesParticulieres: { type: 'string', description: 'Détails ou exigences particulières mentionnées' },
+      },
+    },
+  },
+]
 
 export default async (req) => {
   if (req.method !== 'POST') {
@@ -72,8 +93,9 @@ export default async (req) => {
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
-        max_tokens: 500,
+        max_tokens: 600,
         system: SYSTEM_PROMPT,
+        tools: OUTILS,
         messages,
       }),
     })
@@ -85,9 +107,11 @@ export default async (req) => {
     }
 
     const data = await r.json()
-    const reponse = data?.content?.find((b) => b.type === 'text')?.text || ''
+    const reponse = (data?.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('\n').trim()
+    const appelOutil = (data?.content || []).find((b) => b.type === 'tool_use' && b.name === 'mettre_a_jour_profil_projet')
+    const infosExtraites = appelOutil ? appelOutil.input : null
 
-    return new Response(JSON.stringify({ reponse }), {
+    return new Response(JSON.stringify({ reponse, infosExtraites }), {
       headers: { 'content-type': 'application/json' },
     })
   } catch (e) {
