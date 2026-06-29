@@ -31,28 +31,85 @@ Tu discutes avec un prospect qui arrive depuis WhatsApp pour décrire un projet 
 Pose des questions simples, une à la fois, pour récolter progressivement : type de projet, localisation, surface approximative (m²), souhait peinture incluse ou non, budget indicatif, délai souhaité, et toute exigence particulière.
 Reste chaleureux, concis, professionnel, en français.
 Ne donne JAMAIS de prix précis toi-même — dis que Ousmane (le gérant) étudiera la demande et reviendra avec un devis personnalisé.
-Quand tu juges avoir assez d'informations pour permettre un devis, remercie le prospect et explique qu'Ousmane va examiner sa demande et le recontacter rapidement, sur WhatsApp ou via cette même page.
+Quand tu juges avoir assez d'informations pour permettre un devis, remercie le prospect et explique qu'Ousmane va examiner sa demande et le recontacter rapidement, sur WhatsApp ou via cette même page.`
 
-IMPORTANT : chaque fois qu'une information pertinente est mentionnée ou confirmée (même partiellement), appelle l'outil "mettre_a_jour_profil_projet" avec TOUTES les informations connues jusqu'ici (pas seulement les nouvelles) — en plus de ta réponse conversationnelle normale.`
+const SYSTEM_EXTRACTION = `Tu lis une conversation entre l'assistant de UniC Plaquiste et un prospect.
+Utilise l'outil fourni pour renvoyer l'état le plus complet possible des informations connues sur le projet, en te basant sur TOUTE la conversation (pas seulement le dernier message).
+Omets un champ si l'information n'a pas été mentionnée. N'invente jamais une valeur.`
 
-const OUTILS = [
-  {
-    name: 'mettre_a_jour_profil_projet',
-    description: "Enregistre ou met à jour les informations connues sur le projet du prospect. À appeler chaque fois qu'une information pertinente est mentionnée, avec l'ensemble des informations connues jusqu'ici.",
-    input_schema: {
-      type: 'object',
-      properties: {
-        typeProjet: { type: 'string', description: "Identifiant si possible : faux-plafond, cloison, peinture, doublage, corniche, renovation. Sinon description libre." },
-        localisation: { type: 'string', description: 'Ville ou quartier du chantier' },
-        surfaceM2: { type: 'number', description: 'Surface approximative en m²' },
-        avecPeinture: { type: 'boolean', description: 'true si peinture incluse souhaitée, false sinon (surtout pertinent pour faux-plafond)' },
-        budgetIndicatif: { type: 'string', description: 'Budget mentionné par le client, tel quel' },
-        delaiSouhaite: { type: 'string', description: 'Délai souhaité pour les travaux' },
-        exigencesParticulieres: { type: 'string', description: 'Détails ou exigences particulières mentionnées' },
-      },
+const OUTIL_EXTRACTION = {
+  name: 'enregistrer_profil_projet',
+  description: "Renvoie l'ensemble des informations connues sur le projet du prospect, déduites de toute la conversation.",
+  input_schema: {
+    type: 'object',
+    properties: {
+      typeProjet: { type: 'string', description: "Identifiant si possible : faux-plafond, cloison, peinture, doublage, corniche, renovation. Sinon description libre." },
+      localisation: { type: 'string', description: 'Ville ou quartier du chantier' },
+      surfaceM2: { type: 'number', description: 'Surface approximative en m²' },
+      avecPeinture: { type: 'boolean', description: 'true si peinture incluse souhaitée, false sinon (surtout pertinent pour faux-plafond)' },
+      budgetIndicatif: { type: 'string', description: 'Budget mentionné par le client, tel quel' },
+      delaiSouhaite: { type: 'string', description: 'Délai souhaité pour les travaux' },
+      exigencesParticulieres: { type: 'string', description: 'Détails ou exigences particulières mentionnées' },
     },
   },
-]
+}
+
+// Appel 1 : la réponse conversationnelle normale, affichée au prospect.
+async function appelConversation(messages) {
+  const r = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'x-api-key': process.env.CLAUDE_API_KEY,
+      'anthropic-version': '2023-06-01',
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 500,
+      system: SYSTEM_PROMPT,
+      messages,
+    }),
+  })
+  if (!r.ok) {
+    const errText = await r.text()
+    console.error('Erreur API Claude (conversation):', r.status, errText)
+    throw new Error('Erreur du service IA')
+  }
+  const data = await r.json()
+  return (data?.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('\n').trim()
+}
+
+// Appel 2 : extraction structurée FORCÉE (tool_choice) — contrairement à un appel
+// où l'outil est juste "disponible", ici Claude DOIT s'en servir, donc on a toujours
+// un résultat, peu importe le tour de conversation. Coût supplémentaire faible
+// (peu de tokens), largement justifié par la fiabilité.
+async function appelExtraction(messages, derniereReponseIA) {
+  const historiqueComplet = [...messages, { role: 'assistant', content: derniereReponseIA || '(pas de réponse)' }]
+  const r = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'x-api-key': process.env.CLAUDE_API_KEY,
+      'anthropic-version': '2023-06-01',
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 300,
+      system: SYSTEM_EXTRACTION,
+      tools: [OUTIL_EXTRACTION],
+      tool_choice: { type: 'tool', name: 'enregistrer_profil_projet' },
+      messages: historiqueComplet,
+    }),
+  })
+  if (!r.ok) {
+    const errText = await r.text()
+    console.error('Erreur API Claude (extraction):', r.status, errText)
+    return null // l'extraction est un bonus : si elle échoue, la conversation continue quand même
+  }
+  const data = await r.json()
+  const appelOutil = (data?.content || []).find((b) => b.type === 'tool_use' && b.name === 'enregistrer_profil_projet')
+  return appelOutil ? appelOutil.input : null
+}
 
 export default async (req) => {
   if (req.method !== 'POST') {
@@ -84,38 +141,14 @@ export default async (req) => {
   }
 
   try {
-    const r = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': process.env.CLAUDE_API_KEY,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 600,
-        system: SYSTEM_PROMPT,
-        tools: OUTILS,
-        messages,
-      }),
-    })
-
-    if (!r.ok) {
-      const errText = await r.text()
-      console.error('Erreur API Claude (prospect-chat):', r.status, errText)
-      return new Response(JSON.stringify({ error: 'Erreur du service IA' }), { status: 502 })
-    }
-
-    const data = await r.json()
-    const reponse = (data?.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('\n').trim()
-    const appelOutil = (data?.content || []).find((b) => b.type === 'tool_use' && b.name === 'mettre_a_jour_profil_projet')
-    const infosExtraites = appelOutil ? appelOutil.input : null
+    const reponse = await appelConversation(messages)
+    const infosExtraites = await appelExtraction(messages, reponse)
 
     return new Response(JSON.stringify({ reponse, infosExtraites }), {
       headers: { 'content-type': 'application/json' },
     })
   } catch (e) {
     console.error('Erreur fonction prospect-chat:', e)
-    return new Response(JSON.stringify({ error: 'Erreur serveur' }), { status: 500 })
+    return new Response(JSON.stringify({ error: e.message || 'Erreur serveur' }), { status: 500 })
   }
 }
