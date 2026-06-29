@@ -116,6 +116,12 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // ==================== base_connaissances (IA) ====================
+    // Réservé aux admins : c'est leur outil interne, pas une donnée client.
+    match /base_connaissances/{id} {
+      allow read, write: if isAdmin();
+    }
+
     // ==================== DÉFAUT: tout bloquer ====================
     match /{document=**} {
       allow read, write: if false;

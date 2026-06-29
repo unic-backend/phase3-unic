@@ -28,6 +28,7 @@ import AdminDevis from './admin/AdminDevis'
 import AdminProjets from './admin/AdminProjets'
 import AdminFactures from './admin/AdminFactures'
 import AdminMessages from './admin/AdminMessages'
+import AdminBaseConnaissances from './admin/AdminBaseConnaissances'
 
 export default function App() {
   return (
@@ -74,6 +75,7 @@ export default function App() {
             <Route path="projets" element={<AdminProjets />} />
             <Route path="factures" element={<AdminFactures />} />
             <Route path="messages" element={<AdminMessages />} />
+            <Route path="connaissances" element={<AdminBaseConnaissances />} />
           </Route>
 
           {/* Redirection */}

@@ -7,6 +7,7 @@ import {
 } from 'firebase/auth'
 import { auth, db } from '../firebase/init'
 import { doc, setDoc, getDoc } from 'firebase/firestore'
+import { isAdminEmail } from '../config/admins'
 
 const AuthContext = createContext()
 
@@ -75,13 +76,8 @@ export function AuthProvider({ children }) {
       const result = await createUserWithEmailAndPassword(auth, emailLower, password)
       console.log('Account created:', result.user.uid)
 
-      // Vérifier si c'est un admin
-      const ADMIN_EMAILS = [
-        'admin@unicplaquiste.com',
-        'unicplaquiste@gmail.com',
-        'odiop2020@gmail.com'
-      ]
-      const isAdminUser = ADMIN_EMAILS.includes(emailLower)
+      // Vérifier si c'est un admin (liste centrale, voir src/config/admins.js)
+      const isAdminUser = isAdminEmail(emailLower)
 
       // Sauvegarder profil EN ARRIÈRE-PLAN (ne pas attendre)
       setDoc(doc(db, 'users', result.user.uid), {
