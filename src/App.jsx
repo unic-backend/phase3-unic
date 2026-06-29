@@ -31,6 +31,7 @@ import AdminFactures from './admin/AdminFactures'
 import AdminMessages from './admin/AdminMessages'
 import AdminBaseConnaissances from './admin/AdminBaseConnaissances'
 import AdminProspects from './admin/AdminProspects'
+import AdminSignature from './admin/AdminSignature'
 
 export default function App() {
   return (
@@ -80,6 +81,7 @@ export default function App() {
             <Route path="messages" element={<AdminMessages />} />
             <Route path="connaissances" element={<AdminBaseConnaissances />} />
             <Route path="prospects" element={<AdminProspects />} />
+            <Route path="signature" element={<AdminSignature />} />
           </Route>
 
           {/* Redirection */}

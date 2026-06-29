@@ -8,7 +8,7 @@ import {
   LayoutDashboard, Users, FileText, Building2,
   Receipt, MessageSquare, User, LogOut, Menu,
   ChevronLeft, ChevronRight, Bell, Search,
-  Settings, Plus, Brain, Users2
+  Settings, Plus, Brain, Users2, PenTool
 } from 'lucide-react'
 import logo from '../assets/logo.webp'
 
@@ -35,6 +35,7 @@ export default function AdminLayout() {
     { icon: MessageSquare, label: 'Messages', path: '/admin/messages' },
     { icon: Brain, label: 'Assistant IA', path: '/admin/connaissances' },
     { icon: Users2, label: 'Prospects', path: '/admin/prospects' },
+    { icon: PenTool, label: 'Ma signature', path: '/admin/signature' },
   ]
 
   const mobileNavItems = [
