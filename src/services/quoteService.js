@@ -119,6 +119,22 @@ export const changerStatutDevis = async (devisId, statut) => {
   }
 }
 
+// Modifier manuellement le montant d'un devis (admin) — typiquement avant
+// approbation, ou pour fixer un prix "sur devis" (ex: cloisons) qui n'en avait pas.
+export const modifierMontantDevis = async (devisId, nouveauMontant) => {
+  try {
+    await updateDoc(doc(db, 'quotes', devisId), {
+      totalTTC: Number(nouveauMontant) || 0,
+      surDevis: false, // un montant a été fixé manuellement, ce n'est plus "sans prix"
+      updatedAt: Timestamp.now()
+    })
+    return true
+  } catch (error) {
+    console.error('modifierMontantDevis:', error)
+    return false
+  }
+}
+
 // Supprimer un devis rejeté (le client concerné ou l'admin). Les règles Firestore
 // n'autorisent la suppression QUE si le statut est 'Rejeté' (sécurité côté serveur).
 export const supprimerDevis = async (devisId) => {

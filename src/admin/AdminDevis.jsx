@@ -1,11 +1,11 @@
 import { useState, useEffect, useMemo } from 'react'
-import { getTousDevis, changerStatutDevis, supprimerDevis } from '../services/quoteService'
+import { getTousDevis, changerStatutDevis, supprimerDevis, modifierMontantDevis } from '../services/quoteService'
 import { creerFacture } from '../services/invoiceService'
 import SearchBar from '../components/SearchBar'
 import SortSelect from '../components/SortSelect'
 import { trierListe, OPTIONS_TRI } from '../utils/tri'
 import { formatMontant } from '../utils/pricing'
-import { Check, X, RotateCcw, FileText, Trash2, Clock, CheckCircle2, XCircle } from 'lucide-react'
+import { Check, X, RotateCcw, FileText, Trash2, Clock, CheckCircle2, XCircle, Pencil } from 'lucide-react'
 
 export default function AdminDevis() {
   const [devisList, setDevisList] = useState([])
@@ -15,6 +15,8 @@ export default function AdminDevis() {
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState('Tous')
   const [sortKey, setSortKey] = useState('date_desc')
+  const [enEdition, setEnEdition] = useState(null)
+  const [nouveauMontant, setNouveauMontant] = useState('')
 
   const charger = async () => { setLoading(true); setDevisList(await getTousDevis()); setLoading(false) }
   useEffect(() => { charger() }, [])
@@ -38,6 +40,23 @@ export default function AdminDevis() {
     if (await changerStatutDevis(devis.id, statut)) {
       flash(`Devis ${devis.quoteNumber} : ${statut}`)
       setDevisList(prev => prev.map(d => d.id === devis.id ? { ...d, status: statut } : d))
+    }
+  }
+
+  const ouvrirEditionMontant = (devis) => {
+    setEnEdition(devis.id)
+    setNouveauMontant(String(devis.totalTTC || ''))
+  }
+
+  const enregistrerMontant = async (devis) => {
+    const montant = Number(nouveauMontant)
+    if (!nouveauMontant || isNaN(montant) || montant < 0) { flash('Montant invalide'); return }
+    if (await modifierMontantDevis(devis.id, montant)) {
+      setDevisList(prev => prev.map(d => d.id === devis.id ? { ...d, totalTTC: montant, surDevis: false } : d))
+      setEnEdition(null)
+      flash(`Montant mis à jour : ${montant.toLocaleString('fr-FR')} FCFA`)
+    } else {
+      flash('Erreur lors de la mise à jour')
     }
   }
 
@@ -158,9 +177,34 @@ export default function AdminDevis() {
                   <span style={{ color: 'var(--text-muted)' }}>Surface</span>
                   <span className="font-medium text-white">{devis.surface} m²</span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between items-center">
                   <span style={{ color: 'var(--text-muted)' }}>Montant</span>
-                  <span className="font-semibold" style={{ color: 'var(--gold)' }}>{formatMontant(devis)}</span>
+                  {enEdition === devis.id ? (
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="number" autoFocus value={nouveauMontant}
+                        onChange={(e) => setNouveauMontant(e.target.value)}
+                        className="w-28 px-2 py-1 rounded-lg text-sm text-white text-right outline-none"
+                        style={{ background: 'var(--dark-elevated)', border: '1px solid var(--gold)' }}
+                        placeholder="FCFA"
+                      />
+                      <button onClick={() => enregistrerMontant(devis)} className="p-1.5 rounded-lg" style={{ background: 'rgba(52,211,153,0.15)', color: '#34D399' }}>
+                        <Check size={14} />
+                      </button>
+                      <button onClick={() => setEnEdition(null)} className="p-1.5 rounded-lg" style={{ background: 'var(--dark-elevated)', color: 'var(--text-muted)' }}>
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-semibold" style={{ color: 'var(--gold)' }}>{formatMontant(devis)}</span>
+                      {devis.status !== 'Rejeté' && (
+                        <button onClick={() => ouvrirEditionMontant(devis)} className="p-1 rounded-lg transition hover:bg-dark-700" style={{ color: 'var(--text-muted)' }} title="Modifier le montant">
+                          <Pencil size={13} />
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -192,7 +236,7 @@ export default function AdminDevis() {
                   {devis.status === 'Approuvé' && (
                     devis.surDevis ? (
                       <p className="text-center text-xs p-2.5 rounded-xl" style={{ background: 'rgba(96,165,250,0.08)', color: 'var(--text-secondary)' }}>
-                        ⚠️ Prix "sur devis" — fixe le montant final avec le client avant de créer la facture (pas encore possible directement dans l'app).
+                        ⚠️ Prix "sur devis" — clique sur le crayon ✏️ près du montant ci-dessus pour fixer le prix avant de créer la facture.
                       </p>
                     ) : factures[devis.id] ? (
                       <p className="text-center text-xs font-semibold py-2 rounded-xl badge-success">
