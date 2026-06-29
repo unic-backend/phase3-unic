@@ -1,5 +1,14 @@
+import { webcrypto } from 'node:crypto'
 import { jwtVerify, createRemoteJWKSet } from 'jose'
 import { ADMIN_EMAILS } from '../src/config/admins.js'
+
+// Polyfill : certains environnements Netlify utilisent une version de Node
+// où l'API Web Crypto (globalThis.crypto) n'est pas définie globalement.
+// La librairie "jose" en a besoin pour vérifier les tokens. Sans risque :
+// c'est la même implémentation native de Node, juste rendue accessible.
+if (!globalThis.crypto) {
+  globalThis.crypto = webcrypto
+}
 
 const FIREBASE_PROJECT_ID = 'unic-plaquiste'
 

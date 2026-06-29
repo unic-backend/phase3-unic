@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { isAdminEmail } from '../config/admins'
 import {
-  X, User, Headphones, Phone, ShieldCheck, UserCircle, LogOut
+  X, User, Headphones, Phone, ShieldCheck, UserCircle, LogOut, Brain
 } from 'lucide-react'
 
 // Menu latéral premium (style Revolut / Notion)
@@ -33,6 +33,7 @@ export default function SideDrawer({ open, onClose, mode = 'client' }) {
     }
   } else {
     items.push({ icon: User, label: 'Espace Client', action: () => go('/client/dashboard') })
+    items.push({ icon: Brain, label: 'Assistant IA', action: () => go('/admin/connaissances') })
   }
 
   items.push({ icon: Headphones, label: 'Support', action: () => go('/client/chat') })
