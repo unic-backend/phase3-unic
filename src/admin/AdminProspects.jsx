@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo } from 'react'
-import { getTousProspects, marquerProspectStatut, enregistrerAnalyseIA } from '../services/prospectService'
+import { getTousProspects, marquerProspectStatut, enregistrerAnalyseIA, convertirProspectEnClient } from '../services/prospectService'
 import { demanderAssistant } from '../services/iaService'
 import { calculerPrixUnitaire, calculerMontant, estSurDevis } from '../utils/pricing'
-import { Users2, MessageCircle, X, MapPin, Ruler, Wallet, Clock, CheckCircle2, Circle, Phone, Sparkles, ImageIcon } from 'lucide-react'
+import { Users2, MessageCircle, X, MapPin, Ruler, Wallet, Clock, CheckCircle2, Circle, Phone, Sparkles, ImageIcon, UserPlus } from 'lucide-react'
 
 const LABELS_TYPE = {
   'faux-plafond': 'Faux plafond BA13',
@@ -90,6 +90,8 @@ export default function AdminProspects() {
   const [filtre, setFiltre] = useState('Tous')
   const [analyseEnCours, setAnalyseEnCours] = useState(false)
   const [erreurAnalyse, setErreurAnalyse] = useState('')
+  const [conversionEnCours, setConversionEnCours] = useState(false)
+  const [erreurConversion, setErreurConversion] = useState('')
 
   const charger = async () => { setLoading(true); setProspects(await getTousProspects()); setLoading(false) }
   useEffect(() => { charger() }, [])
@@ -121,6 +123,22 @@ export default function AdminProspects() {
       setErreurAnalyse(e.message || 'Erreur lors de l\'analyse')
     } finally {
       setAnalyseEnCours(false)
+    }
+  }
+
+  const convertirEnClient = async (p) => {
+    if (!window.confirm(`Créer un compte client + un devis pour ${p.coordonnees?.nom || 'ce prospect'} ?`)) return
+    setConversionEnCours(true)
+    setErreurConversion('')
+    try {
+      const devis = await convertirProspectEnClient(p)
+      const miseAJour = { statut: 'traite', devisCreeId: devis.id, devisCreeNumero: devis.quoteNumber }
+      setProspects((prev) => prev.map((x) => x.id === p.id ? { ...x, ...miseAJour } : x))
+      setSelectionne((prev) => prev && prev.id === p.id ? { ...prev, ...miseAJour } : prev)
+    } catch (e) {
+      setErreurConversion(e.message || 'Erreur lors de la conversion')
+    } finally {
+      setConversionEnCours(false)
     }
   }
 
@@ -217,6 +235,21 @@ export default function AdminProspects() {
                 style={{ background: 'var(--dark-elevated)', border: '1px solid var(--dark-border)', color: 'var(--gold)' }}>
                 <Sparkles size={15} /> {analyseEnCours ? 'Analyse en cours...' : selectionne.analyseIA ? 'Relancer l\'analyse IA' : 'Analyser avec l\'IA'}
               </button>
+
+              {erreurConversion && <p className="text-xs" style={{ color: '#F87171' }}>⚠️ {erreurConversion}</p>}
+
+              {selectionne.devisCreeId ? (
+                <p className="text-center text-xs font-semibold py-2.5 rounded-xl badge-success">
+                  ✓ Devis {selectionne.devisCreeNumero} créé — voir dans "Devis"
+                </p>
+              ) : (
+                <button onClick={() => convertirEnClient(selectionne)} disabled={conversionEnCours || !selectionne.infosCollectees?.typeProjet}
+                  className="w-full py-2.5 rounded-xl font-semibold text-sm btn-press disabled:opacity-50 flex items-center justify-center gap-2"
+                  style={{ background: 'var(--gold)', color: '#060D18' }}
+                  title={!selectionne.infosCollectees?.typeProjet ? 'Le formulaire n\'a pas encore été rempli' : ''}>
+                  <UserPlus size={16} /> {conversionEnCours ? 'Création...' : 'Créer le compte client + le devis'}
+                </button>
+              )}
 
               {(selectionne.messages || []).length > 0 && (
                 <div className="space-y-3 pt-2" style={{ borderTop: '1px solid var(--dark-border)', marginTop: '8px' }}>

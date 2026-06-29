@@ -1,6 +1,7 @@
 import { signInAnonymously } from 'firebase/auth'
 import { collection, getDocs, doc, getDoc, setDoc, updateDoc, onSnapshot, Timestamp, arrayUnion } from 'firebase/firestore'
 import { auth, db } from '../firebase/init'
+import { creerDevis } from './quoteService'
 
 // Limite de messages par discussion (protection contre les coûts/abus,
 // surtout important ici car le lien est public et générique — voir prospect-chat.js)
@@ -137,4 +138,42 @@ export const enregistrerAnalyseIA = async (uid, texte) => {
     console.error('enregistrerAnalyseIA:', e)
     return false
   }
+}
+
+// Convertit un prospect en véritable client + crée le devis correspondant (admin uniquement).
+// Réutilise l'uid anonyme déjà existant comme identifiant client — pas besoin
+// d'email/mot de passe pour cette étape. Limite à savoir : cette identité reste
+// liée au navigateur/appareil du prospect (session anonyme), pas encore à un
+// compte email/mot de passe permanent multi-appareils.
+export const convertirProspectEnClient = async (prospect) => {
+  const uid = prospect.id
+  const coord = prospect.coordonnees || {}
+  const infos = prospect.infosCollectees || {}
+
+  await setDoc(doc(db, 'users', uid), {
+    nom: coord.nom || 'Client',
+    telephone: coord.telephone || '',
+    isAdmin: false,
+    creeViaProspect: true,
+    createdAt: Timestamp.now(),
+  }, { merge: true })
+
+  const devis = await creerDevis(uid, '', {
+    type: infos.typeProjet || '',
+    surface: infos.surfaceM2 || 0,
+    avecPeinture: infos.avecPeinture,
+    description: infos.exigencesParticulieres || `Demande reçue via le formulaire WhatsApp.${infos.budgetIndicatif ? ` Budget indiqué par le client : ${infos.budgetIndicatif}.` : ''}`,
+    localisation: infos.localisation || 'Dakar',
+    urgence: infos.delaiSouhaite || '',
+    budget: infos.budgetIndicatif || '',
+  })
+
+  await updateDoc(doc(db, 'prospects', uid), {
+    statut: 'traite',
+    devisCreeId: devis.id,
+    devisCreeNumero: devis.quoteNumber,
+    updatedAt: Timestamp.now(),
+  })
+
+  return devis
 }
