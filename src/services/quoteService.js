@@ -135,6 +135,41 @@ export const modifierMontantDevis = async (devisId, nouveauMontant) => {
   }
 }
 
+// Enregistrer le détail ligne par ligne (matériaux + forfait main-d'oeuvre) d'un
+// devis — utilisé pour générer un PDF fidèle au modèle officiel UniC Plaquiste.
+// Recalcule automatiquement le montant total à partir de ces lignes.
+export const enregistrerDetailDevis = async (devisId, { lignesMateriaux, lignesMainOeuvre, exclusions, modalitesPaiement }) => {
+  try {
+    const lignes = (lignesMateriaux || []).map((l) => ({
+      designation: l.designation || '',
+      prixUnitaire: Number(l.prixUnitaire) || 0,
+      quantite: Number(l.quantite) || 0,
+      prixTotal: (Number(l.prixUnitaire) || 0) * (Number(l.quantite) || 0),
+    }))
+    const totalMateriaux = lignes.reduce((sum, l) => sum + l.prixTotal, 0)
+
+    const mainOeuvre = (lignesMainOeuvre || [])
+      .filter((l) => l.designation?.trim())
+      .map((l) => ({ designation: l.designation, montant: Number(l.montant) || 0 }))
+    const totalMainOeuvre = mainOeuvre.reduce((sum, l) => sum + l.montant, 0)
+
+    await updateDoc(doc(db, 'quotes', devisId), {
+      lignesMateriaux: lignes,
+      lignesMainOeuvre: mainOeuvre,
+      forfaitMainOeuvre: null, // ancien format (1 seule ligne), remplacé par lignesMainOeuvre
+      exclusions: exclusions || '',
+      modalitesPaiement: modalitesPaiement || '',
+      totalTTC: totalMateriaux + totalMainOeuvre,
+      surDevis: false,
+      updatedAt: Timestamp.now(),
+    })
+    return true
+  } catch (error) {
+    console.error('enregistrerDetailDevis:', error)
+    return false
+  }
+}
+
 // Supprimer un devis rejeté (le client concerné ou l'admin). Les règles Firestore
 // n'autorisent la suppression QUE si le statut est 'Rejeté' (sécurité côté serveur).
 export const supprimerDevis = async (devisId) => {
