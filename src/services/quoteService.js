@@ -24,6 +24,7 @@ export const creerDevis = async (clientId, clientEmail, data) => {
   const devis = {
     clientId: clientId || 'inconnu',
     clientEmail: clientEmail || '',
+    clientNom: data.clientNom || '',
     quoteNumber: genererNumero(),
     title: data.title || `Devis ${data.type || ''}`.trim(),
     description: data.description || '',
@@ -115,6 +116,21 @@ export const changerStatutDevis = async (devisId, statut) => {
     return true
   } catch (error) {
     console.error('changerStatutDevis:', error)
+    return false
+  }
+}
+
+// Modifier manuellement le nom du client et/ou la description (admin) —
+// utile pour corriger un devis créé sans ces infos, ou après amélioration IA.
+export const modifierInfosDevis = async (devisId, { clientNom, description }) => {
+  try {
+    const maj = { updatedAt: Timestamp.now() }
+    if (clientNom !== undefined) maj.clientNom = clientNom
+    if (description !== undefined) maj.description = description
+    await updateDoc(doc(db, 'quotes', devisId), maj)
+    return true
+  } catch (error) {
+    console.error('modifierInfosDevis:', error)
     return false
   }
 }

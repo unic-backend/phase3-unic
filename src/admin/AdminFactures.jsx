@@ -77,8 +77,8 @@ export default function AdminFactures() {
   const enregistrerDetail = async (facture) => {
     const lignesValides = lignesEdit.filter(l => l.designation.trim())
     if (await enregistrerDetailFacture(facture.id, { lignesMateriaux: lignesValides })) {
-      setFactures(prev => prev.map(f => f.id === facture.id ? { ...f, lignesMateriaux: lignesValides, amount: totalLignesEdit } : f))
       setDetailEnEdition(null)
+      await charger()
       flash('Détail de la facture enregistré')
     } else {
       flash('Erreur lors de l\'enregistrement')

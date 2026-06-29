@@ -162,6 +162,7 @@ export const convertirProspectEnClient = async (prospect) => {
     type: infos.typeProjet || '',
     surface: infos.surfaceM2 || 0,
     avecPeinture: infos.avecPeinture,
+    clientNom: coord.nom || '',
     description: infos.exigencesParticulieres || `Demande reçue via le formulaire WhatsApp.${infos.budgetIndicatif ? ` Budget indiqué par le client : ${infos.budgetIndicatif}.` : ''}`,
     localisation: infos.localisation || 'Dakar',
     urgence: infos.delaiSouhaite || '',

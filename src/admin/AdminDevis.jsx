@@ -1,12 +1,13 @@
 import { useState, useEffect, useMemo } from 'react'
-import { getTousDevis, changerStatutDevis, supprimerDevis, modifierMontantDevis, enregistrerDetailDevis } from '../services/quoteService'
+import { getTousDevis, changerStatutDevis, supprimerDevis, modifierMontantDevis, enregistrerDetailDevis, modifierInfosDevis } from '../services/quoteService'
 import { creerFacture } from '../services/invoiceService'
 import { telechargerDevisPDF } from '../pdf/generatePdf'
+import { demanderAssistant } from '../services/iaService'
 import SearchBar from '../components/SearchBar'
 import SortSelect from '../components/SortSelect'
 import { trierListe, OPTIONS_TRI } from '../utils/tri'
 import { formatMontant } from '../utils/pricing'
-import { Check, X, RotateCcw, FileText, Trash2, Clock, CheckCircle2, XCircle, Pencil, FileDown, ListPlus, Plus } from 'lucide-react'
+import { Check, X, RotateCcw, FileText, Trash2, Clock, CheckCircle2, XCircle, Pencil, FileDown, ListPlus, Plus, Sparkles } from 'lucide-react'
 
 export default function AdminDevis() {
   const [devisList, setDevisList] = useState([])
@@ -23,6 +24,9 @@ export default function AdminDevis() {
   const [lignesMainOeuvreEdit, setLignesMainOeuvreEdit] = useState([])
   const [exclusionsEdit, setExclusionsEdit] = useState('')
   const [modalitesPaiementEdit, setModalitesPaiementEdit] = useState('')
+  const [clientNomEdit, setClientNomEdit] = useState('')
+  const [descriptionEdit, setDescriptionEdit] = useState('')
+  const [ameliorationEnCours, setAmeliorationEnCours] = useState(false)
   const [pdfEnCours, setPdfEnCours] = useState(null)
   const [erreurPdf, setErreurPdf] = useState('')
 
@@ -60,8 +64,8 @@ export default function AdminDevis() {
     const montant = Number(nouveauMontant)
     if (!nouveauMontant || isNaN(montant) || montant < 0) { flash('Montant invalide'); return }
     if (await modifierMontantDevis(devis.id, montant)) {
-      setDevisList(prev => prev.map(d => d.id === devis.id ? { ...d, totalTTC: montant, surDevis: false } : d))
       setEnEdition(null)
+      await charger()
       flash(`Montant mis à jour : ${montant.toLocaleString('fr-FR')} FCFA`)
     } else {
       flash('Erreur lors de la mise à jour')
@@ -84,6 +88,8 @@ export default function AdminDevis() {
     )
     setExclusionsEdit(devis.exclusions || '')
     setModalitesPaiementEdit(devis.modalitesPaiement || '')
+    setClientNomEdit(devis.clientNom || '')
+    setDescriptionEdit(devis.description || '')
   }
 
   const modifierLigne = (index, champ, valeur) => {
@@ -106,12 +112,28 @@ export default function AdminDevis() {
   const enregistrerDetail = async (devis) => {
     const lignesValides = lignesEdit.filter(l => l.designation.trim())
     const mainOeuvreValide = lignesMainOeuvreEdit.filter(l => l.designation.trim())
-    if (await enregistrerDetailDevis(devis.id, { lignesMateriaux: lignesValides, lignesMainOeuvre: mainOeuvreValide, exclusions: exclusionsEdit, modalitesPaiement: modalitesPaiementEdit })) {
-      setDevisList(prev => prev.map(d => d.id === devis.id ? { ...d, lignesMateriaux: lignesValides, lignesMainOeuvre: mainOeuvreValide, forfaitMainOeuvre: null, exclusions: exclusionsEdit, modalitesPaiement: modalitesPaiementEdit, totalTTC: totalGeneralEdit, surDevis: false } : d))
+    const ok1 = await enregistrerDetailDevis(devis.id, { lignesMateriaux: lignesValides, lignesMainOeuvre: mainOeuvreValide, exclusions: exclusionsEdit, modalitesPaiement: modalitesPaiementEdit })
+    const ok2 = await modifierInfosDevis(devis.id, { clientNom: clientNomEdit, description: descriptionEdit })
+    if (ok1 && ok2) {
       setDetailEnEdition(null)
+      await charger()
       flash('Détail du devis enregistré')
     } else {
       flash('Erreur lors de l\'enregistrement')
+    }
+  }
+
+  const ameliorerDescription = async () => {
+    if (!descriptionEdit.trim()) { flash('Écris d\'abord une description de base'); return }
+    setAmeliorationEnCours(true)
+    try {
+      const question = `Voici une description brute d'un projet, écrite par un client : "${descriptionEdit}". Réécris-la en un paragraphe professionnel pour un devis officiel de plaquisterie (style : "Fourniture et pose de... Les travaux incluent..."). Réponds UNIQUEMENT avec le paragraphe, sans aucune autre phrase autour, en français, sans accents (comme le reste du document).`
+      const resultat = await demanderAssistant(question)
+      setDescriptionEdit(resultat.trim())
+    } catch (e) {
+      flash('Erreur IA : ' + (e.message || 'inconnue'))
+    } finally {
+      setAmeliorationEnCours(false)
     }
   }
 
@@ -361,6 +383,26 @@ export default function AdminDevis() {
 
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               <div>
+                <p className="text-xs font-semibold mb-2" style={{ color: 'var(--gold)' }}>NOM DU CLIENT</p>
+                <input value={clientNomEdit} onChange={(e) => setClientNomEdit(e.target.value)}
+                  placeholder="Nom du client (pour le PDF)" className="w-full px-2.5 py-2 rounded-lg text-xs text-white placeholder-[#4A5B73] outline-none"
+                  style={{ background: 'var(--dark-elevated)', border: '1px solid var(--dark-border)' }} />
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-xs font-semibold" style={{ color: 'var(--gold)' }}>OBJET DU DEVIS</p>
+                  <button onClick={ameliorerDescription} disabled={ameliorationEnCours}
+                    className="flex items-center gap-1 text-xs font-semibold disabled:opacity-50" style={{ color: 'var(--gold)' }}>
+                    <Sparkles size={12} /> {ameliorationEnCours ? 'Amélioration...' : 'Améliorer avec l\'IA'}
+                  </button>
+                </div>
+                <textarea value={descriptionEdit} onChange={(e) => setDescriptionEdit(e.target.value)} rows={3}
+                  placeholder="Décris le projet..." className="w-full px-2.5 py-2 rounded-lg text-xs text-white placeholder-[#4A5B73] outline-none resize-none"
+                  style={{ background: 'var(--dark-elevated)', border: '1px solid var(--dark-border)' }} />
+              </div>
+
+              <div style={{ borderTop: '1px solid var(--dark-border)', paddingTop: '14px' }}>
                 <p className="text-xs font-semibold mb-2" style={{ color: 'var(--gold)' }}>MATÉRIAUX</p>
                 <div className="space-y-2">
                   {lignesEdit.map((ligne, i) => (
