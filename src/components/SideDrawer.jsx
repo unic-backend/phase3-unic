@@ -2,7 +2,8 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { isAdminEmail } from '../config/admins'
 import {
-  X, User, Headphones, Phone, ShieldCheck, UserCircle, LogOut, Brain, Users2, PenTool
+  X, User, Headphones, Phone, ShieldCheck, UserCircle, LogOut, Brain, Users2, PenTool,
+  TrendingUp, Receipt, Images, Calendar, Search
 } from 'lucide-react'
 
 // Menu latéral premium (style Revolut / Notion)
@@ -36,6 +37,11 @@ export default function SideDrawer({ open, onClose, mode = 'client' }) {
     items.push({ icon: Brain, label: 'Assistant IA', action: () => go('/admin/connaissances') })
     items.push({ icon: Users2, label: 'Prospects', action: () => go('/admin/prospects') })
     items.push({ icon: PenTool, label: 'Ma signature', action: () => go('/admin/signature') })
+    items.push({ icon: TrendingUp, label: 'Finances', action: () => go('/admin/finances') })
+    items.push({ icon: Receipt, label: 'Dépenses', action: () => go('/admin/depenses') })
+    items.push({ icon: Calendar, label: 'Calendrier', action: () => go('/admin/calendrier') })
+    items.push({ icon: Images, label: 'Portfolio', action: () => go('/admin/portfolio') })
+    items.push({ icon: Search, label: 'Appels d\'offres', action: () => go('/admin/opportunites') })
   }
 
   items.push({ icon: Headphones, label: 'Support', action: () => go('/client/chat') })

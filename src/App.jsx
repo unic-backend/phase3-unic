@@ -33,6 +33,11 @@ import AdminMessages from './admin/AdminMessages'
 import AdminBaseConnaissances from './admin/AdminBaseConnaissances'
 import AdminProspects from './admin/AdminProspects'
 import AdminSignature from './admin/AdminSignature'
+import AdminDashboardFinancier from './admin/AdminDashboardFinancier'
+import AdminDepenses from './admin/AdminDepenses'
+import AdminPortfolio from './admin/AdminPortfolio'
+import AdminCalendrier from './admin/AdminCalendrier'
+import AdminOpportunites from './admin/AdminOpportunites'
 
 export default function App() {
   return (
@@ -84,6 +89,11 @@ export default function App() {
             <Route path="connaissances" element={<AdminBaseConnaissances />} />
             <Route path="prospects" element={<AdminProspects />} />
             <Route path="signature" element={<AdminSignature />} />
+            <Route path="finances" element={<AdminDashboardFinancier />} />
+            <Route path="depenses" element={<AdminDepenses />} />
+            <Route path="portfolio" element={<AdminPortfolio />} />
+            <Route path="calendrier" element={<AdminCalendrier />} />
+            <Route path="opportunites" element={<AdminOpportunites />} />
           </Route>
 
           {/* Redirection */}

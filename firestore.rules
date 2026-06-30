@@ -137,6 +137,22 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // ==================== depenses ====================
+    match /depenses/{id} {
+      allow read, write: if isAdmin();
+    }
+
+    // ==================== portfolio ====================
+    match /portfolio/{id} {
+      allow read: if true; // Public : visible sur le site, utilisé par l'IA
+      allow write: if isAdmin();
+    }
+
+    // ==================== opportunites ====================
+    match /opportunites/{id} {
+      allow read, write: if isAdmin();
+    }
+
     // ==================== parametres (signature admin, etc.) ====================
     match /parametres/{id} {
       allow read, write: if isAdmin();

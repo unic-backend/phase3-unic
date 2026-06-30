@@ -8,7 +8,8 @@ import {
   LayoutDashboard, Users, FileText, Building2,
   Receipt, MessageSquare, User, LogOut, Menu,
   ChevronLeft, ChevronRight, Bell, Search,
-  Settings, Plus, Brain, Users2, PenTool
+  Settings, Plus, Brain, Users2, PenTool,
+  TrendingUp, Images
 } from 'lucide-react'
 import logo from '../assets/logo.webp'
 
@@ -36,6 +37,11 @@ export default function AdminLayout() {
     { icon: Brain, label: 'Assistant IA', path: '/admin/connaissances' },
     { icon: Users2, label: 'Prospects', path: '/admin/prospects' },
     { icon: PenTool, label: 'Ma signature', path: '/admin/signature' },
+    { icon: TrendingUp, label: 'Finances', path: '/admin/finances' },
+    { icon: Receipt, label: 'Dépenses', path: '/admin/depenses' },
+    { icon: Calendar, label: 'Calendrier', path: '/admin/calendrier' },
+    { icon: Images, label: 'Portfolio', path: '/admin/portfolio' },
+    { icon: Search, label: 'Appels d\'offres', path: '/admin/opportunites' },
   ]
 
   const mobileNavItems = [

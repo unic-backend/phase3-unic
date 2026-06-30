@@ -3,6 +3,15 @@ import { db, auth } from '../firebase/init'
 
 // ==================== Base de connaissances ====================
 
+// Retourne les N projets du portfolio les plus récents comme contexte pour l'IA
+async function getContextePortfolio() {
+  try {
+    const snap = await getDocs(collection(db, 'portfolio'))
+    const projets = snap.docs.map(d => d.data()).slice(0, 5)
+    return projets.map(p => `[Projet réalisé] ${p.titre} (${p.type || ''}) — ${p.localisation || ''}, ${p.surfaceM2 ? p.surfaceM2 + ' m²' : ''}, ${p.cout ? Math.round(p.cout).toLocaleString('fr-FR') + ' FCFA' : ''}, ${p.dureeJours ? p.dureeJours + ' jours' : ''}${p.notes ? ' — ' + p.notes : ''}`)
+  } catch { return [] }
+}
+
 export const ajouterConnaissance = async ({ titre, categorie, contenu, motsCles }) => {
   const entree = {
     titre: titre || '',
@@ -74,7 +83,8 @@ export const demanderAssistant = async (question) => {
 
   const toutes = await getConnaissances()
   const pertinentes = trouverPertinentes(toutes, question)
-  const contexte = pertinentes.map((c) => `[${c.categorie}] ${c.titre} : ${c.contenu}`)
+  const portfolio = await getContextePortfolio()
+  const contexte = [...pertinentes.map((c) => `[${c.categorie}] ${c.titre} : ${c.contenu}`), ...portfolio]
 
   const idToken = await utilisateur.getIdToken()
 
