@@ -9,7 +9,7 @@ import {
   Receipt, MessageSquare, User, LogOut, Menu,
   ChevronLeft, ChevronRight, Bell, Search,
   Settings, Plus, Brain, Users2, PenTool,
-  TrendingUp, Images
+  TrendingUp, Images, Calendar
 } from 'lucide-react'
 import logo from '../assets/logo.webp'
 
