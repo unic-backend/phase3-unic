@@ -211,8 +211,9 @@ export default function DevisPDF({ devis }) {
           </View>
           <View style={s.signatureCol}>
             <Text style={s.signatureNom}>Client ({devis.clientNom || devis.clientEmail || ''})</Text>
-            <Text style={s.signatureLigne}>Signature : ___________________</Text>
-            <Text style={s.signatureLigne}>Date : ___________________</Text>
+            {devis.signatureClient && <Image src={devis.signatureClient} style={s.signatureImage} />}
+            <Text style={s.signatureLigne}>Signature : {devis.signatureClient ? '' : '___________________'}</Text>
+            <Text style={s.signatureLigne}>Date : {devis.signatureClient ? (devis.signatureClientDate?.seconds ? new Date(devis.signatureClientDate.seconds * 1000).toLocaleDateString('fr-FR') : '—') : '___________________'}</Text>
           </View>
         </View>
       </Page>

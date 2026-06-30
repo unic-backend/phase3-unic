@@ -8,6 +8,7 @@ import AdminLayout from './admin/AdminLayout'
 // Pages publiques
 import HomePage from './pages/HomePage'
 import Discussion from './pages/Discussion'
+import SignerDevis from './pages/SignerDevis'
 import Login from './pages/Login'
 import InitAdmin from './pages/InitAdmin'
 import Signup from './pages/Signup'
@@ -41,6 +42,7 @@ export default function App() {
           {/* Routes publiques */}
           <Route path="/" element={<HomePage />} />
           <Route path="/discussion" element={<Discussion />} />
+          <Route path="/signer/:token" element={<SignerDevis />} />
           <Route path="/login" element={<Login />} />
           <Route path="/init-admin" element={<InitAdmin />} />
           <Route path="/signup" element={<Signup />} />

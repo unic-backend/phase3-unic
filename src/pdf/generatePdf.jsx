@@ -27,7 +27,13 @@ export async function telechargerDevisPDF(devis) {
   const { pdf } = await import('@react-pdf/renderer')
   const { default: DevisPDF } = await import('./DevisPDF.jsx')
   const signatureAdmin = await getSignatureAdmin()
-  const donnees = { ...devis, dateAffichee: formatDateAffichee(devis.createdAt), signatureAdmin }
+  // La signature client est déjà dans le document Firestore du devis
+  // si le client a signé via le lien WhatsApp — on la transmet directement.
+  const donnees = {
+    ...devis,
+    dateAffichee: formatDateAffichee(devis.createdAt),
+    signatureAdmin,
+  }
   const blob = await pdf(<DevisPDF devis={donnees} />).toBlob()
   declencherTelechargement(blob, `${devis.quoteNumber || 'devis'}.pdf`)
 }

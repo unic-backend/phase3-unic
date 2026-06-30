@@ -120,7 +120,58 @@ export const changerStatutDevis = async (devisId, statut) => {
   }
 }
 
-// Modifier manuellement le nom du client et/ou la description (admin) —
+// ── Signature électronique client ────────────────────────────────────────────
+
+// Génère un token unique, stocke-le sur le devis, et retourne le lien à envoyer.
+// Appelé par l'admin depuis AdminDevis.jsx après approbation du devis.
+export const genererLienSignature = async (devisId) => {
+  try {
+    // Token de 32 caractères hexadécimaux (assez pour être non-devinable)
+    const token = Array.from(crypto.getRandomValues(new Uint8Array(16)))
+      .map(b => b.toString(16).padStart(2, '0')).join('')
+    await updateDoc(doc(db, 'quotes', devisId), {
+      signatureToken: token,
+      signatureTokenDate: Timestamp.now(),
+      status: 'En attente de signature',
+      updatedAt: Timestamp.now(),
+    })
+    return token
+  } catch (error) {
+    console.error('genererLienSignature:', error)
+    return null
+  }
+}
+
+// Récupère un devis par son token (pas besoin d'être connecté — page publique /signer/:token)
+export const getDevisParToken = async (token) => {
+  try {
+    const q = query(collection(db, 'quotes'), where('signatureToken', '==', token))
+    const snap = await getDocs(q)
+    if (snap.empty) return null
+    const d = snap.docs[0]
+    return { id: d.id, ...d.data() }
+  } catch (error) {
+    console.error('getDevisParToken:', error)
+    return null
+  }
+}
+
+// Enregistre la signature du client sur le devis (page publique, vérification par token)
+export const signerDevisClient = async (devisId, token, signatureBase64) => {
+  try {
+    await updateDoc(doc(db, 'quotes', devisId), {
+      signatureClient: signatureBase64,
+      signatureClientDate: Timestamp.now(),
+      signatureToken: token, // gardé tel quel pour maintenir les droits Firestore
+      status: 'Signé',
+      updatedAt: Timestamp.now(),
+    })
+    return true
+  } catch (error) {
+    console.error('signerDevisClient:', error)
+    return false
+  }
+}
 // utile pour corriger un devis créé sans ces infos, ou après amélioration IA.
 export const modifierInfosDevis = async (devisId, { clientNom, description }) => {
   try {

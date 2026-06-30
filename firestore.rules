@@ -46,8 +46,15 @@ service cloud.firestore {
     // ==================== quotes (devis) ====================
     match /quotes/{quoteId} {
       allow create: if isAuth() && (request.resource.data.clientId == request.auth.uid || isAdmin());
-      allow read:   if isAuth() && (resource.data.clientId == request.auth.uid || isAdmin());
-      allow update: if isAuth() && isAdmin();
+      allow read:   if isAuth() && (resource.data.clientId == request.auth.uid || isAdmin())
+                    // Lecture publique par token de signature (lien WhatsApp envoyé au client)
+                    || resource.data.signatureToken != null;
+      allow update: if isAuth() && isAdmin()
+                    // Le client signe via son token unique : seuls les champs signature sont modifiables
+                    || resource.data.signatureToken != null
+                       && request.resource.data.signatureToken == resource.data.signatureToken
+                       && request.resource.data.diff(resource.data).affectedKeys()
+                          .hasOnly(['signatureClient', 'signatureClientDate', 'status', 'updatedAt']);
       // Suppression: uniquement un devis Rejeté (sans valeur business active),
       // par le client concerné ou l'admin. Jamais En attente ou Approuvé.
       allow delete: if isAuth() && resource.data.status == 'Rejeté'

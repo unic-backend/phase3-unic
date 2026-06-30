@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { getTousDevis, changerStatutDevis, supprimerDevis, modifierMontantDevis, enregistrerDetailDevis, modifierInfosDevis } from '../services/quoteService'
+import { getTousDevis, changerStatutDevis, supprimerDevis, modifierMontantDevis, enregistrerDetailDevis, modifierInfosDevis, genererLienSignature } from '../services/quoteService'
 import { creerFacture } from '../services/invoiceService'
 import { telechargerDevisPDF } from '../pdf/generatePdf'
 import { demanderAssistant } from '../services/iaService'
@@ -7,7 +7,7 @@ import SearchBar from '../components/SearchBar'
 import SortSelect from '../components/SortSelect'
 import { trierListe, OPTIONS_TRI } from '../utils/tri'
 import { formatMontant } from '../utils/pricing'
-import { Check, X, RotateCcw, FileText, Trash2, Clock, CheckCircle2, XCircle, Pencil, FileDown, ListPlus, Plus, Sparkles } from 'lucide-react'
+import { Check, X, RotateCcw, FileText, Trash2, Clock, CheckCircle2, XCircle, Pencil, FileDown, ListPlus, Plus, Sparkles, Send, Copy } from 'lucide-react'
 
 export default function AdminDevis() {
   const [devisList, setDevisList] = useState([])
@@ -29,6 +29,8 @@ export default function AdminDevis() {
   const [ameliorationEnCours, setAmeliorationEnCours] = useState(false)
   const [pdfEnCours, setPdfEnCours] = useState(null)
   const [erreurPdf, setErreurPdf] = useState('')
+  const [lienSignature, setLienSignature] = useState(null)
+  const [lienSignatureEnCours, setLienSignatureEnCours] = useState(null)
 
   const charger = async () => { setLoading(true); setDevisList(await getTousDevis()); setLoading(false) }
   useEffect(() => { charger() }, [])
@@ -149,6 +151,25 @@ export default function AdminDevis() {
     } finally {
       setPdfEnCours(null)
     }
+  }
+
+  const envoyerPourSignature = async (devis) => {
+    setLienSignatureEnCours(devis.id)
+    const token = await genererLienSignature(devis.id)
+    if (token) {
+      const lien = `${window.location.origin}/signer/${token}`
+      setLienSignature({ devisId: devis.id, lien })
+      await charger()
+      flash('Lien de signature généré — copie-le et envoie-le sur WhatsApp')
+    } else {
+      flash('Erreur lors de la génération du lien')
+    }
+    setLienSignatureEnCours(null)
+  }
+
+  const copierLien = async (lien) => {
+    await navigator.clipboard.writeText(lien)
+    flash('Lien copié !')
   }
 
   const genererFacture = async (devis) => {
@@ -346,16 +367,43 @@ export default function AdminDevis() {
                       <p className="text-center text-xs p-2.5 rounded-xl" style={{ background: 'rgba(96,165,250,0.08)', color: 'var(--text-secondary)' }}>
                         ⚠️ Prix "sur devis" — clique sur le crayon ✏️ près du montant ci-dessus pour fixer le prix avant de créer la facture.
                       </p>
-                    ) : factures[devis.id] ? (
-                      <p className="text-center text-xs font-semibold py-2 rounded-xl badge-success">
-                        Facture créée — visible chez le client
-                      </p>
+                    ) : devis.status === 'Signé' ? (
+                      <p className="text-center text-xs font-semibold py-2 rounded-xl badge-success">✓ Signé par le client</p>
                     ) : (
-                      <button onClick={() => genererFacture(devis)}
-                        className="w-full py-2.5 rounded-xl font-semibold text-sm transition btn-press flex items-center justify-center gap-1.5"
-                        style={{ background: 'var(--gold)', color: '#060D18' }}>
-                        <FileText size={15}/> Créer la facture
-                      </button>
+                      <>
+                        {devis.status !== 'En attente de signature' && (
+                          <button onClick={() => envoyerPourSignature(devis)} disabled={lienSignatureEnCours === devis.id}
+                            className="w-full py-2.5 rounded-xl font-semibold text-sm transition btn-press disabled:opacity-50 flex items-center justify-center gap-1.5"
+                            style={{ background: 'rgba(96,165,250,0.1)', border: '1px solid rgba(96,165,250,0.3)', color: '#60A5FA' }}>
+                            <Send size={15}/> {lienSignatureEnCours === devis.id ? 'Génération...' : 'Envoyer pour signature'}
+                          </button>
+                        )}
+                        {devis.status === 'En attente de signature' && (
+                          <p className="text-center text-xs font-semibold py-2 rounded-xl" style={{ background: 'rgba(250,204,21,0.1)', color: '#FACC15' }}>
+                            ⏳ En attente de signature client
+                          </p>
+                        )}
+                        {lienSignature?.devisId === devis.id && (
+                          <div className="rounded-xl p-3 space-y-2" style={{ background: 'var(--dark-elevated)', border: '1px solid var(--dark-border)' }}>
+                            <p className="text-xs font-semibold" style={{ color: 'var(--gold)' }}>Lien à envoyer sur WhatsApp :</p>
+                            <p className="text-[11px] break-all" style={{ color: 'var(--text-secondary)' }}>{lienSignature.lien}</p>
+                            <button onClick={() => copierLien(lienSignature.lien)}
+                              className="w-full py-2 rounded-xl text-xs font-semibold btn-press flex items-center justify-center gap-1.5"
+                              style={{ background: 'var(--gold)', color: '#060D18' }}>
+                              <Copy size={13}/> Copier le lien
+                            </button>
+                          </div>
+                        )}
+                        {factures[devis.id] ? (
+                          <p className="text-center text-xs font-semibold py-2 rounded-xl badge-success">Facture créée — visible chez le client</p>
+                        ) : (
+                          <button onClick={() => genererFacture(devis)}
+                            className="w-full py-2.5 rounded-xl font-semibold text-sm transition btn-press flex items-center justify-center gap-1.5"
+                            style={{ background: 'var(--gold)', color: '#060D18' }}>
+                            <FileText size={15}/> Créer la facture
+                          </button>
+                        )}
+                      </>
                     )
                   )}
 
