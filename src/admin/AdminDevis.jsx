@@ -362,27 +362,32 @@ export default function AdminDevis() {
                     <RotateCcw size={14}/> Remettre en attente
                   </button>
 
+                  {(devis.status === 'En attente de signature') && devis.signatureToken && (
+                    <div className="rounded-xl p-3 space-y-2" style={{ background: 'var(--dark-elevated)', border: '1px solid rgba(96,165,250,0.3)' }}>
+                      <p className="text-xs font-semibold" style={{ color: '#60A5FA' }}>⏳ En attente de signature — lien WhatsApp :</p>
+                      <p className="text-[11px] break-all" style={{ color: 'var(--text-secondary)' }}>
+                        {`${window.location.origin}/signer/${devis.signatureToken}`}
+                      </p>
+                      <button onClick={() => copierLien(`${window.location.origin}/signer/${devis.signatureToken}`)}
+                        className="w-full py-2 rounded-xl text-xs font-semibold btn-press flex items-center justify-center gap-1.5"
+                        style={{ background: 'rgba(96,165,250,0.15)', color: '#60A5FA' }}>
+                        <Copy size={13}/> Copier le lien
+                      </button>
+                    </div>
+                  )}
+
                   {devis.status === 'Approuvé' && (
                     devis.surDevis ? (
                       <p className="text-center text-xs p-2.5 rounded-xl" style={{ background: 'rgba(96,165,250,0.08)', color: 'var(--text-secondary)' }}>
                         ⚠️ Prix "sur devis" — clique sur le crayon ✏️ près du montant ci-dessus pour fixer le prix avant de créer la facture.
                       </p>
-                    ) : devis.status === 'Signé' ? (
-                      <p className="text-center text-xs font-semibold py-2 rounded-xl badge-success">✓ Signé par le client</p>
                     ) : (
                       <>
-                        {devis.status !== 'En attente de signature' && (
-                          <button onClick={() => envoyerPourSignature(devis)} disabled={lienSignatureEnCours === devis.id}
-                            className="w-full py-2.5 rounded-xl font-semibold text-sm transition btn-press disabled:opacity-50 flex items-center justify-center gap-1.5"
-                            style={{ background: 'rgba(96,165,250,0.1)', border: '1px solid rgba(96,165,250,0.3)', color: '#60A5FA' }}>
-                            <Send size={15}/> {lienSignatureEnCours === devis.id ? 'Génération...' : 'Envoyer pour signature'}
-                          </button>
-                        )}
-                        {devis.status === 'En attente de signature' && (
-                          <p className="text-center text-xs font-semibold py-2 rounded-xl" style={{ background: 'rgba(250,204,21,0.1)', color: '#FACC15' }}>
-                            ⏳ En attente de signature client
-                          </p>
-                        )}
+                        <button onClick={() => envoyerPourSignature(devis)} disabled={lienSignatureEnCours === devis.id}
+                          className="w-full py-2.5 rounded-xl font-semibold text-sm transition btn-press disabled:opacity-50 flex items-center justify-center gap-1.5"
+                          style={{ background: 'rgba(96,165,250,0.1)', border: '1px solid rgba(96,165,250,0.3)', color: '#60A5FA' }}>
+                          <Send size={15}/> {lienSignatureEnCours === devis.id ? 'Génération...' : 'Envoyer pour signature'}
+                        </button>
                         {lienSignature?.devisId === devis.id && (
                           <div className="rounded-xl p-3 space-y-2" style={{ background: 'var(--dark-elevated)', border: '1px solid var(--dark-border)' }}>
                             <p className="text-xs font-semibold" style={{ color: 'var(--gold)' }}>Lien à envoyer sur WhatsApp :</p>
@@ -405,6 +410,21 @@ export default function AdminDevis() {
                         )}
                       </>
                     )
+                  )}
+
+                  {devis.status === 'Signé' && (
+                    <>
+                      <p className="text-center text-xs font-semibold py-2 rounded-xl badge-success">✓ Signé par le client</p>
+                      {!factures[devis.id] ? (
+                        <button onClick={() => genererFacture(devis)}
+                          className="w-full py-2.5 rounded-xl font-semibold text-sm transition btn-press flex items-center justify-center gap-1.5"
+                          style={{ background: 'var(--gold)', color: '#060D18' }}>
+                          <FileText size={15}/> Créer la facture
+                        </button>
+                      ) : (
+                        <p className="text-center text-xs font-semibold py-2 rounded-xl badge-success">Facture créée — visible chez le client</p>
+                      )}
+                    </>
                   )}
 
                   {devis.status === 'Rejeté' && (
