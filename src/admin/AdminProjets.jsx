@@ -47,28 +47,16 @@ export default function AdminProjets() {
 
   const handleFileUpload = async (e) => {
     const file = e.target.files?.[0]
-    // Reset immédiat pour éviter que le même fichier reste sélectionné (cause du crash sur iOS/Android)
-    e.target.value = ''
     if (!file || !selected) return
-    if (!file.type.startsWith('image/')) { flash('Seulement les images sont acceptées'); return }
-    if (file.size > 10 * 1024 * 1024) { flash('Image trop grande (max 10 MB)'); return }
+    if (file.size > 5 * 1024 * 1024) { flash('Image trop grande (max 5 MB)'); e.target.value = ''; return }
     setUploading(true)
-    try {
-      const url = await uploadPhotoFichier(selected, file)
-      if (url) {
-        const maj = { ...selected, photos: [...(selected.photos || []), url] }
-        setProjets(prev => prev.map(x => x.id === selected.id ? maj : x))
-        setSelected(maj)
-        flash('Photo ajoutée !')
-      } else {
-        flash('Erreur upload — vérifie ta connexion')
-      }
-    } catch (err) {
-      console.error('Upload crash:', err)
-      flash('Erreur inattendue — réessaie')
-    } finally {
-      setUploading(false)
-    }
+    const url = await uploadPhotoFichier(selected, file)
+    setUploading(false)
+    if (url) {
+      const maj = { ...selected, photos: [...(selected.photos || []), url] }
+      setProjets(prev => prev.map(x => x.id === selected.id ? maj : x)); setSelected(maj); flash('Photo ajoutée !')
+    } else flash('Erreur upload')
+    e.target.value = ''
   }
 
   const filteredProjets = useMemo(() => {

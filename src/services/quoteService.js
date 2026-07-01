@@ -1,7 +1,6 @@
 import { collection, addDoc, updateDoc, doc, getDoc, deleteDoc, query, where, getDocs, orderBy, Timestamp } from 'firebase/firestore'
 import { db } from '../firebase/init'
 import { notifierClient, notifierAdmins } from './notificationService'
-import { calculerPrixUnitaire, calculerMontant, estSurDevis } from '../utils/pricing'
 
 // Génère un numéro de devis lisible: UC-2026-0625-AB
 function genererNumero() {
@@ -16,22 +15,17 @@ function genererNumero() {
 // Créer UN SEUL devis (jamais découpé), toujours "En attente"
 export const creerDevis = async (clientId, clientEmail, data) => {
   const surface = Number(data.surface) || 0
-  const avecPeinture = !!data.avecPeinture
-  const surDevis = estSurDevis(data.type)
-  const pricePerM2 = calculerPrixUnitaire(data.type, avecPeinture) || 0
-  const totalTTC = calculerMontant(data.type, surface, avecPeinture)
+  const pricePerM2 = 15000
+  const totalTTC = surface * pricePerM2
 
   const devis = {
     clientId: clientId || 'inconnu',
     clientEmail: clientEmail || '',
-    clientNom: data.clientNom || '',
     quoteNumber: genererNumero(),
     title: data.title || `Devis ${data.type || ''}`.trim(),
     description: data.description || '',
     type: data.type || '',
     surface,
-    avecPeinture,
-    surDevis,
     pricePerM2,
     totalTTC,
     localisation: data.localisation || 'Dakar',
@@ -116,123 +110,6 @@ export const changerStatutDevis = async (devisId, statut) => {
     return true
   } catch (error) {
     console.error('changerStatutDevis:', error)
-    return false
-  }
-}
-
-// ── Signature électronique client ────────────────────────────────────────────
-
-// Génère un token unique, stocke-le sur le devis, et retourne le lien à envoyer.
-// Appelé par l'admin depuis AdminDevis.jsx après approbation du devis.
-export const genererLienSignature = async (devisId) => {
-  try {
-    // Token de 32 caractères hexadécimaux (assez pour être non-devinable)
-    const token = Array.from(crypto.getRandomValues(new Uint8Array(16)))
-      .map(b => b.toString(16).padStart(2, '0')).join('')
-    await updateDoc(doc(db, 'quotes', devisId), {
-      signatureToken: token,
-      signatureTokenDate: Timestamp.now(),
-      status: 'En attente de signature',
-      updatedAt: Timestamp.now(),
-    })
-    return token
-  } catch (error) {
-    console.error('genererLienSignature:', error)
-    return null
-  }
-}
-
-// Récupère un devis par son token (pas besoin d'être connecté — page publique /signer/:token)
-export const getDevisParToken = async (token) => {
-  try {
-    const q = query(collection(db, 'quotes'), where('signatureToken', '==', token))
-    const snap = await getDocs(q)
-    if (snap.empty) return null
-    const d = snap.docs[0]
-    return { id: d.id, ...d.data() }
-  } catch (error) {
-    console.error('getDevisParToken:', error)
-    return null
-  }
-}
-
-// Enregistre la signature du client sur le devis (page publique, vérification par token)
-export const signerDevisClient = async (devisId, token, signatureBase64) => {
-  try {
-    await updateDoc(doc(db, 'quotes', devisId), {
-      signatureClient: signatureBase64,
-      signatureClientDate: Timestamp.now(),
-      signatureToken: token, // gardé tel quel pour maintenir les droits Firestore
-      status: 'Signé',
-      updatedAt: Timestamp.now(),
-    })
-    return true
-  } catch (error) {
-    console.error('signerDevisClient:', error)
-    return false
-  }
-}
-// utile pour corriger un devis créé sans ces infos, ou après amélioration IA.
-export const modifierInfosDevis = async (devisId, { clientNom, description }) => {
-  try {
-    const maj = { updatedAt: Timestamp.now() }
-    if (clientNom !== undefined) maj.clientNom = clientNom
-    if (description !== undefined) maj.description = description
-    await updateDoc(doc(db, 'quotes', devisId), maj)
-    return true
-  } catch (error) {
-    console.error('modifierInfosDevis:', error)
-    return false
-  }
-}
-
-// Modifier manuellement le montant d'un devis (admin) — typiquement avant
-// approbation, ou pour fixer un prix "sur devis" (ex: cloisons) qui n'en avait pas.
-export const modifierMontantDevis = async (devisId, nouveauMontant) => {
-  try {
-    await updateDoc(doc(db, 'quotes', devisId), {
-      totalTTC: Number(nouveauMontant) || 0,
-      surDevis: false, // un montant a été fixé manuellement, ce n'est plus "sans prix"
-      updatedAt: Timestamp.now()
-    })
-    return true
-  } catch (error) {
-    console.error('modifierMontantDevis:', error)
-    return false
-  }
-}
-
-// Enregistrer le détail ligne par ligne (matériaux + forfait main-d'oeuvre) d'un
-// devis — utilisé pour générer un PDF fidèle au modèle officiel UniC Plaquiste.
-// Recalcule automatiquement le montant total à partir de ces lignes.
-export const enregistrerDetailDevis = async (devisId, { lignesMateriaux, lignesMainOeuvre, exclusions, modalitesPaiement }) => {
-  try {
-    const lignes = (lignesMateriaux || []).map((l) => ({
-      designation: l.designation || '',
-      prixUnitaire: Number(l.prixUnitaire) || 0,
-      quantite: Number(l.quantite) || 0,
-      prixTotal: (Number(l.prixUnitaire) || 0) * (Number(l.quantite) || 0),
-    }))
-    const totalMateriaux = lignes.reduce((sum, l) => sum + l.prixTotal, 0)
-
-    const mainOeuvre = (lignesMainOeuvre || [])
-      .filter((l) => l.designation?.trim())
-      .map((l) => ({ designation: l.designation, montant: Number(l.montant) || 0 }))
-    const totalMainOeuvre = mainOeuvre.reduce((sum, l) => sum + l.montant, 0)
-
-    await updateDoc(doc(db, 'quotes', devisId), {
-      lignesMateriaux: lignes,
-      lignesMainOeuvre: mainOeuvre,
-      forfaitMainOeuvre: null, // ancien format (1 seule ligne), remplacé par lignesMainOeuvre
-      exclusions: exclusions || '',
-      modalitesPaiement: modalitesPaiement || '',
-      totalTTC: totalMateriaux + totalMainOeuvre,
-      surDevis: false,
-      updatedAt: Timestamp.now(),
-    })
-    return true
-  } catch (error) {
-    console.error('enregistrerDetailDevis:', error)
     return false
   }
 }

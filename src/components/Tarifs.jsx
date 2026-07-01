@@ -4,7 +4,7 @@ import { Calculator, Check, Info, ClipboardList } from 'lucide-react'
 export default function Tarifs() {
   const [surface, setSurface] = useState(25)
 
-  const prixUnitaire = 11000
+  const prixUnitaire = 15000
   const totalHT = surface * prixUnitaire
   const totalTTC = totalHT
 
@@ -18,9 +18,8 @@ export default function Tarifs() {
         <div className="bg-white rounded-lg shadow-lg p-8 mb-8">
           <div className="text-center mb-8">
             <p className="text-gray-600 mb-2">Prix unitaire</p>
-            <p className="text-5xl font-bold text-[#F2C200]">11,000 FCFA</p>
-            <p className="text-gray-600 text-sm mt-2">par m² — pose sans peinture</p>
-            <p className="text-gray-500 text-xs mt-1">Avec finition peinture : 13 500 FCFA/m²</p>
+            <p className="text-5xl font-bold text-[#F2C200]">15,000 FCFA</p>
+            <p className="text-gray-600 text-sm mt-2">par m²</p>
           </div>
 
           {/* Description du prix */}

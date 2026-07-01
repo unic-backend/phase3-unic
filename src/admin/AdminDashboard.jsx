@@ -292,62 +292,6 @@ export default function AdminDashboard() {
           )}
         </div>
       </div>
-
-      <NettoyageDemo onNettoyage={() => { setDevis([]); setFactures([]) }} />
-    </div>
-  )
-}
-
-// ── Nettoyage données démo — composant autonome ──────────────────────────────
-function NettoyageDemo({ onNettoyage }) {
-  const [etape, setEtape] = useState(0) // 0=bouton, 1=confirmation, 2=en cours, 3=done
-  const [msg, setMsg] = useState('')
-
-  const lancer = async () => {
-    setEtape(2)
-    try {
-      const { getTousDevis, supprimerDevis } = await import('../services/quoteService')
-      const { getToutesFactures, supprimerFacture } = await import('../services/invoiceService')
-      const [devis, factures] = await Promise.all([getTousDevis(), getToutesFactures()])
-      let supprimesCount = 0
-      for (const d of devis) { try { await supprimerDevis(d.id); supprimesCount++ } catch {} }
-      for (const f of factures) { try { await supprimerFacture(f.id); supprimesCount++ } catch {} }
-      setMsg(`${supprimesCount} document(s) supprimé(s)`)
-      setEtape(3)
-      onNettoyage()
-    } catch (e) {
-      setMsg('Erreur : ' + e.message)
-      setEtape(0)
-    }
-  }
-
-  if (etape === 3) return (
-    <div className="card-dark p-4 text-center" style={{ border: '1px solid rgba(52,211,153,0.2)' }}>
-      <p className="text-sm font-semibold" style={{ color: '#34D399' }}>✓ {msg}</p>
-      <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>Données supprimées. Tu peux maintenant créer tes vrais devis et factures.</p>
-    </div>
-  )
-
-  return (
-    <div className="card-dark p-4" style={{ border: '1px solid rgba(248,113,113,0.15)' }}>
-      <p className="text-xs font-semibold mb-2" style={{ color: 'var(--text-muted)' }}>NETTOYAGE DES DONNÉES DE DÉMONSTRATION</p>
-      {etape === 0 && (
-        <button onClick={() => setEtape(1)}
-          className="w-full py-2.5 rounded-xl text-sm font-semibold btn-press flex items-center justify-center gap-2"
-          style={{ background: 'rgba(248,113,113,0.08)', color: '#F87171', border: '1px solid rgba(248,113,113,0.2)' }}>
-          🗑️ Supprimer tous les devis et factures de démo
-        </button>
-      )}
-      {etape === 1 && (
-        <div className="space-y-2">
-          <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>⚠️ Cette action supprimera <strong className="text-white">définitivement</strong> tous les devis et factures. Continue ?</p>
-          <div className="flex gap-2">
-            <button onClick={() => setEtape(0)} className="flex-1 py-2 rounded-xl text-sm font-semibold btn-press" style={{ background: 'var(--dark-elevated)', color: 'var(--text-secondary)' }}>Annuler</button>
-            <button onClick={lancer} className="flex-1 py-2 rounded-xl text-sm font-semibold btn-press" style={{ background: '#F87171', color: 'white' }}>Oui, tout supprimer</button>
-          </div>
-        </div>
-      )}
-      {etape === 2 && <p className="text-sm text-center" style={{ color: 'var(--text-muted)' }}>Suppression en cours...</p>}
     </div>
   )
 }

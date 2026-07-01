@@ -7,11 +7,8 @@ export const creerFacture = async (clientId, clientEmail, data) => {
   const facture = {
     clientId: clientId || 'inconnu',
     clientEmail: clientEmail || '',
-    clientNom: data.clientNom || '',
     invoiceNumber: data.invoiceNumber || `FAC-${new Date().getFullYear()}-${Math.floor(Math.random() * 9000 + 1000)}`,
     amount: Number(data.amount) || 0,
-    designation: data.designation || '',
-    modalitesPaiement: data.modalitesPaiement || '',
     status: data.status || 'En attente',
     issueDate: data.issueDate || new Date().toISOString().slice(0, 10),
     dueDate: data.dueDate || '',
@@ -105,30 +102,6 @@ export const supprimerFacture = async (factureId) => {
     return true
   } catch (e) {
     console.error('supprimerFacture:', e)
-    return false
-  }
-}
-
-// Enregistrer le détail ligne par ligne (matériaux) d'une facture — même principe
-// que pour les devis. Le montant total de la facture est recalculé automatiquement.
-export const enregistrerDetailFacture = async (factureId, { lignesMateriaux }) => {
-  try {
-    const lignes = (lignesMateriaux || [])
-      .filter((l) => l.designation?.trim())
-      .map((l) => ({
-        designation: l.designation,
-        prixUnitaire: Number(l.prixUnitaire) || 0,
-        quantite: Number(l.quantite) || 0,
-        prixTotal: (Number(l.prixUnitaire) || 0) * (Number(l.quantite) || 0),
-      }))
-    const total = lignes.reduce((sum, l) => sum + l.prixTotal, 0)
-    await updateDoc(doc(db, 'invoices', factureId), {
-      lignesMateriaux: lignes,
-      amount: total,
-    })
-    return true
-  } catch (e) {
-    console.error('enregistrerDetailFacture:', e)
     return false
   }
 }

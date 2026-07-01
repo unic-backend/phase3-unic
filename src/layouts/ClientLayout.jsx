@@ -119,17 +119,7 @@ export default function ClientLayout() {
       <div className="flex-1 flex flex-col min-w-0">
         <div className="px-4 md:px-8 py-3 flex items-center justify-between sticky top-0 z-40 glass-dark"
           style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}>
-          <div className="flex items-center gap-2">
-            {/* Bouton retour — visible seulement si on n'est pas sur le dashboard principal */}
-            {location.pathname !== '/client/dashboard' && (
-              <button onClick={() => navigate(-1)}
-                className="md:hidden p-2 rounded-xl transition active:scale-90 flex items-center gap-1"
-                style={{ color: 'var(--gold)', background: 'rgba(242,194,0,0.08)' }}>
-                <ChevronLeft size={22} strokeWidth={2.5} />
-              </button>
-            )}
-            <img src={logo} alt="UniC" className="md:hidden h-8 w-auto" />
-          </div>
+          <img src={logo} alt="UniC" className="md:hidden h-8 w-auto" />
           <span className="hidden md:inline text-sm font-medium text-white">Espace Client</span>
           <div className="flex items-center gap-2">
             <NotificationBell mode="client" userId={user?.id} />
@@ -144,53 +134,21 @@ export default function ClientLayout() {
         </PullToRefresh>
       </div>
 
-      {/* Bottom Nav Mobile — design premium minimal */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50"
-        style={{
-          background: 'var(--dark-surface, #0C1829)',
-          borderTop: '1px solid rgba(255,255,255,0.05)',
-          paddingBottom: 'env(safe-area-inset-bottom)',
-        }}>
-        <div className="flex items-stretch h-[58px]">
+      {/* Bottom Nav Mobile */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 glass-dark" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+        <div className="relative flex justify-around items-stretch h-16">
+          {activeIndex >= 0 && (
+            <span className="absolute top-0 h-[3px] rounded-full transition-transform duration-300 ease-out"
+              style={{ background: 'var(--gold)', width: `${100/n}%`, transform: `translateX(${activeIndex*100}%)`, boxShadow: '0 0 12px rgba(246,195,68,0.4)' }} />
+          )}
           {mobileNavItems.map((item) => {
             const active = isActive(item.path)
             const Icon = item.icon
             return (
               <button key={item.path} onClick={() => navigate(item.path)}
-                className="relative flex flex-col items-center justify-center flex-1 gap-[3px] transition-all duration-200 active:scale-90 select-none">
-                {/* Indicateur fin en haut de l'onglet actif */}
-                <span
-                  className="absolute top-0 left-1/2 -translate-x-1/2 rounded-full transition-all duration-300"
-                  style={{
-                    width: active ? '20px' : '0px',
-                    height: '2px',
-                    background: active ? '#F2C200' : 'transparent',
-                    boxShadow: active ? '0 0 8px rgba(242,194,0,0.6)' : 'none',
-                  }}
-                />
-                {/* Icône avec badge */}
-                <span className="relative">
-                  {item.badge > 0 && (
-                    <span className="absolute -top-1 -right-1.5 w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold text-white z-10"
-                      style={{ background: '#F87171' }}>
-                      {item.badge}
-                    </span>
-                  )}
-                  <Icon
-                    size={21}
-                    strokeWidth={active ? 2.2 : 1.6}
-                    style={{
-                      color: active ? '#F2C200' : '#566380',
-                      transition: 'color 0.2s, stroke-width 0.2s',
-                    }}
-                  />
-                </span>
-                {/* Label */}
-                <span
-                  className="text-[9.5px] font-semibold tracking-wide transition-colors duration-200"
-                  style={{ color: active ? '#F2C200' : '#566380' }}>
-                  {item.label}
-                </span>
+                className="relative flex flex-col items-center justify-center flex-1 gap-1 transition-all duration-200 active:scale-90">
+                <Icon size={22} strokeWidth={active ? 2.2 : 1.6} style={{ color: active ? 'var(--gold)' : 'var(--text-muted)', transition: 'color 0.2s' }} />
+                <span className="text-[10px] font-medium" style={{ color: active ? 'var(--gold)' : 'var(--text-muted)', transition: 'color 0.2s' }}>{item.label}</span>
               </button>
             )
           })}

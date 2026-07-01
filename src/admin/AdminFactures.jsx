@@ -1,8 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
-import { getToutesFactures, marquerFacturePayee, creerFacture, supprimerFacture, enregistrerDetailFacture } from '../services/invoiceService'
+import { getToutesFactures, marquerFacturePayee, creerFacture, supprimerFacture } from '../services/invoiceService'
 import { getUsersForSelect } from '../services/userService'
-import { telechargerFacturePDF } from '../pdf/generatePdf'
-import { Plus, X, Save, CheckCircle2, Trash2, Receipt, Clock, Eye, FileDown, ListPlus, Check } from 'lucide-react'
+import { Plus, X, Save, CheckCircle2, Trash2, Receipt, Clock, Eye } from 'lucide-react'
 import SearchBar from '../components/SearchBar'
 import SortSelect from '../components/SortSelect'
 import { trierListe, OPTIONS_TRI } from '../utils/tri'
@@ -16,10 +15,7 @@ export default function AdminFactures() {
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState('Tous')
   const [sortKey, setSortKey] = useState('date_desc')
-  const [formData, setFormData] = useState({ clientId: '', clientEmail: '', clientNom: '', amount: '', designation: '', modalitesPaiement: '', issueDate: new Date().toISOString().slice(0, 10), dueDate: '' })
-  const [pdfEnCours, setPdfEnCours] = useState(null)
-  const [detailEnEdition, setDetailEnEdition] = useState(null)
-  const [lignesEdit, setLignesEdit] = useState([])
+  const [formData, setFormData] = useState({ clientId: '', clientEmail: '', amount: '', issueDate: new Date().toISOString().slice(0, 10), dueDate: '' })
 
   const charger = async () => { setLoading(true); setFactures(await getToutesFactures()); setClients(await getUsersForSelect()); setLoading(false) }
   useEffect(() => { charger() }, [])
@@ -35,54 +31,18 @@ export default function AdminFactures() {
   const handleClientChange = (e) => {
     const clientId = e.target.value
     const sel = clients.find(c => c.id === clientId)
-    if (sel) setFormData({ ...formData, clientId, clientEmail: sel.email, clientNom: sel.nom || '' })
+    if (sel) setFormData({ ...formData, clientId, clientEmail: sel.email })
   }
 
   const soumettre = async () => {
     if (!formData.clientId || !formData.amount || formData.amount <= 0) { flash('Remplis tous les champs'); return }
     try {
-      const nouvelle = await creerFacture(formData.clientId, formData.clientEmail, { amount: Number(formData.amount), issueDate: formData.issueDate, dueDate: formData.dueDate, designation: formData.designation, modalitesPaiement: formData.modalitesPaiement, clientNom: formData.clientNom })
+      const nouvelle = await creerFacture(formData.clientId, formData.clientEmail, { amount: Number(formData.amount), issueDate: formData.issueDate, dueDate: formData.dueDate })
       setFactures([nouvelle, ...factures])
       flash(`Facture ${nouvelle.invoiceNumber} créée`)
       setShowForm(false)
-      setFormData({ clientId: '', clientEmail: '', clientNom: '', amount: '', designation: '', modalitesPaiement: '', issueDate: new Date().toISOString().slice(0, 10), dueDate: '' })
+      setFormData({ clientId: '', clientEmail: '', amount: '', issueDate: new Date().toISOString().slice(0, 10), dueDate: '' })
     } catch { flash('Erreur lors de la création') }
-  }
-
-  const genererPDF = async (facture) => {
-    setPdfEnCours(facture.id)
-    try {
-      await telechargerFacturePDF(facture)
-    } catch (e) {
-      console.error('Erreur génération PDF:', e)
-      flash('Erreur lors de la génération du PDF')
-    } finally {
-      setPdfEnCours(null)
-    }
-  }
-
-  const ouvrirDetail = (facture) => {
-    setDetailEnEdition(facture.id)
-    setLignesEdit(
-      facture.lignesMateriaux && facture.lignesMateriaux.length > 0
-        ? facture.lignesMateriaux.map(l => ({ ...l }))
-        : [{ designation: facture.designation || '', prixUnitaire: facture.amount || '', quantite: 1 }]
-    )
-  }
-  const modifierLigne = (index, champ, valeur) => setLignesEdit(prev => prev.map((l, i) => i === index ? { ...l, [champ]: valeur } : l))
-  const ajouterLigne = () => setLignesEdit(prev => [...prev, { designation: '', prixUnitaire: '', quantite: '' }])
-  const supprimerLigne = (index) => setLignesEdit(prev => prev.filter((_, i) => i !== index))
-  const totalLignesEdit = lignesEdit.reduce((s, l) => s + (Number(l.prixUnitaire) || 0) * (Number(l.quantite) || 0), 0)
-
-  const enregistrerDetail = async (facture) => {
-    const lignesValides = lignesEdit.filter(l => l.designation.trim())
-    if (await enregistrerDetailFacture(facture.id, { lignesMateriaux: lignesValides })) {
-      setDetailEnEdition(null)
-      await charger()
-      flash('Détail de la facture enregistré')
-    } else {
-      flash('Erreur lors de l\'enregistrement')
-    }
   }
 
   const payer = async (f) => { if (await marquerFacturePayee(f.id)) setFactures(prev => prev.map(x => x.id === f.id ? { ...x, status: 'Payée' } : x)) }
@@ -139,16 +99,6 @@ export default function AdminFactures() {
             <div>
               <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-muted)' }}>Montant FCFA *</label>
               <input type="number" name="amount" value={formData.amount} onChange={(e) => setFormData({...formData, amount: e.target.value})} className={inputDark} placeholder="0" min="1" required />
-            </div>
-            <div className="md:col-span-2">
-              <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-muted)' }}>Désignation (description de la prestation, pour le PDF)</label>
-              <input type="text" name="designation" value={formData.designation} onChange={(e) => setFormData({...formData, designation: e.target.value})} className={inputDark} placeholder="Ex: Forfait décoration murale BA13 + peinture" />
-            </div>
-            <div className="md:col-span-2">
-              <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-muted)' }}>Modalités de paiement (pour le PDF — une ligne par échéance)</label>
-              <textarea value={formData.modalitesPaiement} onChange={(e) => setFormData({...formData, modalitesPaiement: e.target.value})} rows={2}
-                placeholder={"Ex: 50% au demarrage des travaux\n50% a la fin des travaux et satisfaction"}
-                className={inputDark + ' resize-none'} />
             </div>
             <div>
               <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-muted)' }}>Date d'émission</label>
@@ -215,16 +165,6 @@ export default function AdminFactures() {
                 <span style={{ color: 'var(--text-muted)' }}>Montant</span>
                 <span className="font-semibold" style={{ color: 'var(--gold)' }}>{(f.amount || f.totalTTC || 0).toLocaleString('fr-FR')} FCFA</span>
               </div>
-              <button onClick={() => ouvrirDetail(f)}
-                className="w-full py-2 rounded-xl font-semibold text-xs transition btn-press flex items-center justify-center gap-1.5"
-                style={{ background: 'var(--dark-elevated)', border: '1px solid var(--dark-border)', color: 'var(--text-secondary)' }}>
-                <ListPlus size={13}/> Détailler les lignes
-              </button>
-              <button onClick={() => genererPDF(f)} disabled={pdfEnCours === f.id}
-                className="w-full py-2 rounded-xl font-semibold text-xs transition btn-press disabled:opacity-50 flex items-center justify-center gap-1.5"
-                style={{ background: 'var(--dark-elevated)', border: '1px solid var(--dark-border)', color: 'var(--gold)' }}>
-                <FileDown size={13}/> {pdfEnCours === f.id ? 'Génération...' : 'Télécharger le PDF'}
-              </button>
               {f.status !== 'Payée' && (
                 <div className="space-y-2 pt-1">
                   <button onClick={() => payer(f)}
@@ -241,50 +181,6 @@ export default function AdminFactures() {
               )}
             </div>
           ))}
-        </div>
-      )}
-
-      {detailEnEdition && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.6)' }}>
-          <div className="card-dark w-full max-w-lg max-h-[85vh] flex flex-col animate-fade-in">
-            <div className="flex items-center justify-between p-4 shrink-0" style={{ borderBottom: '1px solid var(--dark-border)' }}>
-              <p className="font-bold text-white">Détail de la facture</p>
-              <button onClick={() => setDetailEnEdition(null)} style={{ color: 'var(--text-muted)' }}><X size={20} /></button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-4 space-y-2">
-              {lignesEdit.map((ligne, i) => (
-                <div key={i} className="flex gap-1.5 items-center">
-                  <input value={ligne.designation} onChange={(e) => modifierLigne(i, 'designation', e.target.value)}
-                    placeholder="Désignation" className="flex-1 px-2.5 py-2 rounded-lg text-xs text-white placeholder-[#4A5B73] outline-none"
-                    style={{ background: 'var(--dark-elevated)', border: '1px solid var(--dark-border)' }} />
-                  <input value={ligne.prixUnitaire} onChange={(e) => modifierLigne(i, 'prixUnitaire', e.target.value)}
-                    type="number" placeholder="Prix unit." className="w-20 px-2 py-2 rounded-lg text-xs text-white placeholder-[#4A5B73] outline-none"
-                    style={{ background: 'var(--dark-elevated)', border: '1px solid var(--dark-border)' }} />
-                  <input value={ligne.quantite} onChange={(e) => modifierLigne(i, 'quantite', e.target.value)}
-                    type="number" placeholder="Qte" className="w-14 px-2 py-2 rounded-lg text-xs text-white placeholder-[#4A5B73] outline-none"
-                    style={{ background: 'var(--dark-elevated)', border: '1px solid var(--dark-border)' }} />
-                  <button onClick={() => supprimerLigne(i)} className="p-2 rounded-lg shrink-0" style={{ color: '#F87171' }}>
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              ))}
-              <button onClick={ajouterLigne} className="mt-1 flex items-center gap-1.5 text-xs font-semibold" style={{ color: 'var(--gold)' }}>
-                <Plus size={14} /> Ajouter une ligne
-              </button>
-              <div className="rounded-xl p-3 text-right mt-3" style={{ background: 'rgba(246,195,68,0.1)' }}>
-                <span className="text-sm font-bold" style={{ color: 'var(--gold)' }}>Total : {totalLignesEdit.toLocaleString('fr-FR')} FCFA</span>
-              </div>
-            </div>
-
-            <div className="p-3 shrink-0" style={{ borderTop: '1px solid var(--dark-border)' }}>
-              <button onClick={() => enregistrerDetail(factures.find(f => f.id === detailEnEdition))}
-                className="w-full py-2.5 rounded-xl font-semibold text-sm btn-press flex items-center justify-center gap-2"
-                style={{ background: 'var(--gold)', color: '#060D18' }}>
-                <Check size={16} /> Enregistrer
-              </button>
-            </div>
-          </div>
         </div>
       )}
     </div>

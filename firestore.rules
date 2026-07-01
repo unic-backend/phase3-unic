@@ -38,23 +38,16 @@ service cloud.firestore {
     // ==================== users ====================
     match /users/{userId} {
       allow read:   if isAuth() && (isOwner(userId) || isAdmin());
-      allow create: if isAuth() && (isOwner(userId) || isAdmin());
+      allow create: if isAuth() && isOwner(userId);
       allow update: if isAuth() && (isOwner(userId) || isAdmin());
       allow delete: if false;
     }
 
     // ==================== quotes (devis) ====================
     match /quotes/{quoteId} {
-      allow create: if isAuth() && (request.resource.data.clientId == request.auth.uid || isAdmin());
-      allow read:   if isAuth() && (resource.data.clientId == request.auth.uid || isAdmin())
-                    // Lecture publique par token de signature (lien WhatsApp envoyé au client)
-                    || resource.data.signatureToken != null;
-      allow update: if isAuth() && isAdmin()
-                    // Le client signe via son token unique : seuls les champs signature sont modifiables
-                    || resource.data.signatureToken != null
-                       && request.resource.data.signatureToken == resource.data.signatureToken
-                       && request.resource.data.diff(resource.data).affectedKeys()
-                          .hasOnly(['signatureClient', 'signatureClientDate', 'status', 'updatedAt']);
+      allow create: if isAuth() && request.resource.data.clientId == request.auth.uid;
+      allow read:   if isAuth() && (resource.data.clientId == request.auth.uid || isAdmin());
+      allow update: if isAuth() && isAdmin();
       // Suppression: uniquement un devis Rejeté (sans valeur business active),
       // par le client concerné ou l'admin. Jamais En attente ou Approuvé.
       allow delete: if isAuth() && resource.data.status == 'Rejeté'
@@ -121,47 +114,6 @@ service cloud.firestore {
         resource.data.userId == request.auth.uid
       );
       allow delete: if false;
-    }
-
-    // ==================== prospects (page publique /discussion) ====================
-    // uid = l'id du document = l'uid de la session anonyme du visiteur.
-    // Limite de 30 messages par discussion : protection contre les coûts/abus
-    // puisque le lien est public et générique (pas unique par prospect).
-    match /prospects/{uid} {
-      allow read:   if isAuth() && (request.auth.uid == uid || isAdmin());
-      allow create: if isAuth() && request.auth.uid == uid;
-      allow update: if isAuth() && (
-        (request.auth.uid == uid && request.resource.data.messages.size() <= 30) ||
-        isAdmin()
-      );
-      allow delete: if false;
-    }
-
-    // ==================== depenses ====================
-    match /depenses/{id} {
-      allow read, write: if isAdmin();
-    }
-
-    // ==================== portfolio ====================
-    match /portfolio/{id} {
-      allow read: if true; // Public : visible sur le site, utilisé par l'IA
-      allow write: if isAdmin();
-    }
-
-    // ==================== opportunites ====================
-    match /opportunites/{id} {
-      allow read, write: if isAdmin();
-    }
-
-    // ==================== parametres (signature admin, etc.) ====================
-    match /parametres/{id} {
-      allow read, write: if isAdmin();
-    }
-
-    // ==================== base_connaissances (IA) ====================
-    // Réservé aux admins : c'est leur outil interne, pas une donnée client.
-    match /base_connaissances/{id} {
-      allow read, write: if isAdmin();
     }
 
     // ==================== DÉFAUT: tout bloquer ====================
