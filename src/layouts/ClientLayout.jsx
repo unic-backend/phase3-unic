@@ -144,20 +144,31 @@ export default function ClientLayout() {
         </PullToRefresh>
       </div>
 
-      {/* Bottom Nav Mobile — style pill arrondi */}
+      {/* Bottom Nav Mobile — design premium minimal */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50"
-        style={{ background: 'var(--dark-surface, #0C1829)', borderTop: '1px solid rgba(255,255,255,0.06)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
-        <div className="flex justify-around items-center h-16 px-2">
+        style={{
+          background: 'var(--dark-surface, #0C1829)',
+          borderTop: '1px solid rgba(255,255,255,0.05)',
+          paddingBottom: 'env(safe-area-inset-bottom)',
+        }}>
+        <div className="flex items-stretch h-[58px]">
           {mobileNavItems.map((item) => {
             const active = isActive(item.path)
             const Icon = item.icon
             return (
               <button key={item.path} onClick={() => navigate(item.path)}
-                className="relative flex flex-col items-center justify-center flex-1 gap-0.5 transition-all duration-200 active:scale-90">
-                {active && (
-                  <span className="absolute inset-x-1.5 top-1.5 h-8 rounded-full"
-                    style={{ background: 'rgba(242,194,0,0.15)' }} />
-                )}
+                className="relative flex flex-col items-center justify-center flex-1 gap-[3px] transition-all duration-200 active:scale-90 select-none">
+                {/* Indicateur fin en haut de l'onglet actif */}
+                <span
+                  className="absolute top-0 left-1/2 -translate-x-1/2 rounded-full transition-all duration-300"
+                  style={{
+                    width: active ? '20px' : '0px',
+                    height: '2px',
+                    background: active ? '#F2C200' : 'transparent',
+                    boxShadow: active ? '0 0 8px rgba(242,194,0,0.6)' : 'none',
+                  }}
+                />
+                {/* Icône avec badge */}
                 <span className="relative">
                   {item.badge > 0 && (
                     <span className="absolute -top-1 -right-1.5 w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold text-white z-10"
@@ -165,11 +176,19 @@ export default function ClientLayout() {
                       {item.badge}
                     </span>
                   )}
-                  <Icon size={20} strokeWidth={active ? 2.5 : 1.8}
-                    style={{ color: active ? '#F2C200' : '#4A5B73' }} />
+                  <Icon
+                    size={21}
+                    strokeWidth={active ? 2.2 : 1.6}
+                    style={{
+                      color: active ? '#F2C200' : '#566380',
+                      transition: 'color 0.2s, stroke-width 0.2s',
+                    }}
+                  />
                 </span>
-                <span className="text-[10px] font-medium relative"
-                  style={{ color: active ? '#F2C200' : '#4A5B73' }}>
+                {/* Label */}
+                <span
+                  className="text-[9.5px] font-semibold tracking-wide transition-colors duration-200"
+                  style={{ color: active ? '#F2C200' : '#566380' }}>
                   {item.label}
                 </span>
               </button>

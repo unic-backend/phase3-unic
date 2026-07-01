@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { creerDevis } from '../services/quoteService'
+import { creerProspectDepuisClient } from '../services/prospectService'
 import { calculerPrixUnitaire, calculerMontant, estSurDevis } from '../utils/pricing'
 import Toast from '../components/Toast'
 import { Layers, DoorOpen, Paintbrush, Sparkles, Hammer, ArrowLeft, ArrowRight, Check } from 'lucide-react'
@@ -21,7 +22,13 @@ export default function NewDevis() {
     if (!formData.type || !formData.surface || !formData.description) { setToast({ message: 'Remplissez tous les champs', type: 'error' }); return }
     if (formData.description.length < 20) { setToast({ message: 'Description min. 20 caractères', type: 'error' }); return }
     setLoading(true)
-    try { await creerDevis(user?.id, user?.email, formData); setToast({ message: 'Demande envoyée !', type: 'success' }); setTimeout(() => navigate('/client/devis'), 1500) }
+    try {
+      const devis = await creerDevis(user?.id, user?.email, formData)
+      // Créer le prospect en background — non bloquant, ne doit jamais faire échouer le flux principal
+      creerProspectDepuisClient(user, formData, devis?.id, devis?.quoteNumber).catch(() => {})
+      setToast({ message: 'Demande envoyée !', type: 'success' })
+      setTimeout(() => navigate('/client/devis'), 1500)
+    }
     catch { setToast({ message: "Erreur. Réessayez.", type: 'error' }); setLoading(false) }
   }
 

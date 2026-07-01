@@ -1,11 +1,32 @@
 import { signInAnonymously } from 'firebase/auth'
-import { collection, getDocs, doc, getDoc, setDoc, updateDoc, onSnapshot, Timestamp, arrayUnion } from 'firebase/firestore'
+import { collection, getDocs, doc, getDoc, setDoc, updateDoc, onSnapshot, Timestamp, arrayUnion, addDoc } from 'firebase/firestore'
 import { auth, db } from '../firebase/init'
 import { creerDevis } from './quoteService'
 
 // Limite de messages par discussion (protection contre les coûts/abus,
 // surtout important ici car le lien est public et générique — voir prospect-chat.js)
 export const MAX_MESSAGES = 30
+
+// ─── Statuts du pipeline complet ────────────────────────────────────────────
+export const STATUTS_PIPELINE = [
+  { id: 'nouveau',           label: 'Nouveau',              couleur: '#F2C200' },
+  { id: 'contacte',         label: 'Contacté',             couleur: '#60A5FA' },
+  { id: 'visite_planifiee', label: 'Visite planifiée',     couleur: '#A78BFA' },
+  { id: 'devis_en_cours',   label: 'Devis en cours',       couleur: '#FB923C' },
+  { id: 'devis_envoye',     label: 'Devis envoyé',         couleur: '#F472B6' },
+  { id: 'devis_approuve',   label: 'Devis approuvé',       couleur: '#34D399' },
+  { id: 'devis_rejete',     label: 'Devis rejeté',         couleur: '#F87171' },
+  { id: 'chantier_en_cours', label: 'Chantier en cours',   couleur: '#22D3EE' },
+  { id: 'termine',          label: 'Terminé',              couleur: '#86EFAC' },
+]
+
+export const SOURCES_LABEL = {
+  site_public:   '🌐 Site public',
+  app_anonyme:   '📱 App (visiteur)',
+  app_client:    '👤 Client connecté',
+}
+
+// ─── SESSION ANONYME (formulaire public /discussion) ─────────────────────────
 
 // Démarre (ou reprend) une session anonyme + son document prospect associé.
 // Appelé au chargement de la page /discussion.
@@ -22,6 +43,7 @@ export async function demarrerSession() {
       messages: [],
       formulaireComplete: false,
       statut: 'nouveau',
+      source: 'app_anonyme',
       createdAt: Timestamp.now(),
       updatedAt: Timestamp.now(),
     })
@@ -58,6 +80,7 @@ export async function soumettreFormulaireProspect(uid, donnees) {
       exigencesParticulieres: donnees.exigencesParticulieres || '',
     },
     photos: donnees.photos || [],
+    source: 'site_public',
     formulaireComplete: true,
     statut: 'nouveau',
     messages: arrayUnion(messageAccueil),
@@ -137,6 +160,53 @@ export const enregistrerAnalyseIA = async (uid, texte) => {
   } catch (e) {
     console.error('enregistrerAnalyseIA:', e)
     return false
+  }
+}
+
+// ─── PROSPECT DEPUIS CLIENT CONNECTÉ ────────────────────────────────────────
+// Créé automatiquement quand un client connecté soumet une demande de devis
+// via NewDevis.jsx. NON bloquant — appelé en background après creerDevis().
+// L'admin voit ainsi TOUTES les demandes dans un seul pipeline.
+export const creerProspectDepuisClient = async (user, formData, devisId, devisNumero) => {
+  try {
+    if (!user?.id) return null
+    const prospect = {
+      // Identité — liée au compte client
+      clientId: user.id,
+      clientEmail: user.email || '',
+      source: 'app_client',
+      coordonnees: {
+        nom: user.nom || user.email || 'Client',
+        telephone: user.telephone || '',
+        email: user.email || '',
+      },
+      // Infos du projet
+      infosCollectees: {
+        typeProjet: formData.type || '',
+        surfaceM2: formData.surface ? Number(formData.surface) : null,
+        avecPeinture: formData.avecPeinture ?? null,
+        localisation: formData.localisation || 'Dakar',
+        budgetIndicatif: formData.budget || '',
+        delaiSouhaite: formData.urgence || '',
+        exigencesParticulieres: formData.description || '',
+      },
+      photos: [],
+      // Lien direct vers le devis créé
+      devisId: devisId || null,
+      devisNumero: devisNumero || null,
+      // Pipeline
+      statut: 'devis_en_cours',
+      formulaireComplete: true,
+      messages: [],
+      createdAt: Timestamp.now(),
+      updatedAt: Timestamp.now(),
+    }
+    const ref = await addDoc(collection(db, 'prospects'), prospect)
+    return ref.id
+  } catch (e) {
+    // Non bloquant — on ne fail pas silencieusement le flux principal
+    console.error('creerProspectDepuisClient:', e)
+    return null
   }
 }
 

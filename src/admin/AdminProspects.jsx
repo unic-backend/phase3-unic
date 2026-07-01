@@ -1,8 +1,14 @@
 import { useState, useEffect, useMemo } from 'react'
-import { getTousProspects, marquerProspectStatut, enregistrerAnalyseIA, convertirProspectEnClient } from '../services/prospectService'
+import {
+  getTousProspects, marquerProspectStatut, enregistrerAnalyseIA,
+  convertirProspectEnClient, STATUTS_PIPELINE, SOURCES_LABEL,
+} from '../services/prospectService'
 import { demanderAssistant } from '../services/iaService'
 import { calculerPrixUnitaire, calculerMontant, estSurDevis } from '../utils/pricing'
-import { Users2, MessageCircle, X, MapPin, Ruler, Wallet, Clock, CheckCircle2, Circle, Phone, Sparkles, ImageIcon, UserPlus } from 'lucide-react'
+import {
+  Users2, MessageCircle, X, MapPin, Ruler, Wallet, Clock,
+  Phone, Sparkles, ImageIcon, UserPlus, ChevronRight, FileText,
+} from 'lucide-react'
 
 const LABELS_TYPE = {
   'faux-plafond': 'Faux plafond BA13',
@@ -13,22 +19,26 @@ const LABELS_TYPE = {
   renovation: 'Rénovation complète',
 }
 
+// Map rapide couleur par statut id
+const COULEUR_STATUT = Object.fromEntries(STATUTS_PIPELINE.map(s => [s.id, s.couleur]))
+const LABEL_STATUT = Object.fromEntries(STATUTS_PIPELINE.map(s => [s.id, s.label]))
+
 function estimation(infos) {
   if (!infos?.typeProjet || !infos?.surfaceM2) return null
   if (estSurDevis(infos.typeProjet)) return 'Sur devis personnalisé'
   if (infos.avecPeinture === undefined || infos.avecPeinture === null) {
     const sans = calculerPrixUnitaire(infos.typeProjet, false)
     const avec = calculerPrixUnitaire(infos.typeProjet, true)
-    if (sans === avec) return `~${calculerMontant(infos.typeProjet, infos.surfaceM2, false).toLocaleString('fr-FR')} FCFA (estimation)`
-    return `${(infos.surfaceM2 * sans).toLocaleString('fr-FR')} – ${(infos.surfaceM2 * avec).toLocaleString('fr-FR')} FCFA selon finition (estimation)`
+    if (sans === avec) return `~${calculerMontant(infos.typeProjet, infos.surfaceM2, false).toLocaleString('fr-FR')} FCFA`
+    return `${(infos.surfaceM2 * sans).toLocaleString('fr-FR')} – ${(infos.surfaceM2 * avec).toLocaleString('fr-FR')} FCFA selon finition`
   }
-  return `~${calculerMontant(infos.typeProjet, infos.surfaceM2, infos.avecPeinture).toLocaleString('fr-FR')} FCFA (estimation)`
+  return `~${calculerMontant(infos.typeProjet, infos.surfaceM2, infos.avecPeinture).toLocaleString('fr-FR')} FCFA`
 }
 
 function construireQuestionAnalyse(p) {
   const i = p.infosCollectees || {}
   const c = p.coordonnees || {}
-  return `Voici une demande de devis reçue via le formulaire public de UniC Plaquiste. Résume-la en 2-3 phrases et propose une suggestion d'estimation interne si pertinent (rappelle que c'est une suggestion à valider, jamais un devis officiel à envoyer tel quel).
+  return `Voici une demande de devis reçue via ${SOURCES_LABEL[p.source] || p.source || 'source inconnue'} pour UniC Plaquiste. Résume-la en 2-3 phrases et propose une suggestion d'estimation interne si pertinent (c'est une suggestion à valider, jamais un devis officiel).
 
 Client : ${c.nom || 'inconnu'} (${c.telephone || 'pas de numéro'})
 Type de projet : ${i.typeProjet ? (LABELS_TYPE[i.typeProjet] || i.typeProjet) : 'non précisé'}
@@ -41,12 +51,23 @@ Exigences particulières : ${i.exigencesParticulieres || 'aucune'}
 Photos jointes : ${(p.photos || []).length}`
 }
 
-function Ligne({ icon: Icon, label }) {
+function BadgeSource({ source }) {
   return (
-    <div className="flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
-      <Icon size={13} style={{ color: 'var(--text-muted)' }} />
-      <span>{label}</span>
-    </div>
+    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+      style={{ background: 'rgba(96,165,250,0.12)', color: '#93C5FD' }}>
+      {SOURCES_LABEL[source] || source || '—'}
+    </span>
+  )
+}
+
+function BadgeStatut({ statut }) {
+  const couleur = COULEUR_STATUT[statut] || '#9CA3AF'
+  const label = LABEL_STATUT[statut] || statut || '—'
+  return (
+    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+      style={{ background: `${couleur}22`, color: couleur, border: `1px solid ${couleur}44` }}>
+      {label}
+    </span>
   )
 }
 
@@ -57,27 +78,78 @@ function FicheInfos({ prospect }) {
   if (!infos && !coord) return null
   const est = infos ? estimation(infos) : null
   return (
-    <div className="rounded-xl p-3 space-y-1.5 text-sm" style={{ background: 'var(--dark-elevated)', border: '1px solid var(--dark-border)' }}>
-      {coord?.nom && <Ligne icon={Users2} label={coord.nom} />}
-      {coord?.telephone && <Ligne icon={Phone} label={coord.telephone} />}
-      {infos?.typeProjet && <Ligne icon={Ruler} label={LABELS_TYPE[infos.typeProjet] || infos.typeProjet} />}
-      {infos?.localisation && <Ligne icon={MapPin} label={infos.localisation} />}
-      {infos?.surfaceM2 && <Ligne icon={Ruler} label={`${infos.surfaceM2} m²${infos.avecPeinture === true ? ' · avec peinture' : infos.avecPeinture === false ? ' · sans peinture' : ''}`} />}
-      {infos?.budgetIndicatif && <Ligne icon={Wallet} label={`Budget client : ${infos.budgetIndicatif}`} />}
-      {infos?.delaiSouhaite && <Ligne icon={Clock} label={infos.delaiSouhaite} />}
-      {infos?.exigencesParticulieres && <p className="text-xs italic" style={{ color: 'var(--text-muted)' }}>"{infos.exigencesParticulieres}"</p>}
+    <div className="rounded-xl p-3 space-y-1.5 text-sm"
+      style={{ background: 'var(--dark-elevated)', border: '1px solid var(--dark-border)' }}>
+      {coord?.nom && (
+        <div className="flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
+          <Users2 size={13} style={{ color: 'var(--text-muted)' }} /><span>{coord.nom}</span>
+        </div>
+      )}
+      {coord?.telephone && (
+        <div className="flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
+          <Phone size={13} style={{ color: 'var(--text-muted)' }} /><span>{coord.telephone}</span>
+        </div>
+      )}
+      {coord?.email && coord.email !== coord.nom && (
+        <div className="flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
+          <MessageCircle size={13} style={{ color: 'var(--text-muted)' }} /><span className="text-xs truncate">{coord.email}</span>
+        </div>
+      )}
+      {infos?.typeProjet && (
+        <div className="flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
+          <Ruler size={13} style={{ color: 'var(--text-muted)' }} /><span>{LABELS_TYPE[infos.typeProjet] || infos.typeProjet}</span>
+        </div>
+      )}
+      {infos?.localisation && (
+        <div className="flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
+          <MapPin size={13} style={{ color: 'var(--text-muted)' }} /><span>{infos.localisation}</span>
+        </div>
+      )}
+      {infos?.surfaceM2 && (
+        <div className="flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
+          <Ruler size={13} style={{ color: 'var(--text-muted)' }} />
+          <span>{infos.surfaceM2} m²{infos.avecPeinture === true ? ' · avec peinture' : infos.avecPeinture === false ? ' · sans peinture' : ''}</span>
+        </div>
+      )}
+      {infos?.budgetIndicatif && (
+        <div className="flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
+          <Wallet size={13} style={{ color: 'var(--text-muted)' }} /><span>Budget : {infos.budgetIndicatif}</span>
+        </div>
+      )}
+      {infos?.delaiSouhaite && (
+        <div className="flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
+          <Clock size={13} style={{ color: 'var(--text-muted)' }} /><span>{infos.delaiSouhaite}</span>
+        </div>
+      )}
+      {infos?.exigencesParticulieres && (
+        <p className="text-xs italic" style={{ color: 'var(--text-muted)' }}>"{infos.exigencesParticulieres}"</p>
+      )}
       {photos.length > 0 && (
         <div className="flex items-center gap-2 pt-1">
           <ImageIcon size={13} style={{ color: 'var(--text-muted)' }} />
           <div className="flex gap-1.5">
-            {photos.map((url) => <a key={url} href={url} target="_blank" rel="noreferrer"><img src={url} className="w-10 h-10 rounded-lg object-cover" alt="" /></a>)}
+            {photos.map((url) => (
+              <a key={url} href={url} target="_blank" rel="noreferrer">
+                <img src={url} className="w-10 h-10 rounded-lg object-cover" alt="" />
+              </a>
+            ))}
           </div>
         </div>
       )}
       {est && (
-        <p className="text-sm font-semibold pt-1" style={{ color: 'var(--gold)', borderTop: '1px solid var(--dark-border)', marginTop: '6px', paddingTop: '8px' }}>
+        <p className="text-sm font-semibold pt-1" style={{
+          color: 'var(--gold)',
+          borderTop: '1px solid var(--dark-border)',
+          marginTop: '6px',
+          paddingTop: '8px',
+        }}>
           💰 {est}
         </p>
+      )}
+      {prospect.devisNumero && (
+        <div className="flex items-center gap-2 pt-1" style={{ color: '#34D399' }}>
+          <FileText size={13} /><span className="text-xs">Devis lié : {prospect.devisNumero}</span>
+        </div>
       )}
     </div>
   )
@@ -87,26 +159,26 @@ export default function AdminProspects() {
   const [prospects, setProspects] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectionne, setSelectionne] = useState(null)
-  const [filtre, setFiltre] = useState('Tous')
+  const [filtreStatut, setFiltreStatut] = useState('tous')
+  const [filtreSource, setFiltreSource] = useState('toutes')
   const [analyseEnCours, setAnalyseEnCours] = useState(false)
   const [erreurAnalyse, setErreurAnalyse] = useState('')
   const [conversionEnCours, setConversionEnCours] = useState(false)
   const [erreurConversion, setErreurConversion] = useState('')
 
-  const charger = async () => { setLoading(true); setProspects(await getTousProspects()); setLoading(false) }
+  const charger = async () => {
+    setLoading(true)
+    setProspects(await getTousProspects())
+    setLoading(false)
+  }
   useEffect(() => { charger() }, [])
 
-  const formatDate = (d) => d?.seconds ? new Date(d.seconds * 1000).toLocaleString('fr-FR') : '-'
-  const dernierMessage = (p) => {
-    const msgs = p.messages || []
-    return msgs.length ? msgs[msgs.length - 1].content : (p.coordonnees?.nom ? `Demande de ${p.coordonnees.nom}` : '(formulaire non rempli)')
-  }
+  const formatDate = (d) => d?.seconds ? new Date(d.seconds * 1000).toLocaleString('fr-FR') : '—'
 
-  const basculerStatut = async (p) => {
-    const nouveau = p.statut === 'traite' ? 'nouveau' : 'traite'
-    if (await marquerProspectStatut(p.id, nouveau)) {
-      setProspects((prev) => prev.map((x) => x.id === p.id ? { ...x, statut: nouveau } : x))
-      setSelectionne((prev) => prev && prev.id === p.id ? { ...prev, statut: nouveau } : prev)
+  const changerStatut = async (p, nouveauStatut) => {
+    if (await marquerProspectStatut(p.id, nouveauStatut)) {
+      setProspects((prev) => prev.map((x) => x.id === p.id ? { ...x, statut: nouveauStatut } : x))
+      setSelectionne((prev) => prev?.id === p.id ? { ...prev, statut: nouveauStatut } : prev)
     }
   }
 
@@ -118,7 +190,7 @@ export default function AdminProspects() {
       await enregistrerAnalyseIA(p.id, texte)
       const miseAJour = { analyseIA: { texte } }
       setProspects((prev) => prev.map((x) => x.id === p.id ? { ...x, ...miseAJour } : x))
-      setSelectionne((prev) => prev && prev.id === p.id ? { ...prev, ...miseAJour } : prev)
+      setSelectionne((prev) => prev?.id === p.id ? { ...prev, ...miseAJour } : prev)
     } catch (e) {
       setErreurAnalyse(e.message || 'Erreur lors de l\'analyse')
     } finally {
@@ -132,9 +204,9 @@ export default function AdminProspects() {
     setErreurConversion('')
     try {
       const devis = await convertirProspectEnClient(p)
-      const miseAJour = { statut: 'traite', devisCreeId: devis.id, devisCreeNumero: devis.quoteNumber }
+      const miseAJour = { statut: 'devis_en_cours', devisId: devis.id, devisNumero: devis.quoteNumber }
       setProspects((prev) => prev.map((x) => x.id === p.id ? { ...x, ...miseAJour } : x))
-      setSelectionne((prev) => prev && prev.id === p.id ? { ...prev, ...miseAJour } : prev)
+      setSelectionne((prev) => prev?.id === p.id ? { ...prev, ...miseAJour } : prev)
     } catch (e) {
       setErreurConversion(e.message || 'Erreur lors de la conversion')
     } finally {
@@ -142,65 +214,104 @@ export default function AdminProspects() {
     }
   }
 
-  const filtres = [
-    { key: 'Tous', icon: Users2 },
-    { key: 'Nouveau', icon: Circle },
-    { key: 'Traité', icon: CheckCircle2 },
-  ]
   const prospectsFiltres = useMemo(() => {
-    if (filtre === 'Nouveau') return prospects.filter((p) => p.statut !== 'traite')
-    if (filtre === 'Traité') return prospects.filter((p) => p.statut === 'traite')
     return prospects
-  }, [prospects, filtre])
+      .filter(p => filtreStatut === 'tous' || p.statut === filtreStatut)
+      .filter(p => filtreSource === 'toutes' || p.source === filtreSource)
+  }, [prospects, filtreStatut, filtreSource])
+
+  const compteParStatut = useMemo(() => {
+    const map = {}
+    prospects.forEach(p => { map[p.statut] = (map[p.statut] || 0) + 1 })
+    return map
+  }, [prospects])
 
   return (
     <div className="space-y-5 max-w-4xl mx-auto">
       <div className="animate-fade-in">
         <h1 className="text-2xl md:text-3xl font-bold text-white">Prospects</h1>
         <p className="mt-1" style={{ color: 'var(--text-secondary)' }}>
-          Demandes reçues via le lien WhatsApp (app.unicplaquiste.com/discussion)
+          Toutes les demandes — site public, app, clients connectés
         </p>
       </div>
 
+      {/* Filtres source */}
       <div className="flex gap-2 overflow-x-auto pb-1">
-        {filtres.map((f) => {
-          const Icon = f.icon; const actif = filtre === f.key
+        {[
+          { id: 'toutes', label: 'Toutes sources' },
+          { id: 'site_public', label: '🌐 Site public' },
+          { id: 'app_anonyme', label: '📱 App visiteur' },
+          { id: 'app_client', label: '👤 Client connecté' },
+        ].map(s => (
+          <button key={s.id} onClick={() => setFiltreSource(s.id)}
+            className="px-3.5 py-2 rounded-xl text-xs font-medium whitespace-nowrap transition-all"
+            style={filtreSource === s.id
+              ? { background: 'var(--gold)', color: '#060D18' }
+              : { background: 'var(--dark-elevated)', color: 'var(--text-secondary)', border: '1px solid var(--dark-border)' }}>
+            {s.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Pipeline statuts */}
+      <div className="flex gap-1.5 overflow-x-auto pb-1">
+        <button onClick={() => setFiltreStatut('tous')}
+          className="px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition-all"
+          style={filtreStatut === 'tous'
+            ? { background: 'var(--gold)', color: '#060D18' }
+            : { background: 'var(--dark-elevated)', color: 'var(--text-secondary)', border: '1px solid var(--dark-border)' }}>
+          Tous ({prospects.length})
+        </button>
+        {STATUTS_PIPELINE.map(s => {
+          const count = compteParStatut[s.id] || 0
+          if (count === 0 && filtreStatut !== s.id) return null
           return (
-            <button key={f.key} onClick={() => setFiltre(f.key)}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all"
-              style={actif ? { background: 'var(--gold)', color: '#060D18' } : { background: 'var(--dark-elevated)', color: 'var(--text-secondary)', border: '1px solid var(--dark-border)' }}>
-              <Icon size={14} /> {f.key}
+            <button key={s.id} onClick={() => setFiltreStatut(s.id)}
+              className="px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition-all"
+              style={filtreStatut === s.id
+                ? { background: s.couleur, color: '#060D18' }
+                : { background: 'var(--dark-elevated)', color: s.couleur, border: `1px solid ${s.couleur}33` }}>
+              {s.label} {count > 0 ? `(${count})` : ''}
             </button>
           )
         })}
       </div>
 
-      {loading && <div className="space-y-3">{[1, 2, 3].map((i) => <div key={i} className="skeleton-dark h-24 rounded-2xl" />)}</div>}
+      {loading && (
+        <div className="space-y-3">
+          {[1,2,3].map(i => <div key={i} className="skeleton-dark h-24 rounded-2xl" />)}
+        </div>
+      )}
 
       {!loading && prospectsFiltres.length === 0 && (
         <div className="card-dark p-10 text-center">
           <Users2 size={36} className="mx-auto mb-3" style={{ color: 'var(--text-muted)' }} />
           <p className="font-semibold text-white">Aucun prospect ici</p>
           <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
-            Envoie le lien <span className="font-mono">app.unicplaquiste.com/discussion</span> sur WhatsApp à un client pour démarrer.
+            Les demandes apparaissent ici dès qu'un visiteur remplit le formulaire public
+            ou qu'un client connecté soumet une demande de devis.
           </p>
         </div>
       )}
 
       <div className="space-y-3">
-        {prospectsFiltres.map((p) => (
+        {prospectsFiltres.map(p => (
           <div key={p.id} className="card-dark p-4">
             <button onClick={() => setSelectionne(p)} className="w-full text-left">
               <div className="flex items-start justify-between gap-3 mb-2">
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    {p.statut === 'traite' ? <CheckCircle2 size={14} style={{ color: '#34D399' }} /> : <Circle size={14} style={{ color: 'var(--gold)' }} />}
-                    <p className="text-xs font-semibold" style={{ color: p.statut === 'traite' ? '#34D399' : 'var(--gold)' }}>{p.statut === 'traite' ? 'Traité' : 'Nouveau'}</p>
+                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                    <BadgeStatut statut={p.statut || 'nouveau'} />
+                    <BadgeSource source={p.source} />
                   </div>
-                  <p className="text-sm font-medium text-white truncate mt-1">{dernierMessage(p)}</p>
-                  <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{(p.messages || []).length} message(s) · {formatDate(p.updatedAt)}</p>
+                  <p className="text-sm font-medium text-white truncate">
+                    {p.coordonnees?.nom || p.clientEmail || '(formulaire non rempli)'}
+                  </p>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                    {(p.messages || []).length} message(s) · {formatDate(p.updatedAt)}
+                  </p>
                 </div>
-                <MessageCircle size={18} className="shrink-0" style={{ color: 'var(--text-muted)' }} />
+                <ChevronRight size={16} className="shrink-0 mt-1" style={{ color: 'var(--text-muted)' }} />
               </div>
             </button>
             <FicheInfos prospect={p} />
@@ -208,55 +319,75 @@ export default function AdminProspects() {
         ))}
       </div>
 
+      {/* ═══ DÉTAIL PROSPECT ═══ */}
       {selectionne && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.6)' }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.6)' }}>
           <div className="card-dark w-full max-w-md max-h-[85vh] flex flex-col animate-fade-in">
-            <div className="flex items-center justify-between p-4 shrink-0" style={{ borderBottom: '1px solid var(--dark-border)' }}>
+            <div className="flex items-center justify-between p-4 shrink-0"
+              style={{ borderBottom: '1px solid var(--dark-border)' }}>
               <p className="font-bold text-white">Détail de la demande</p>
-              <button onClick={() => setSelectionne(null)} style={{ color: 'var(--text-muted)' }}><X size={20} /></button>
+              <button onClick={() => setSelectionne(null)} style={{ color: 'var(--text-muted)' }}>
+                <X size={20} />
+              </button>
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {/* Source + statut actuel */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <BadgeStatut statut={selectionne.statut || 'nouveau'} />
+                <BadgeSource source={selectionne.source} />
+              </div>
+
               <FicheInfos prospect={selectionne} />
 
+              {/* Pipeline statuts */}
+              <div>
+                <p className="text-xs font-semibold mb-2" style={{ color: 'var(--gold)' }}>CHANGER LE STATUT</p>
+                <div className="flex gap-1.5 flex-wrap">
+                  {STATUTS_PIPELINE.map(s => (
+                    <button key={s.id} onClick={() => changerStatut(selectionne, s.id)}
+                      className="px-2.5 py-1 rounded-lg text-xs font-medium transition"
+                      style={selectionne.statut === s.id
+                        ? { background: `${s.couleur}25`, color: s.couleur, border: `1px solid ${s.couleur}50` }
+                        : { background: 'var(--dark-elevated)', color: 'var(--text-muted)', border: '1px solid var(--dark-border)' }}>
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Analyse IA */}
               {selectionne.analyseIA?.texte && (
-                <div className="rounded-xl p-3 text-sm whitespace-pre-wrap" style={{ background: 'rgba(246,195,68,0.08)', border: '1px solid rgba(246,195,68,0.2)', color: 'white' }}>
+                <div className="rounded-xl p-3 text-sm whitespace-pre-wrap"
+                  style={{ background: 'rgba(246,195,68,0.08)', border: '1px solid rgba(246,195,68,0.2)', color: 'white' }}>
                   <div className="flex items-center gap-2 mb-1.5" style={{ color: 'var(--gold)' }}>
-                    <Sparkles size={13} /> <span className="text-xs font-bold uppercase tracking-wide">Suggestion IA — à valider</span>
+                    <Sparkles size={13} />
+                    <span className="text-xs font-bold uppercase tracking-wide">Suggestion IA — à valider</span>
                   </div>
                   {selectionne.analyseIA.texte}
                 </div>
               )}
-
               {erreurAnalyse && <p className="text-xs" style={{ color: '#F87171' }}>⚠️ {erreurAnalyse}</p>}
+              {erreurConversion && <p className="text-xs" style={{ color: '#F87171' }}>⚠️ {erreurConversion}</p>}
 
               <button onClick={() => analyserAvecIA(selectionne)} disabled={analyseEnCours}
                 className="w-full py-2.5 rounded-xl font-semibold text-sm btn-press disabled:opacity-50 flex items-center justify-center gap-2"
                 style={{ background: 'var(--dark-elevated)', border: '1px solid var(--dark-border)', color: 'var(--gold)' }}>
-                <Sparkles size={15} /> {analyseEnCours ? 'Analyse en cours...' : selectionne.analyseIA ? 'Relancer l\'analyse IA' : 'Analyser avec l\'IA'}
+                <Sparkles size={15} />
+                {analyseEnCours ? 'Analyse en cours...' : selectionne.analyseIA ? 'Relancer l\'analyse IA' : 'Analyser avec l\'IA'}
               </button>
 
-              {erreurConversion && <p className="text-xs" style={{ color: '#F87171' }}>⚠️ {erreurConversion}</p>}
-
-              {selectionne.devisCreeId ? (
-                <p className="text-center text-xs font-semibold py-2.5 rounded-xl badge-success">
-                  ✓ Devis {selectionne.devisCreeNumero} créé — voir dans "Devis"
-                </p>
-              ) : (
-                <button onClick={() => convertirEnClient(selectionne)} disabled={conversionEnCours || !selectionne.infosCollectees?.typeProjet}
-                  className="w-full py-2.5 rounded-xl font-semibold text-sm btn-press disabled:opacity-50 flex items-center justify-center gap-2"
-                  style={{ background: 'var(--gold)', color: '#060D18' }}
-                  title={!selectionne.infosCollectees?.typeProjet ? 'Le formulaire n\'a pas encore été rempli' : ''}>
-                  <UserPlus size={16} /> {conversionEnCours ? 'Création...' : 'Créer le compte client + le devis'}
-                </button>
-              )}
-
+              {/* Messages */}
               {(selectionne.messages || []).length > 0 && (
-                <div className="space-y-3 pt-2" style={{ borderTop: '1px solid var(--dark-border)', marginTop: '8px' }}>
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold" style={{ color: 'var(--gold)' }}>CONVERSATION</p>
                   {(selectionne.messages || []).map((m, i) => (
                     <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                       <div className="max-w-[85%] rounded-2xl px-3.5 py-2 text-sm whitespace-pre-wrap"
-                        style={m.role === 'user' ? { background: 'var(--gold)', color: '#060D18' } : { background: 'var(--dark-elevated)', border: '1px solid var(--dark-border)', color: 'white' }}>
+                        style={m.role === 'user'
+                          ? { background: 'var(--gold)', color: '#060D18' }
+                          : { background: 'var(--dark-elevated)', border: '1px solid var(--dark-border)', color: 'white' }}>
                         {m.content}
                       </div>
                     </div>
@@ -265,12 +396,17 @@ export default function AdminProspects() {
               )}
             </div>
 
-            <div className="p-3 shrink-0" style={{ borderTop: '1px solid var(--dark-border)' }}>
-              <button onClick={() => basculerStatut(selectionne)}
-                className="w-full py-2.5 rounded-xl font-semibold text-sm btn-press transition"
-                style={selectionne.statut === 'traite' ? { background: 'var(--dark-elevated)', color: 'var(--text-secondary)' } : { background: 'var(--gold)', color: '#060D18' }}>
-                {selectionne.statut === 'traite' ? 'Remettre en "Nouveau"' : '✓ Marquer comme traité'}
-              </button>
+            {/* Pied de modale */}
+            <div className="p-3 shrink-0 space-y-2" style={{ borderTop: '1px solid var(--dark-border)' }}>
+              {/* Conversion uniquement si pas encore de devis et pas client connecté */}
+              {!selectionne.devisId && selectionne.source !== 'app_client' && selectionne.infosCollectees?.typeProjet && (
+                <button onClick={() => convertirEnClient(selectionne)} disabled={conversionEnCours}
+                  className="w-full py-2.5 rounded-xl font-semibold text-sm btn-press disabled:opacity-50 flex items-center justify-center gap-2"
+                  style={{ background: 'var(--gold)', color: '#060D18' }}>
+                  <UserPlus size={16} />
+                  {conversionEnCours ? 'Création...' : 'Créer le compte client + le devis'}
+                </button>
+              )}
             </div>
           </div>
         </div>
