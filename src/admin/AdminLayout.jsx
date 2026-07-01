@@ -8,7 +8,8 @@ import {
   LayoutDashboard, Users, FileText, Building2,
   Receipt, MessageSquare, User, LogOut, Menu,
   ChevronLeft, ChevronRight, Bell, Search,
-  Settings, Plus
+  Settings, Plus, Brain, Users2, PenTool,
+  TrendingUp, Images, Calendar
 } from 'lucide-react'
 import logo from '../assets/logo.webp'
 
@@ -33,6 +34,14 @@ export default function AdminLayout() {
     { icon: Users, label: 'Clients', path: '/admin/clients' },
     { icon: Building2, label: 'Projets', path: '/admin/projets' },
     { icon: MessageSquare, label: 'Messages', path: '/admin/messages' },
+    { icon: Brain, label: 'Assistant IA', path: '/admin/connaissances' },
+    { icon: Users2, label: 'Prospects', path: '/admin/prospects' },
+    { icon: PenTool, label: 'Ma signature', path: '/admin/signature' },
+    { icon: TrendingUp, label: 'Finances', path: '/admin/finances' },
+    { icon: Receipt, label: 'Dépenses', path: '/admin/depenses' },
+    { icon: Calendar, label: 'Calendrier', path: '/admin/calendrier' },
+    { icon: Images, label: 'Portfolio', path: '/admin/portfolio' },
+    { icon: Search, label: 'Appels d\'offres', path: '/admin/opportunites' },
   ]
 
   const mobileNavItems = [
@@ -40,13 +49,11 @@ export default function AdminLayout() {
     { icon: FileText, label: 'Devis', path: '/admin/devis' },
     { icon: MessageSquare, label: 'Chat', path: '/admin/messages', badge: 2 },
     { icon: Receipt, label: 'Factures', path: '/admin/factures' },
-    { icon: User, label: 'Profil', path: '/client/dashboard' },
+    { icon: User, label: 'Profil', path: '/admin/profil' },
   ]
 
   const handleLogout = () => { logout(); navigate('/') }
   const isActive = (path) => location.pathname === path
-  const activeIndex = mobileNavItems.findIndex(item => isActive(item.path))
-  const n = mobileNavItems.length
 
   return (
     <div className="flex h-screen" style={{ background: 'var(--dark-bg)' }}>
@@ -175,45 +182,39 @@ export default function AdminLayout() {
       </div>
 
       {/* ========== BOTTOM NAV — Mobile ========== */}
-      <nav
-        className="md:hidden fixed bottom-0 left-0 right-0 z-50 glass-dark"
-        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
-      >
-        <div className="relative flex justify-around items-stretch h-16">
-          {activeIndex >= 0 && (
-            <span
-              className="absolute top-0 h-[3px] rounded-full transition-transform duration-300 ease-out"
-              style={{
-                background: 'var(--gold)',
-                width: `${100 / n}%`,
-                transform: `translateX(${activeIndex * 100}%)`,
-                boxShadow: '0 0 12px rgba(246,195,68,0.4)'
-              }}
-            />
-          )}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50"
+        style={{
+          background: 'var(--dark-surface, #0C1829)',
+          borderTop: '1px solid rgba(255,255,255,0.05)',
+          paddingBottom: 'env(safe-area-inset-bottom)',
+        }}>
+        <div className="flex items-stretch h-[58px]">
           {mobileNavItems.map((item) => {
             const active = isActive(item.path)
             const Icon = item.icon
             return (
-              <button
-                key={item.path}
-                onClick={() => navigate(item.path)}
-                className="relative flex flex-col items-center justify-center flex-1 gap-1 transition-all duration-200 active:scale-90"
-              >
-                <div className="relative">
-                  <Icon
-                    size={22}
-                    strokeWidth={active ? 2.2 : 1.6}
-                    style={{ color: active ? 'var(--gold)' : 'var(--text-muted)', transition: 'color 0.2s' }}
-                  />
-                  {item.badge && (
-                    <span className="absolute -top-1.5 -right-2 w-4 h-4 rounded-full text-[9px] font-bold flex items-center justify-center"
-                      style={{ background: 'var(--gold)', color: '#060D18' }}>
+              <button key={item.path} onClick={() => navigate(item.path)}
+                className="relative flex flex-col items-center justify-center flex-1 gap-[3px] transition-all duration-200 active:scale-90 select-none">
+                {/* Indicateur fin en haut — suit exactement l'icône active */}
+                <span className="absolute top-0 left-1/2 -translate-x-1/2 rounded-full transition-all duration-300"
+                  style={{
+                    width: active ? '20px' : '0px',
+                    height: '2px',
+                    background: active ? '#F2C200' : 'transparent',
+                    boxShadow: active ? '0 0 8px rgba(242,194,0,0.6)' : 'none',
+                  }} />
+                <span className="relative">
+                  {item.badge > 0 && (
+                    <span className="absolute -top-1 -right-1.5 w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold text-white z-10"
+                      style={{ background: '#F87171' }}>
                       {item.badge}
                     </span>
                   )}
-                </div>
-                <span className="text-[10px] font-medium" style={{ color: active ? 'var(--gold)' : 'var(--text-muted)', transition: 'color 0.2s' }}>
+                  <Icon size={21} strokeWidth={active ? 2.2 : 1.6}
+                    style={{ color: active ? '#F2C200' : '#566380', transition: 'color 0.2s' }} />
+                </span>
+                <span className="text-[9.5px] font-semibold tracking-wide transition-colors duration-200"
+                  style={{ color: active ? '#F2C200' : '#566380' }}>
                   {item.label}
                 </span>
               </button>

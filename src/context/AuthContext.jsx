@@ -3,10 +3,12 @@ import {
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword, 
   signOut,
-  onAuthStateChanged 
+  onAuthStateChanged,
+  deleteUser
 } from 'firebase/auth'
 import { auth, db } from '../firebase/init'
-import { doc, setDoc, getDoc } from 'firebase/firestore'
+import { doc, setDoc, getDoc, deleteDoc, collection, getDocs, query, where, writeBatch } from 'firebase/firestore'
+import { isAdminEmail } from '../config/admins'
 
 const AuthContext = createContext()
 
@@ -21,12 +23,17 @@ export function AuthProvider({ children }) {
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       clearTimeout(safety)
-      if (firebaseUser) {
+
+      // Sessions anonymes (page publique /discussion) : ce ne sont pas des
+      // utilisateurs "client" ou "admin" de l'app. On les ignore ici pour ne
+      // pas planter sur firebaseUser.email (null pour un compte anonyme) —
+      // la page Discussion lit auth.currentUser directement, sans passer par ici.
+      if (firebaseUser && !firebaseUser.isAnonymous) {
         // 1) Connecter IMMÉDIATEMENT avec les infos Firebase Auth (pas d'attente)
         setUser({
           id: firebaseUser.uid,
           email: firebaseUser.email,
-          emailLower: firebaseUser.email.toLowerCase(),
+          emailLower: (firebaseUser.email || '').toLowerCase(),
           nom: firebaseUser.displayName || 'Utilisateur',
           telephone: ''
         })
@@ -41,7 +48,7 @@ export function AuthProvider({ children }) {
                 ...prev,
                 id: firebaseUser.uid,
                 email: firebaseUser.email,
-                emailLower: firebaseUser.email.toLowerCase(),
+                emailLower: (firebaseUser.email || '').toLowerCase(),
                 nom: profile.nom || 'Utilisateur',
                 telephone: profile.telephone || '',
                 isAdmin: profile.isAdmin || false,
@@ -75,13 +82,8 @@ export function AuthProvider({ children }) {
       const result = await createUserWithEmailAndPassword(auth, emailLower, password)
       console.log('Account created:', result.user.uid)
 
-      // Vérifier si c'est un admin
-      const ADMIN_EMAILS = [
-        'admin@unicplaquiste.com',
-        'unicplaquiste@gmail.com',
-        'odiop2020@gmail.com'
-      ]
-      const isAdminUser = ADMIN_EMAILS.includes(emailLower)
+      // Vérifier si c'est un admin (liste centrale, voir src/config/admins.js)
+      const isAdminUser = isAdminEmail(emailLower)
 
       // Sauvegarder profil EN ARRIÈRE-PLAN (ne pas attendre)
       setDoc(doc(db, 'users', result.user.uid), {
@@ -143,8 +145,30 @@ export function AuthProvider({ children }) {
     }
   }
 
+  // Supprimer le compte — efface les données Firestore + le compte Firebase Auth
+  const deleteAccount = async () => {
+    try {
+      if (!user || !auth.currentUser) return { success: false, error: 'Non connecté' }
+      const uid = user.id
+      const batch = writeBatch(db)
+      // Supprimer le profil utilisateur
+      batch.delete(doc(db, 'users', uid))
+      await batch.commit()
+      // Supprimer le compte Firebase Auth (doit être récent — sinon Firebase demande re-auth)
+      await deleteUser(auth.currentUser)
+      setUser(null)
+      return { success: true }
+    } catch (error) {
+      // Firebase exige parfois une re-authentification récente
+      if (error.code === 'auth/requires-recent-login') {
+        return { success: false, error: 'Pour ta sécurité, déconnecte-toi et reconnecte-toi avant de supprimer ton compte.' }
+      }
+      return { success: false, error: error.message }
+    }
+  }
+
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, loading, signup, login, logout, updateProfile }}>
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, loading, signup, login, logout, updateProfile, deleteAccount }}>
       {children}
     </AuthContext.Provider>
   )

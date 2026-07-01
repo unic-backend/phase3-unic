@@ -7,6 +7,8 @@ import AdminLayout from './admin/AdminLayout'
 
 // Pages publiques
 import HomePage from './pages/HomePage'
+import Discussion from './pages/Discussion'
+import SignerDevis from './pages/SignerDevis'
 import Login from './pages/Login'
 import InitAdmin from './pages/InitAdmin'
 import Signup from './pages/Signup'
@@ -28,6 +30,14 @@ import AdminDevis from './admin/AdminDevis'
 import AdminProjets from './admin/AdminProjets'
 import AdminFactures from './admin/AdminFactures'
 import AdminMessages from './admin/AdminMessages'
+import AdminBaseConnaissances from './admin/AdminBaseConnaissances'
+import AdminProspects from './admin/AdminProspects'
+import AdminSignature from './admin/AdminSignature'
+import AdminDashboardFinancier from './admin/AdminDashboardFinancier'
+import AdminDepenses from './admin/AdminDepenses'
+import AdminPortfolio from './admin/AdminPortfolio'
+import AdminCalendrier from './admin/AdminCalendrier'
+import AdminOpportunites from './admin/AdminOpportunites'
 
 export default function App() {
   return (
@@ -36,6 +46,8 @@ export default function App() {
         <Routes>
           {/* Routes publiques */}
           <Route path="/" element={<HomePage />} />
+          <Route path="/discussion" element={<Discussion />} />
+          <Route path="/signer/:token" element={<SignerDevis />} />
           <Route path="/login" element={<Login />} />
           <Route path="/init-admin" element={<InitAdmin />} />
           <Route path="/signup" element={<Signup />} />
@@ -74,6 +86,15 @@ export default function App() {
             <Route path="projets" element={<AdminProjets />} />
             <Route path="factures" element={<AdminFactures />} />
             <Route path="messages" element={<AdminMessages />} />
+            <Route path="connaissances" element={<AdminBaseConnaissances />} />
+            <Route path="prospects" element={<AdminProspects />} />
+            <Route path="signature" element={<AdminSignature />} />
+            <Route path="profil" element={<Profil />} />
+            <Route path="finances" element={<AdminDashboardFinancier />} />
+            <Route path="depenses" element={<AdminDepenses />} />
+            <Route path="portfolio" element={<AdminPortfolio />} />
+            <Route path="calendrier" element={<AdminCalendrier />} />
+            <Route path="opportunites" element={<AdminOpportunites />} />
           </Route>
 
           {/* Redirection */}

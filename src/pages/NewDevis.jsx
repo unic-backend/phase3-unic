@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { creerDevis } from '../services/quoteService'
+import { creerProspectDepuisClient } from '../services/prospectService'
+import { calculerPrixUnitaire, calculerMontant, estSurDevis } from '../utils/pricing'
 import Toast from '../components/Toast'
 import { Layers, DoorOpen, Paintbrush, Sparkles, Hammer, ArrowLeft, ArrowRight, Check } from 'lucide-react'
 
@@ -9,7 +11,7 @@ export default function NewDevis() {
   const [step, setStep] = useState(1)
   const [toast, setToast] = useState(null)
   const [loading, setLoading] = useState(false)
-  const [formData, setFormData] = useState({ type: '', surface: '', description: '', localisation: 'Dakar', urgence: 'ASAP', budget: '', photos: [] })
+  const [formData, setFormData] = useState({ type: '', surface: '', description: '', localisation: 'Dakar', urgence: 'ASAP', budget: '', photos: [], avecPeinture: true })
   const navigate = useNavigate()
   const { user } = useAuth()
 
@@ -20,12 +22,19 @@ export default function NewDevis() {
     if (!formData.type || !formData.surface || !formData.description) { setToast({ message: 'Remplissez tous les champs', type: 'error' }); return }
     if (formData.description.length < 20) { setToast({ message: 'Description min. 20 caractères', type: 'error' }); return }
     setLoading(true)
-    try { await creerDevis(user?.id, user?.email, formData); setToast({ message: 'Demande envoyée !', type: 'success' }); setTimeout(() => navigate('/client/devis'), 1500) }
+    try {
+      const devis = await creerDevis(user?.id, user?.email, formData)
+      // Créer le prospect en background — non bloquant, ne doit jamais faire échouer le flux principal
+      creerProspectDepuisClient(user, formData, devis?.id, devis?.quoteNumber).catch(() => {})
+      setToast({ message: 'Demande envoyée !', type: 'success' })
+      setTimeout(() => navigate('/client/devis'), 1500)
+    }
     catch { setToast({ message: "Erreur. Réessayez.", type: 'error' }); setLoading(false) }
   }
 
-  const prixUnitaire = 15000
-  const montantEstime = formData.surface ? formData.surface * prixUnitaire : 0
+  const surDevis = estSurDevis(formData.type)
+  const prixUnitaire = calculerPrixUnitaire(formData.type, formData.avecPeinture)
+  const montantEstime = calculerMontant(formData.type, formData.surface, formData.avecPeinture)
 
   const types = [
     { id: 'faux-plafond', label: 'Faux plafond BA13', icon: Layers },
@@ -84,6 +93,24 @@ export default function NewDevis() {
               <p className="text-[11px] mt-1" style={{ color: formData.description.length >= 20 ? '#34D399' : 'var(--text-muted)' }}>{formData.description.length}/20 min.</p></div>
             <div><label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-muted)' }}>Localisation</label>
               <select name="localisation" value={formData.localisation} onChange={handleChange} className={ic}><option value="Dakar">Dakar</option><option value="Hors-Dakar">Hors Dakar (+15%)</option></select></div>
+            {formData.type === 'faux-plafond' && (
+              <div>
+                <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-muted)' }}>Finition</label>
+                <div className="flex gap-2.5">
+                  <button type="button" onClick={() => setFormData({ ...formData, avecPeinture: true })}
+                    className="flex-1 py-3 rounded-xl text-sm font-medium transition-all"
+                    style={formData.avecPeinture ? { background: 'rgba(246,195,68,0.1)', border: '1px solid rgba(246,195,68,0.3)', color: 'white' } : { background: 'var(--dark-elevated)', border: '1px solid var(--dark-border)', color: 'var(--text-secondary)' }}>
+                    Avec peinture<br /><span className="text-xs" style={{ color: 'var(--gold)' }}>13 500 FCFA/m²</span>
+                  </button>
+                  <button type="button" onClick={() => setFormData({ ...formData, avecPeinture: false })}
+                    className="flex-1 py-3 rounded-xl text-sm font-medium transition-all"
+                    style={!formData.avecPeinture ? { background: 'rgba(246,195,68,0.1)', border: '1px solid rgba(246,195,68,0.3)', color: 'white' } : { background: 'var(--dark-elevated)', border: '1px solid var(--dark-border)', color: 'var(--text-secondary)' }}>
+                    Sans peinture<br /><span className="text-xs" style={{ color: 'var(--gold)' }}>11 000 FCFA/m²</span>
+                  </button>
+                </div>
+                <p className="text-[11px] mt-1.5" style={{ color: 'var(--text-muted)' }}>Le prix peut augmenter selon la complexité du design demandé.</p>
+              </div>
+            )}
           </div>
         )}
 
@@ -104,14 +131,24 @@ export default function NewDevis() {
               <Row label="Localisation" value={formData.localisation} />
               <Row label="Délai" value={formData.urgence} />
             </div>
-            <div className="rounded-xl p-4" style={{ background: 'rgba(96,165,250,0.08)', borderLeft: '3px solid #60A5FA' }}>
-              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Prix unitaire</p>
-              <p className="text-xl font-bold text-white">15 000 FCFA/m²</p>
-            </div>
-            <div className="rounded-xl p-4" style={{ background: 'rgba(246,195,68,0.08)', borderLeft: '3px solid var(--gold)' }}>
-              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Total estimé</p>
-              <p className="text-2xl font-bold" style={{ color: 'var(--gold)' }}>{montantEstime.toLocaleString('fr-FR')} FCFA</p>
-            </div>
+            {surDevis ? (
+              <div className="rounded-xl p-4" style={{ background: 'rgba(96,165,250,0.08)', borderLeft: '3px solid #60A5FA' }}>
+                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Tarification</p>
+                <p className="text-lg font-bold text-white">Sur devis personnalisé</p>
+                <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>Ousmane vous proposera un prix adapté après étude de votre demande.</p>
+              </div>
+            ) : (
+              <>
+                <div className="rounded-xl p-4" style={{ background: 'rgba(96,165,250,0.08)', borderLeft: '3px solid #60A5FA' }}>
+                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Prix unitaire</p>
+                  <p className="text-xl font-bold text-white">{prixUnitaire.toLocaleString('fr-FR')} FCFA/m²</p>
+                </div>
+                <div className="rounded-xl p-4" style={{ background: 'rgba(246,195,68,0.08)', borderLeft: '3px solid var(--gold)' }}>
+                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Total estimé</p>
+                  <p className="text-2xl font-bold" style={{ color: 'var(--gold)' }}>{montantEstime.toLocaleString('fr-FR')} FCFA</p>
+                </div>
+              </>
+            )}
           </div>
         )}
 
