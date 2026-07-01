@@ -128,7 +128,7 @@ export default function DevisAvance() {
               <div className="flex justify-between text-lg font-bold" style={{ borderTop: '1px solid var(--dark-border)', paddingTop: '8px' }}><span className="text-white">Total estimé</span><span style={{ color: 'var(--gold)' }}>{formatMontant(selectedDevis)}</span></div>
             </div>
             {selectedDevis.status === 'En attente' && <div className="rounded-xl p-3 text-xs badge-warning">Votre demande est en cours d'examen.</div>}
-            {selectedDevis.status === 'Rejeté' && <button onClick={() => handleDelete(selectedDevis)} className="w-full py-2 rounded-xl font-semibold text-xs btn-press flex items-center justify-center gap-1.5" style={{ background: 'rgba(248,113,113,0.1)', color: '#F87171' }}><Trash2 size={14}/> Supprimer</button>}
+            {<button onClick={() => handleDelete(selectedDevis)} className="w-full py-2 rounded-xl font-semibold text-xs btn-press flex items-center justify-center gap-1.5" style={{ background: 'rgba(248,113,113,0.1)', color: '#F87171' }}><Trash2 size={14}/> Supprimer ce devis</button>}
             <button onClick={() => setSelectedDevis(null)} className="w-full py-2.5 rounded-xl font-semibold text-sm btn-press" style={{ background: 'var(--dark-elevated)', color: 'var(--text-secondary)' }}>Fermer</button>
           </div>
         </div>

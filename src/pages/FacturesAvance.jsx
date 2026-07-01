@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useAuth } from '../hooks/useAuth'
-import { getFacturesClient, signalerPaiement } from '../services/invoiceService'
+import { getFacturesClient, signalerPaiement, supprimerFacture } from '../services/invoiceService'
 import { PAIEMENT } from '../config/paiement'
 import Toast from '../components/Toast'
-import { CreditCard, Copy, CheckCircle2, Receipt, Clock, Eye, X } from 'lucide-react'
+import { CreditCard, Copy, CheckCircle2, Receipt, Clock, Eye, X, Trash2 } from 'lucide-react'
 import SortSelect from '../components/SortSelect'
 import { trierListe, OPTIONS_TRI } from '../utils/tri'
 
@@ -43,6 +43,15 @@ export default function FacturesAvance() {
   }
 
   const fermerModal = () => { setSelectedFacture(null); setShowPayment(false) }
+
+  const handleDeleteFacture = async (facture) => {
+    if (!window.confirm(`Supprimer la facture ${facture.invoiceNumber} ?`)) return
+    if (await supprimerFacture(facture.id)) {
+      setFactures(prev => prev.filter(f => f.id !== facture.id))
+      fermerModal()
+      setToast({ message: 'Facture supprimée', type: 'success' })
+    }
+  }
 
   const filters = [
     { key: 'Tous', icon: Receipt, color: '#60A5FA' },
@@ -149,6 +158,9 @@ export default function FacturesAvance() {
             )}
 
             <button onClick={fermerModal} className="w-full py-2.5 rounded-xl font-semibold text-sm btn-press" style={{ background: 'var(--dark-elevated)', color: 'var(--text-secondary)' }}>Fermer</button>
+            <button onClick={() => handleDeleteFacture(selectedFacture)} className="w-full py-2 rounded-xl font-semibold text-xs btn-press flex items-center justify-center gap-1.5" style={{ background: 'rgba(248,113,113,0.1)', color: '#F87171' }}>
+              <Trash2 size={14}/> Supprimer cette facture
+            </button>
           </div>
         </div>
       )}

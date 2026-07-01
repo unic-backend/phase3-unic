@@ -1,13 +1,13 @@
 import { useState, useRef } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { uploadImagePublique } from '../utils/imageUpload'
-import { User, Mail, Phone, MapPin, Save, Camera, CheckCircle2, Shield, LogOut, Edit3 } from 'lucide-react'
+import { User, Mail, Phone, MapPin, Save, Camera, CheckCircle2, Shield, LogOut, Edit3, AlertTriangle } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
 const ic = "w-full pl-11 pr-4 py-3.5 rounded-xl text-sm text-white outline-none transition-all bg-[#0C1829] border border-[rgba(255,255,255,0.06)] placeholder-[#4A5B73] focus:border-[#F6C344] focus:bg-[#111F35]"
 
 export default function Profil() {
-  const { user, updateProfile, logout } = useAuth()
+  const { user, updateProfile, logout, deleteAccount } = useAuth()
   const navigate = useNavigate()
   const fileRef = useRef(null)
   const [formData, setFormData] = useState({
@@ -22,6 +22,8 @@ export default function Profil() {
   const [uploading, setUploading] = useState(false)
   const [saved, setSaved] = useState(false)
   const [erreur, setErreur] = useState('')
+  const [suppressionCompte, setSuppressionCompte] = useState(false)
+  const [suppressionEnCours, setSuppressionEnCours] = useState(false)
 
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value })
 
@@ -60,6 +62,19 @@ export default function Profil() {
   }
 
   const handleLogout = () => { logout(); navigate('/') }
+
+  const handleDeleteAccount = async () => {
+    setSuppressionEnCours(true)
+    setErreur('')
+    const result = await deleteAccount()
+    setSuppressionEnCours(false)
+    if (result?.success) {
+      navigate('/')
+    } else {
+      setErreur(result?.error || 'Erreur lors de la suppression du compte')
+      setSuppressionCompte(false)
+    }
+  }
 
   const initiales = (user?.nom || user?.email || 'U').charAt(0).toUpperCase()
   const isAdmin = user?.isAdmin
@@ -118,7 +133,6 @@ export default function Profil() {
           </div>
         </div>
 
-        {/* Formulaire */}
         <div className="space-y-3">
           <div className="relative">
             <User size={16} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
@@ -159,6 +173,40 @@ export default function Profil() {
           <LogOut size={16} /> Se déconnecter
         </button>
       </div>
+
+      {/* Suppression du compte */}
+      <div className="card-dark p-4">
+        <p className="text-xs font-semibold mb-2" style={{ color: 'var(--text-muted)' }}>ZONE DANGEREUSE</p>
+        {!suppressionCompte ? (
+          <button onClick={() => setSuppressionCompte(true)}
+            className="w-full py-3 rounded-xl font-semibold text-sm btn-press flex items-center justify-center gap-2"
+            style={{ background: 'transparent', color: '#F87171', border: '1px solid rgba(248,113,113,0.2)' }}>
+            <AlertTriangle size={16} /> Supprimer mon compte
+          </button>
+        ) : (
+          <div className="space-y-3">
+            <div className="rounded-xl p-3" style={{ background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)' }}>
+              <p className="text-sm font-semibold text-white mb-1">⚠️ Cette action est irréversible</p>
+              <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                Ton compte sera définitivement supprimé. Tes devis et factures resteront dans le système UniC Plaquiste pour des raisons légales.
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => setSuppressionCompte(false)}
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold btn-press"
+                style={{ background: 'var(--dark-elevated)', color: 'var(--text-secondary)' }}>
+                Annuler
+              </button>
+              <button onClick={handleDeleteAccount} disabled={suppressionEnCours}
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold btn-press disabled:opacity-50"
+                style={{ background: '#F87171', color: 'white' }}>
+                {suppressionEnCours ? 'Suppression...' : 'Confirmer'}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
+
