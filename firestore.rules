@@ -57,8 +57,10 @@ service cloud.firestore {
                           .hasOnly(['signatureClient', 'signatureClientDate', 'status', 'updatedAt']);
       // Suppression: uniquement un devis Rejeté (sans valeur business active),
       // par le client concerné ou l'admin. Jamais En attente ou Approuvé.
-      allow delete: if isAuth() && resource.data.status == 'Rejeté'
-        && (resource.data.clientId == request.auth.uid || isAdmin());
+      allow delete: if isAuth() && (
+        isAdmin() ||
+        resource.data.clientId == request.auth.uid
+      );
     }
 
     // ==================== invoices (factures) ====================
@@ -73,7 +75,10 @@ service cloud.firestore {
           && request.resource.data.amount == resource.data.amount
           && request.resource.data.clientId == resource.data.clientId)
       );
-      allow delete: if isAuth() && isAdmin() && resource.data.status != 'Payée';
+      allow delete: if isAuth() && (
+        isAdmin() ||
+        resource.data.clientId == request.auth.uid
+      );
     }
 
     // ==================== messages (chat) ====================
