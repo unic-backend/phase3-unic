@@ -89,6 +89,7 @@ export default function App() {
             <Route path="connaissances" element={<AdminBaseConnaissances />} />
             <Route path="prospects" element={<AdminProspects />} />
             <Route path="signature" element={<AdminSignature />} />
+            <Route path="profil" element={<Profil />} />
             <Route path="finances" element={<AdminDashboardFinancier />} />
             <Route path="depenses" element={<AdminDepenses />} />
             <Route path="portfolio" element={<AdminPortfolio />} />
