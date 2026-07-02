@@ -17,7 +17,14 @@ export default function DevisAvance() {
   const [filter, setFilter] = useState('Tous')
   const [sortKey, setSortKey] = useState('date_desc')
 
-  const badge = (s) => s === 'En attente' ? 'badge-warning' : s === 'Approuvé' ? 'badge-success' : 'badge-danger'
+  const badge = (s) => {
+    if (s === 'En attente') return 'badge-warning'
+    if (s === 'Approuvé') return 'badge-success'
+    if (s === 'Rejeté') return 'badge-danger'
+    if (s === 'En attente de signature') return 'badge-warning'
+    if (s === 'Signé') return 'badge-success'
+    return 'badge-warning'
+  }
 
   useEffect(() => {
     let actif = true
@@ -49,6 +56,8 @@ export default function DevisAvance() {
     { key: 'Tous', icon: FileText, color: '#60A5FA' },
     { key: 'En attente', icon: Clock, color: '#FBBF24' },
     { key: 'Approuvé', icon: CheckCircle2, color: '#34D399' },
+    { key: 'En attente de signature', icon: FileText, color: '#60A5FA' },
+    { key: 'Signé', icon: CheckCircle2, color: '#34D399' },
     { key: 'Rejeté', icon: XCircle, color: '#F87171' },
   ]
 
@@ -128,6 +137,14 @@ export default function DevisAvance() {
               <div className="flex justify-between text-lg font-bold" style={{ borderTop: '1px solid var(--dark-border)', paddingTop: '8px' }}><span className="text-white">Total estimé</span><span style={{ color: 'var(--gold)' }}>{formatMontant(selectedDevis)}</span></div>
             </div>
             {selectedDevis.status === 'En attente' && <div className="rounded-xl p-3 text-xs badge-warning">Votre demande est en cours d'examen.</div>}
+            {selectedDevis.status === 'En attente de signature' && (
+              <div className="rounded-xl p-3 text-xs" style={{ background: 'rgba(96,165,250,0.1)', color: '#60A5FA' }}>
+                ✍️ Votre devis est prêt — UniC Plaquiste vous enverra un lien de signature sur WhatsApp.
+              </div>
+            )}
+            {selectedDevis.status === 'Signé' && (
+              <div className="rounded-xl p-3 text-xs badge-success">✓ Devis signé — les travaux vont pouvoir démarrer.</div>
+            )}
             {<button onClick={() => handleDelete(selectedDevis)} className="w-full py-2 rounded-xl font-semibold text-xs btn-press flex items-center justify-center gap-1.5" style={{ background: 'rgba(248,113,113,0.1)', color: '#F87171' }}><Trash2 size={14}/> Supprimer ce devis</button>}
             <button onClick={() => setSelectedDevis(null)} className="w-full py-2.5 rounded-xl font-semibold text-sm btn-press" style={{ background: 'var(--dark-elevated)', color: 'var(--text-secondary)' }}>Fermer</button>
           </div>

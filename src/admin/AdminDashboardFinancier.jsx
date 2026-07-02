@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { getToutesFactures } from '../services/invoiceService'
 import { getTousDevis } from '../services/quoteService'
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import { TrendingUp, DollarSign, FileText, Clock, CheckCircle2, XCircle, AlertCircle } from 'lucide-react'
 
 const MOIS = ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc']

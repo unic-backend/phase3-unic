@@ -44,10 +44,8 @@ export default function ClientLayout() {
   ]
 
   const handleLogout = () => { logout(); navigate('/') }
-  const isActive = (path) => location.pathname === path
+  const isActive = (path) => location.pathname === path || location.pathname.startsWith(path + '/')
   const showAdminButton = isAdminEmail(user?.email)
-  const activeIndex = mobileNavItems.findIndex(item => isActive(item.path))
-  const n = mobileNavItems.length
 
   return (
     <div className="flex h-screen" style={{ background: 'var(--dark-bg)' }}>

@@ -251,3 +251,42 @@ input[type="range"]::-webkit-slider-thumb {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ── Améliorations UI/UX Production ─────────────────────────────────────────── */
+
+/* Focus visible pour accessibilité */
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+/* Transition globale fluide sur tous les boutons */
+button {
+  transition: opacity 0.15s ease, transform 0.1s ease;
+}
+
+/* Amélioration des scrollbars */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+
+/* Fix overflow sur mobile */
+body { overflow-x: hidden; }
+
+/* Safe area pour iPhone notch */
+.pb-safe { padding-bottom: max(0.75rem, env(safe-area-inset-bottom)); }
+
+/* Amélioration des inputs disabled */
+input:disabled, textarea:disabled, select:disabled {
+  cursor: not-allowed;
+}
+
+/* Fond de page uniforme */
+#root {
+  background: var(--dark-bg);
+  min-height: 100vh;
+}

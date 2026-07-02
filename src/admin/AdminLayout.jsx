@@ -53,7 +53,7 @@ export default function AdminLayout() {
   ]
 
   const handleLogout = () => { logout(); navigate('/') }
-  const isActive = (path) => location.pathname === path
+  const isActive = (path) => location.pathname === path || location.pathname.startsWith(path + '/')
 
   return (
     <div className="flex h-screen" style={{ background: 'var(--dark-bg)' }}>
