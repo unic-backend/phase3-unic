@@ -1,6 +1,7 @@
 import { webcrypto } from 'node:crypto'
 import { jwtVerify, createRemoteJWKSet } from 'jose'
 import { ADMIN_EMAILS } from '../src/config/admins.js'
+import { SYSTEM_PROMPT } from '../src/ia/systemPrompt.js'
 
 // Polyfill : certains environnements Netlify utilisent une version de Node
 // où l'API Web Crypto (globalThis.crypto) n'est pas définie globalement.
@@ -68,14 +69,14 @@ export default async (req) => {
     return new Response(JSON.stringify({ error: 'Assistant IA non configuré côté serveur' }), { status: 500 })
   }
 
-  const systemPrompt = `Tu es l'assistant IA interne de UniC Plaquiste, entreprise de plaquisterie (BA13), cloisons et décoration intérieure à Dakar, Sénégal.
-Réponds en français, de façon concise et directement utilisable.
-Appuie-toi sur les connaissances internes fournies quand elles sont pertinentes pour la question.
-Si l'information demandée n'est pas dans les connaissances fournies, dis-le clairement plutôt que d'inventer un chiffre ou un fait.`
+ const systemPrompt = SYSTEM_PROMPT
+ const connaissances = contexte.join('\n\n').trim()
+const userContent = `
+${connaissances}
 
-  const userContent = contexte.length
-    ? `Connaissances internes pertinentes :\n${contexte.join('\n---\n')}\n\nQuestion : ${question}`
-    : question
+Question du client :
+${question}
+`
 
   try {
     const r = await fetch('https://api.anthropic.com/v1/messages', {

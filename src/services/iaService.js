@@ -1,5 +1,6 @@
 import { collection, addDoc, updateDoc, deleteDoc, doc, getDocs, Timestamp } from 'firebase/firestore'
 import { db, auth } from '../firebase/init'
+import { construireContexte } from '../ia/brain'
 
 // ==================== Base de connaissances ====================
 
@@ -82,10 +83,19 @@ export const demanderAssistant = async (question) => {
   if (!utilisateur) throw new Error('Tu dois être connecté pour utiliser l\'assistant.')
 
   const toutes = await getConnaissances()
-  const pertinentes = trouverPertinentes(toutes, question)
-  const portfolio = await getContextePortfolio()
-  const contexte = [...pertinentes.map((c) => `[${c.categorie}] ${c.titre} : ${c.contenu}`), ...portfolio]
+const pertinentes = trouverPertinentes(toutes, question)
 
+const connaissances = pertinentes.map(
+  (c) => `[${c.categorie}] ${c.titre} : ${c.contenu}`
+)
+
+const portfolio = await getContextePortfolio()
+
+const contexte = construireContexte(
+  question,
+  connaissances,
+  portfolio
+)
   const idToken = await utilisateur.getIdToken()
 
   const res = await fetch('/.netlify/functions/ia-chat', {
