@@ -5,7 +5,7 @@ import { getDevisClient } from '../services/quoteService'
 import { getFacturesClient } from '../services/invoiceService'
 import { getProjetsClient, ETAPES_CHANTIER } from '../services/projectService'
 import AnimatedNumber from '../components/AnimatedNumber'
-import { FileText, Clock, CheckCircle2, Wallet, Building2, AlertTriangle, ArrowRight, Plus, ChevronRight } from 'lucide-react'
+import { FileText, Clock, CheckCircle2, Wallet, Building2, AlertTriangle, ArrowRight, Plus, ChevronRight, Images } from 'lucide-react'
 
 function salutationDuMoment() {
   const h = new Date().getHours()
@@ -97,6 +97,23 @@ export default function DashboardAvance() {
           </div>
         </div>
         <ChevronRight size={20} />
+      </button>
+
+      {/* Lien Portfolio */}
+      <button onClick={() => navigate('/client/portfolio')}
+        className="w-full flex items-center justify-between p-4 rounded-3xl btn-press animate-fade-in"
+        style={{ background: 'var(--dark-elevated)', border: '1px solid var(--dark-border)', opacity: 0 }}>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl flex items-center justify-center"
+            style={{ background: 'rgba(242,194,0,0.1)' }}>
+            <Images size={20} style={{ color: 'var(--gold)' }} />
+          </div>
+          <div className="text-left">
+            <p className="font-bold text-sm text-white">Nos réalisations</p>
+            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Voir les projets terminés</p>
+          </div>
+        </div>
+        <ChevronRight size={20} style={{ color: 'var(--text-muted)' }} />
       </button>
 
       {/* Stats */}

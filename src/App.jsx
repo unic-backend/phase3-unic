@@ -22,6 +22,7 @@ import FacturesAvance from './pages/FacturesAvance'
 import Chat from './pages/Chat'
 import Projets from './pages/Projets'
 import Profil from './pages/Profil'
+import PortfolioClient from './pages/PortfolioClient'
 
 // Pages admin (privées)
 import AdminDashboard from './admin/AdminDashboard'
@@ -69,6 +70,7 @@ export default function App() {
             <Route path="chat" element={<Chat />} />
             <Route path="factures" element={<FacturesAvance />} />
             <Route path="profil" element={<Profil />} />
+            <Route path="portfolio" element={<PortfolioClient />} />
           </Route>
 
           {/* Routes admin (privées) */}

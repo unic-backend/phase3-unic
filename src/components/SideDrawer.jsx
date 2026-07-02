@@ -29,6 +29,7 @@ export default function SideDrawer({ open, onClose, mode = 'client' }) {
 
   if (mode === 'client') {
     items.push({ icon: UserCircle, label: 'Mon profil', action: () => go('/client/profil') })
+    items.push({ icon: Images, label: 'Nos réalisations', action: () => go('/client/portfolio') })
     if (showAdmin) {
       items.push({ icon: ShieldCheck, label: 'Passer en Admin', action: () => go('/admin/dashboard'), highlight: true })
     }
