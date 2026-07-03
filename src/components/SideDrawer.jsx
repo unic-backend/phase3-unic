@@ -29,10 +29,25 @@ export default function SideDrawer({ open, onClose, mode = 'client' }) {
 
   if (mode === 'client') {
     items.push({ icon: UserCircle, label: 'Mon profil', action: () => go('/client/profil') })
+
+    items.push({
+      icon: Brain,
+      label: 'Assistant IA',
+      action: () => go('/client/assistant')
+    })
+
     items.push({ icon: Images, label: 'Nos réalisations', action: () => go('/client/portfolio') })
+
     if (showAdmin) {
-      items.push({ icon: ShieldCheck, label: 'Passer en Admin', action: () => go('/admin/dashboard'), highlight: true })
+      items.push({
+        icon: ShieldCheck,
+        label: 'Passer en Admin',
+        action: () => go('/admin/dashboard'),
+        highlight: true
+      })
     }
+
+    
   } else {
     items.push({ icon: User, label: 'Espace Client', action: () => go('/client/dashboard') })
     items.push({ icon: Brain, label: 'Assistant IA', action: () => go('/admin/connaissances') })
@@ -113,4 +128,4 @@ export default function SideDrawer({ open, onClose, mode = 'client' }) {
       </div>
     </>
   )
-}
+ }
