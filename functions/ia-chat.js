@@ -76,15 +76,19 @@ const historique = Array.isArray(body.historique) ? body.historique : []
   }
 
  const systemPrompt = SYSTEM_PROMPT
- const messages = []
 
-if (historique.length > 0) {
-  for (const msg of historique) {
-    messages.push({
-      role: msg.role === 'assistant' ? 'assistant' : 'user',
-      content: msg.content,
-    })
-  }
+const messages = historique.map((msg) => ({
+  role: msg.role === 'assistant' ? 'assistant' : 'user',
+  content: msg.content,
+}))
+
+// Sécurité : si aucun historique n'est envoyé,
+// on ajoute au moins la question actuelle.
+if (messages.length === 0) {
+  messages.push({
+    role: 'user',
+    content: question,
+  })
 }
 
   try {
