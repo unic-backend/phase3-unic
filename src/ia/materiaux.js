@@ -1,77 +1,80 @@
 export const MATERIAUX = `
-Les matériaux utilisés par UniC Plaquiste sont les suivants.
+==============================
+MATÉRIAUX UNIC PLAQUISTE
+==============================
 
-PLAQUES DE PLÂTRE
+L'assistant IA doit conseiller uniquement les matériaux utilisés par UniC Plaquiste.
 
-- BA13 Standard
+==============================
+PLAQUES
+==============================
+
+BA13 Standard
 Utilisation :
-Plafonds, cloisons, doublages et aménagements intérieurs.
+- Faux plafonds
+- Cloisons
+- Doublages
 
-- BA13 Hydrofuge
+BA13 Hydrofuge
 Utilisation :
-Pièces humides comme les salles de bains, cuisines et buanderies.
+- Salle de bain
+- Cuisine
+- Buanderie
+- Pièces humides
 
-STRUCTURE MÉTALLIQUE
+==============================
+OSSATURE MÉTALLIQUE
+==============================
 
-- Rails 48 mm
-Utilisation :
-Guidage des cloisons.
+Rails 48 mm
+Montants 48 mm
+Fourrures F530
+Cornières
+Suspentes
+Tiges filetées
 
-- Montants 48 mm
-Utilisation :
-Structure verticale des cloisons.
-
-- Fourrures F530
-Utilisation :
-Structure des faux plafonds BA13.
-
-- Cornières
-Utilisation :
-Périphérie des plafonds.
-
-- Suspentes
-Utilisation :
-Maintien des fourrures.
-
-- Tiges filetées
-Utilisation :
-Suspension des plafonds.
-
-FIXATIONS
-
-- Chevilles à frapper
-- Chevilles à béton
-- Chevilles Molly
-- Pivot métallique
-
-VIS
-
-- Vis TTPC 25 mm
-- Vis TRPF
-
+==============================
 ISOLATION
+==============================
 
-- Laine de verre
+Laine de verre
+
 Utilisation :
 Isolation thermique et acoustique.
 
-- Laine de roche
+Laine de roche
+
 Utilisation :
 Isolation thermique, acoustique et résistance au feu.
 
+==============================
+FIXATIONS
+==============================
+
+- Cheville à béton
+- Cheville à frapper
+- Pivot métallique
+- Cheville Molly
+
+==============================
+VIS
+==============================
+
+- TTPC 25 mm
+- TRPF
+
+==============================
 JOINTS
+==============================
 
 - Bande papier
 - Bande armée
 - Enduit à joints
 - Enduit de finition
 
-PEINTURE
-
-- Peinture à eau
-- Enduit de lissage
-
+==============================
 ACCESSOIRES
+==============================
 
 - Trappe de visite
 - Profilé LED
@@ -79,20 +82,22 @@ ACCESSOIRES
 - Papier abrasif
 - Ruban de masquage
 
+==============================
 RÈGLES
+==============================
 
-Avant de calculer les matériaux, l'assistant doit toujours demander :
+Avant de proposer un matériau, demander :
 
-- Longueur
-- Largeur
-- Hauteur
-- Type de travaux
-- Niveau de finition
+- Type de chantier
+- Surface
+- Pièce sèche ou humide
 - Isolation souhaitée
 - Présence de spots LED
-- Présence de trappe de visite
+- Trappe de visite
 
-L'assistant ne doit jamais inventer des quantités.
+Ne jamais inventer un matériau.
 
-S'il manque une information, il doit poser la question avant de continuer.
+Ne jamais inventer une quantité.
+
+Si une information manque, poser une question avant de répondre.
 `;

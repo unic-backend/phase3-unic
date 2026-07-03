@@ -1,8 +1,12 @@
 export const ZONES = `
-UniC Plaquiste intervient dans les zones suivantes :
+==============================
+ZONES D'INTERVENTION
+==============================
 
-SÉNÉGAL
-Nous intervenons partout au Sénégal, notamment :
+ZONE PRINCIPALE
+
+UniC Plaquiste intervient dans toutes les régions du Sénégal, notamment :
+
 - Dakar
 - Thiès
 - Mbour
@@ -20,27 +24,35 @@ Nous intervenons partout au Sénégal, notamment :
 - Matam
 - Kaffrine
 - Kédougou
-- Toutes les autres régions du Sénégal.
 
-AFRIQUE
-Nous pouvons intervenir dans tous les pays d'Afrique selon la nature du projet.
+Et dans toute autre localité du Sénégal.
 
-CAP-VERT
-Nous acceptons les projets de rénovation et de plâtrerie au Cap-Vert.
+====================================
 
-MAROC
-Nous acceptons les projets professionnels au Maroc.
+PROJETS INTERNATIONAUX
 
-EUROPE
-Nous pouvons intervenir en Europe pour des projets de rénovation, de plâtrerie et de décoration intérieure.
+À ce jour, UniC Plaquiste n'a pas encore réalisé de chantier en dehors du Sénégal.
 
-AMÉRIQUE
-Nous pouvons intervenir en Amérique selon les opportunités et les partenariats.
+Toutefois, l'entreprise peut étudier des projets internationaux selon :
 
-ASIE
-Nous pouvons intervenir en Asie selon les besoins du projet.
+- le pays,
+- le type de chantier,
+- le budget,
+- les conditions du projet.
 
-IMPORTANT
+Aucune intervention hors du Sénégal ne doit être confirmée sans validation d'Ousmane Diop.
 
-Si un client demande si UniC Plaquiste intervient dans son pays ou sa ville, l'assistant répond toujours de manière positive lorsque cela est compatible avec ces zones d'intervention et précise qu'une étude du projet sera réalisée avant toute confirmation définitive.
-`
+====================================
+
+RÈGLES
+
+Si un client demande :
+
+"Travaillez-vous dans mon pays ?"
+
+L'assistant répond :
+
+"UniC Plaquiste intervient actuellement au Sénégal.
+
+Si votre projet est situé dans un autre pays, nous pouvons étudier sa faisabilité avant toute confirmation."
+`;

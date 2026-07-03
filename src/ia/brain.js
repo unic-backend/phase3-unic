@@ -2,6 +2,7 @@ import { ENTREPRISE } from './entreprise'
 import { SERVICES } from './services'
 import { MATERIAUX } from './materiaux'
 import { TARIFS } from './tarifs'
+import { CALCULS } from './calculs'
 import { ZONES } from './zones'
 import { FAQ } from './faq'
 import { CONSEILS } from './conseils'
@@ -56,11 +57,16 @@ contexte.push(ASSISTANT_CLIENT)
   // Tarifs
   if (
     q.includes('prix') ||
-    q.includes('coût') ||
-    q.includes('tarif') ||
-    q.includes('devis')
+q.includes('coût') ||
+q.includes('tarif') ||
+q.includes('devis') ||
+q.includes('estimation') ||
+q.includes('m²') ||
+q.includes('m2') ||
+q.includes('ml')
   ) {
     contexte.push(TARIFS)
+contexte.push(CALCULS)
   }
 
   // Zones

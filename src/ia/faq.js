@@ -1,35 +1,96 @@
 export const FAQ = `
 ==============================
-FOIRE AUX QUESTIONS - UNIC PLAQUISTE
+QUESTIONS FRÉQUENTES
 ==============================
 
-Q : Le devis est-il gratuit ?
-R : Oui. UniC Plaquiste réalise des devis gratuits après étude du projet.
+DEVIS
 
-Q : Dans quelles zones intervenez-vous ?
-R : Nous intervenons dans tout le Sénégal. Nous pouvons également intervenir au Cap-Vert, au Maroc et dans d'autres pays d'Afrique selon les projets. Nous sommes aussi ouverts aux opportunités en Europe, en Asie et en Amérique.
+Question :
+Le devis est-il gratuit ?
 
-Q : Quels types de travaux réalisez-vous ?
-R : Faux plafonds BA13, cloisons sèches, doublages, isolation, décoration intérieure, moulures, peinture et rénovation.
+Réponse :
+Oui. UniC Plaquiste réalise gratuitement les devis et les estimations.
 
-Q : Les matériaux sont-ils fournis ?
-R : Cela dépend du contrat. Le client peut fournir les matériaux ou demander à UniC Plaquiste de les fournir.
+--------------------------------
 
-Q : Travaillez-vous avec les particuliers ?
-R : Oui.
+GARANTIE
 
-Q : Travaillez-vous avec les entreprises ?
-R : Oui. Nous collaborons avec les entreprises, promoteurs immobiliers, architectes et maîtres d'œuvre, en direct ou en sous-traitance.
+Question :
+Y a-t-il une garantie ?
 
-Q : Quels moyens de paiement acceptez-vous ?
-R : Espèces, Wave, Orange Money, virement bancaire et autres moyens convenus avec le client.
+Réponse :
+Oui. Les travaux réalisés par UniC Plaquiste bénéficient d'une garantie de 1 an selon les conditions du chantier.
 
-Q : Combien de temps dure un chantier ?
-R : Cela dépend de la surface, de la complexité du projet et des finitions demandées. Un délai est communiqué après étude du chantier.
+--------------------------------
 
-Q : L'assistant IA peut-il donner un devis définitif ?
-R : Non. L'assistant peut fournir une estimation. Le devis officiel est toujours validé par UniC Plaquiste.
+HORAIRES
 
-Q : Pourquoi choisir UniC Plaquiste ?
-R : UniC Plaquiste met l'accent sur la qualité des finitions, le respect des délais, des conseils professionnels, une communication transparente et la satisfaction du client.
+Question :
+Quels sont vos horaires ?
+
+Réponse :
+L'entreprise est ouverte du lundi au samedi.
+
+--------------------------------
+
+LANGUES
+
+Question :
+Quelles langues parlez-vous ?
+
+Réponse :
+Français, Wolof et Anglais.
+
+--------------------------------
+
+ZONE D'INTERVENTION
+
+Question :
+Travaillez-vous partout ?
+
+Réponse :
+UniC Plaquiste intervient actuellement au Sénégal.
+
+Des projets internationaux peuvent être étudiés selon leur faisabilité.
+
+--------------------------------
+
+TARIFS
+
+Question :
+Pourquoi les prix sont-ils indicatifs ?
+
+Réponse :
+Chaque chantier est différent.
+
+Le prix dépend notamment de la surface, des matériaux, de la finition, de l'accessibilité et des options choisies.
+
+--------------------------------
+
+POSE
+
+Question :
+Quelle est la différence entre Pose et Pose + Fourniture ?
+
+Réponse :
+
+Pose :
+Le client fournit les matériaux.
+
+Pose + Fourniture :
+UniC Plaquiste fournit les matériaux et réalise les travaux.
+
+--------------------------------
+
+ESTIMATION
+
+Question :
+L'IA peut-elle faire un devis officiel ?
+
+Réponse :
+Non.
+
+L'IA fournit uniquement une estimation.
+
+Le devis officiel est toujours établi et validé par Ousmane Diop.
 `;

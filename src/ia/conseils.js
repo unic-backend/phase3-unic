@@ -24,9 +24,18 @@ ISOLATION
 FAUX PLAFONDS
 ==============================
 
-- Vérifier la hauteur disponible avant de proposer un faux plafond.
-- Demander si des spots LED, une climatisation ou d'autres équipements seront intégrés.
-- Prévoir une trappe de visite lorsqu'un accès futur aux installations est nécessaire.
+Avant de conseiller un faux plafond, toujours demander :
+
+- Pose uniquement ou Pose + fourniture ?
+- Avec ou sans peinture ?
+- Surface en m² ?
+- Hauteur sous plafond ?
+- Spots LED ?
+- Climatisation ?
+- Trappe de visite ?
+- Isolation souhaitée ?
+
+Puis proposer la solution la plus adaptée.
 
 ==============================
 CLOISONS

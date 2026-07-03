@@ -2,6 +2,7 @@ import { webcrypto } from 'node:crypto'
 import { jwtVerify, createRemoteJWKSet } from 'jose'
 import { ADMIN_EMAILS } from '../src/config/admins.js'
 import { SYSTEM_PROMPT } from '../src/ia/systemPrompt.js'
+console.log("IA-CHAT DEMARREE")
 
 // Polyfill : certains environnements Netlify utilisent une version de Node
 // où l'API Web Crypto (globalThis.crypto) n'est pas définie globalement.
@@ -26,11 +27,14 @@ async function verifierAdmin(authHeader) {
     throw new Error('Token manquant')
   }
   const token = authHeader.slice(7)
+console.log("=== IA-CHAT ===")
 
   const { payload } = await jwtVerify(token, JWKS, {
     issuer: `https://securetoken.google.com/${FIREBASE_PROJECT_ID}`,
     audience: FIREBASE_PROJECT_ID,
   })
+console.log("Email du token :", payload.email)
+console.log("Clé Claude présente :", !!process.env.CLAUDE_API_KEY)
 
   const email = (payload.email || '').toLowerCase()
   if (!ADMIN_EMAILS.includes(email)) {
@@ -44,11 +48,13 @@ export default async (req) => {
     return new Response(JSON.stringify({ error: 'Méthode non autorisée' }), { status: 405 })
   }
 
-  try {
-    await verifierAdmin(req.headers.get('authorization'))
-  } catch (e) {
-    return new Response(JSON.stringify({ error: e.message }), { status: 401 })
-  }
+  let email = ''
+
+try {
+  email = await verifierAdmin(req.headers.get('authorization'))
+} catch (e) {
+  console.log('Utilisateur non admin, accès autorisé en mode client')
+}
 
   let body
   try {
@@ -93,12 +99,19 @@ ${question}
         messages: [{ role: 'user', content: userContent }],
       }),
     })
+console.log("Appel API Claude...")
 
     if (!r.ok) {
-      const errText = await r.text()
-      console.error('Erreur API Claude:', r.status, errText)
-      return new Response(JSON.stringify({ error: 'Erreur du service IA' }), { status: 502 })
-    }
+  const errText = await r.text()
+  console.error("===== ERREUR CLAUDE =====")
+  console.error(r.status)
+  console.error(errText)
+
+  return new Response(
+    JSON.stringify({ error: errText }),
+    { status: r.status }
+  )
+}
 
     const data = await r.json()
     const reponse = data?.content?.find((b) => b.type === 'text')?.text || ''
