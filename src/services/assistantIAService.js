@@ -1,6 +1,6 @@
 import { auth } from '../firebase/init'
 
-export async function poserQuestion(question) {
+export async function poserQuestion(question, historique = []) {
   const utilisateur = auth.currentUser
 
   if (!utilisateur) {
@@ -17,7 +17,7 @@ export async function poserQuestion(question) {
     },
     body: JSON.stringify({
       question,
-      contexte: [],
+      historique,
     }),
   })
 

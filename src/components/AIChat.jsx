@@ -293,7 +293,12 @@ export default function AIChat({
     setIsTyping(true)
 
     try {
-      const reponse = await demanderAssistant(question) // ← INCHANGÉ
+      const historique = [...messages, userMsg].map(m => ({
+  role: m.role,
+  content: m.content,
+}))
+
+const reponse = await demanderAssistant(question, historique)
       const aiMsg = { id: `a-${Date.now()}`, role: 'assistant', content: reponse, ts: Date.now() }
       setMessages(prev => [...prev, aiMsg])
     } catch (err) {

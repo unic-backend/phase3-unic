@@ -64,7 +64,7 @@ try {
   }
 
   const question = (body.question || '').trim()
-  const contexte = Array.isArray(body.contexte) ? body.contexte : []
+const historique = Array.isArray(body.historique) ? body.historique : []
 
   if (!question) {
     return new Response(JSON.stringify({ error: 'Question vide' }), { status: 400 })
@@ -76,13 +76,16 @@ try {
   }
 
  const systemPrompt = SYSTEM_PROMPT
- const connaissances = contexte.join('\n\n').trim()
-const userContent = `
-${connaissances}
+ const messages = []
 
-Question du client :
-${question}
-`
+if (historique.length > 0) {
+  for (const msg of historique) {
+    messages.push({
+      role: msg.role === 'assistant' ? 'assistant' : 'user',
+      content: msg.content,
+    })
+  }
+}
 
   try {
     const r = await fetch('https://api.anthropic.com/v1/messages', {
@@ -96,7 +99,7 @@ ${question}
         model: 'claude-sonnet-4-6',
         max_tokens: 1024,
         system: systemPrompt,
-        messages: [{ role: 'user', content: userContent }],
+        messages,
       }),
     })
 console.log("Appel API Claude...")
