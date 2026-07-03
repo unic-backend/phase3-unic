@@ -5,7 +5,6 @@ import AdminRoute from './components/AdminRoute'
 import ClientLayout from './layouts/ClientLayout'
 import AdminLayout from './admin/AdminLayout'
 
-
 // Pages publiques
 import HomePage from './pages/HomePage'
 import Discussion from './pages/Discussion'
@@ -70,10 +69,10 @@ export default function App() {
             <Route path="devis/new" element={<NewDevis />} />
             <Route path="projets" element={<Projets />} />
             <Route path="chat" element={<Chat />} />
-            <Route path="assistant" element={<AssistantIA />} />
             <Route path="factures" element={<FacturesAvance />} />
             <Route path="profil" element={<Profil />} />
             <Route path="portfolio" element={<PortfolioClient />} />
+            <Route path="assistant" element={<AssistantIA />} />
           </Route>
 
           {/* Routes admin (privées) */}

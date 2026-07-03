@@ -5,23 +5,12 @@ import { isAdminEmail } from '../config/admins'
 import SideDrawer from '../components/SideDrawer'
 import NotificationBell from '../components/NotificationBell'
 import PullToRefresh from '../components/PullToRefresh'
-import logo from '../assets/logo.webp'
-
 import {
-  LayoutDashboard,
-  FileText,
-  Building2,
-  MessageSquare,
-  Bot,
-  Receipt,
-  User,
-  ShieldCheck,
-  LogOut,
-  Menu,
-  ChevronLeft,
-  ChevronRight,
-  Bell
+  LayoutDashboard, FileText, Building2, MessageSquare,
+  Receipt, User, ShieldCheck, LogOut, Menu,
+  ChevronLeft, ChevronRight, Bell, Brain
 } from 'lucide-react'
+import logo from '../assets/logo.webp'
 
 export default function ClientLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
@@ -38,13 +27,13 @@ export default function ClientLayout() {
   const location = useLocation()
 
   const menuItems = [
-    { icon: LayoutDashboard, label: 'Accueil', path: '/client/dashboard' },
-    { icon: FileText, label: 'Mes Devis', path: '/client/devis' },
-    { icon: Building2, label: 'Mes Projets', path: '/client/projets' },
-    { icon: MessageSquare, label: 'Chat', path: '/client/chat' },
-    { icon: Bot, label: 'Assistant IA', path: '/client/assistant' },
-    { icon: Receipt, label: 'Factures', path: '/client/factures' },
-    { icon: User, label: 'Profil', path: '/client/profil' },
+    { icon: LayoutDashboard, label: 'Accueil',       path: '/client/dashboard' },
+    { icon: FileText,        label: 'Mes Devis',     path: '/client/devis' },
+    { icon: Building2,       label: 'Mes Projets',   path: '/client/projets' },
+    { icon: MessageSquare,   label: 'Chat',          path: '/client/chat' },
+    { icon: Brain,           label: 'Assistant IA',  path: '/client/assistant' },
+    { icon: Receipt,         label: 'Factures',      path: '/client/factures' },
+    { icon: User,            label: 'Profil',        path: '/client/profil' },
   ]
 
   const mobileNavItems = [
