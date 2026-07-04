@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { auth } from '../firebase/init';
 
 const ClientAIAssistant_Claude = () => {
-  const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
-    { role: 'assistant', content: 'Bonjour ! Je suis l\'assistant de UniC Plaquiste. Quel type de travaux souhaitez-vous ?' }
+    { role: 'assistant', content: 'Bonjour ! Je suis l\'assistant de UniC Plaquiste. Comment puis-je vous aider aujourd\'hui ?' }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -23,9 +23,15 @@ const ClientAIAssistant_Claude = () => {
     setIsLoading(true);
 
     try {
+      const user = auth.currentUser;
+      const token = user ? await user.getIdToken() : null;
+
       const response = await fetch('/.netlify/functions/ia-chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` })
+        },
         body: JSON.stringify({
           question: input,
           historique: newMessages.map(m => ({ role: m.role, content: m.content }))
@@ -47,84 +53,77 @@ const ClientAIAssistant_Claude = () => {
   };
 
   const handleKeyPress = (e) => {
-    if (e.key === 'Enter') sendMessage();
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
   };
 
   return (
-    <>
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        style={{
-          position: 'fixed',
-          bottom: '30px',
-          right: '30px',
-          zIndex: 9999,
-          backgroundColor: '#1A3FA0',
-          color: 'white',
-          padding: '14px 24px',
-          borderRadius: '50px',
-          border: 'none',
-          fontSize: '16px',
-          boxShadow: '0 10px 25px rgba(26,63,160,0.4)',
-          cursor: 'pointer'
-        }}
-      >
-        💬 Assistant UniC
-      </button>
-
-      {isOpen && (
-        <div style={{
-          position: 'fixed',
-          bottom: '100px',
-          right: '30px',
-          width: '380px',
-          height: '520px',
-          background: '#1F2937',
-          borderRadius: '16px',
-          boxShadow: '0 20px 40px rgba(0,0,0,0.5)',
-          zIndex: 10000,
-          overflow: 'hidden',
-          display: 'flex',
-          flexDirection: 'column'
-        }}>
-          <div style={{padding: '16px', background: '#1A3FA0', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-            <div>UniC Assistant</div>
-            <button onClick={() => setIsOpen(false)} style={{color: 'white', fontSize: '24px'}}>×</button>
-          </div>
-
-          <div style={{flex: 1, padding: '16px', overflowY: 'auto', background: '#111827'}}>
-            {messages.map((msg, i) => (
-              <div key={i} style={{marginBottom: '16px', textAlign: msg.role === 'user' ? 'right' : 'left'}}>
-                <div style={{
-                  display: 'inline-block',
-                  padding: '12px 16px',
-                  borderRadius: '12px',
-                  background: msg.role === 'user' ? '#1A3FA0' : '#374151',
-                  color: 'white',
-                  maxWidth: '80%'
-                }}>
-                  {msg.content}
-                </div>
-              </div>
-            ))}
-            {isLoading && <div>UniC IA réfléchit...</div>}
-          </div>
-
-          <div style={{padding: '12px', borderTop: '1px solid #374151'}}>
-            <div style={{display: 'flex', gap: '8px'}}>
-              <input
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder="Posez votre question..."
-                style={{flex: 1, padding: '12px', borderRadius: '9999px', border: 'none', background: '#374151', color: 'white'}}
-              />
-              <button onClick={sendMessage} style={{padding: '12px 24px', background: '#1A3FA0', color: 'white', borderRadius: '9999px'}}>Envoyer</button>
-            </div>
+    <div className="flex flex-col h-[calc(100vh-120px)] max-w-5xl mx-auto bg-[#0C1829] rounded-2xl overflow-hidden border border-[#1F2A44]">
+      {/* Header */}
+      <div className="bg-[#1A3FA0] px-6 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center text-xl">🔧</div>
+          <div>
+            <div className="font-bold text-white text-xl">Assistant UniC Plaquiste</div>
+            <div className="text-white/70 text-sm">Estimation • Devis • Conseils</div>
           </div>
         </div>
-      )}
-    </>
+        <div className="text-white/60 text-sm">Connecté 24h/24</div>
+      </div>
+
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-[#0C1829]">
+        {messages.map((msg, index) => (
+          <div key={index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+            <div className={`max-w-[80%] px-5 py-4 rounded-2xl text-[15px] leading-relaxed ${
+              msg.role === 'user' 
+                ? 'bg-[#1A3FA0] text-white rounded-br-none' 
+                : 'bg-[#1F2A44] text-white rounded-bl-none'
+            }`}>
+              {msg.content}
+            </div>
+          </div>
+        ))}
+
+        {isLoading && (
+          <div className="flex justify-start">
+            <div className="bg-[#1F2A44] px-5 py-4 rounded-2xl rounded-bl-none flex gap-2">
+              <div className="w-2 h-2 bg-white/50 rounded-full animate-bounce"></div>
+              <div className="w-2 h-2 bg-white/50 rounded-full animate-bounce" style={{animationDelay: '150ms'}}></div>
+              <div className="w-2 h-2 bg-white/50 rounded-full animate-bounce" style={{animationDelay: '300ms'}}></div>
+            </div>
+          </div>
+        )}
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Input */}
+      <div className="p-4 bg-[#111F35] border-t border-[#1F2A44]">
+        <div className="flex gap-3 max-w-5xl mx-auto">
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyPress={handleKeyPress}
+            placeholder="Posez votre question (surface, type de travaux, etc.)..."
+            className="flex-1 bg-[#1F2A44] text-white px-6 py-4 rounded-2xl text-[15px] placeholder:text-white/40 focus:outline-none focus:ring-1 focus:ring-[#F6C344]"
+            disabled={isLoading}
+          />
+          <button
+            onClick={sendMessage}
+            disabled={!input.trim() || isLoading}
+            className="bg-[#F6C344] hover:bg-[#E5B93A] disabled:bg-gray-600 text-[#060D18] font-semibold px-8 rounded-2xl transition-all active:scale-[0.985]"
+          >
+            Envoyer
+          </button>
+        </div>
+        <p className="text-center text-xs text-white/40 mt-3">
+          L’estimation est indicative. Le devis final sera envoyé par Ousmane.
+        </p>
+      </div>
+    </div>
   );
 };
 
