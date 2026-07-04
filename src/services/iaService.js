@@ -78,7 +78,7 @@ const trouverPertinentes = (toutes, question) => {
  * @param {Array}  [historique] — L'historique de conversation (messages précédents)
  *                                pour que l'IA garde le contexte et s'adapte au client.
  */
-export const demanderAssistant = async (question, historique = []) => {
+export const demanderAssistant = async (question, historique = [], options = {}) => {
   const utilisateur = auth.currentUser
   if (!utilisateur) throw new Error('Connectez-vous pour utiliser l\'assistant.')
 
@@ -100,7 +100,7 @@ export const demanderAssistant = async (question, historique = []) => {
       'content-type': 'application/json',
       authorization: `Bearer ${idToken}`,
     },
-    body: JSON.stringify({ question, contexte, historique: historiqueFiltre }),
+    body: JSON.stringify({ question, contexte, historique: historiqueFiltre, isAdmin: !!options.isAdmin }),
   })
 
   const data = await res.json().catch(() => ({}))

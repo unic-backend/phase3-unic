@@ -21,6 +21,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { demanderAssistant } from '../services/iaService'
 import { Send, FileText, Calculator, Lightbulb, Building2, Sparkles } from 'lucide-react'
+import { useAuth } from '../hooks/useAuth'
 import logo from '../assets/logo.webp'
 
 // ── Markdown inline ──────────────────────────────────────────────────────────
@@ -197,10 +198,15 @@ export default function AIChat({
   placeholder  = 'Pose ta question ou demande quelque chose...',
   compact      = false,
   userName     = '',
+  isAdmin      = false,
 }) {
   // ── State ──────────────────────────────────────────────────────────────────
+  const { user } = useAuth()
+  // Clé de stockage unique par utilisateur — empêche le mélange de conversations
+  const userStorageKey = `${storageKey}-${user?.id || 'anon'}`
+
   const [messages, setMessages] = useState(() => {
-    try { const s = sessionStorage.getItem(storageKey); return s ? JSON.parse(s) : [] }
+    try { const s = sessionStorage.getItem(userStorageKey); return s ? JSON.parse(s) : [] }
     catch { return [] }
   })
   const [input, setInput] = useState('')
@@ -208,7 +214,7 @@ export default function AIChat({
   const bottomRef = useRef(null)
   const inputRef = useRef(null)
 
-  useEffect(() => { try { sessionStorage.setItem(storageKey, JSON.stringify(messages)) } catch {} }, [messages, storageKey])
+  useEffect(() => { try { sessionStorage.setItem(userStorageKey, JSON.stringify(messages)) } catch {} }, [messages, userStorageKey])
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages, isTyping])
 
   // ── Envoi — demanderAssistant() INCHANGÉ ───────────────────────────────────
@@ -220,7 +226,7 @@ export default function AIChat({
     inputRef.current?.focus()
     setIsTyping(true)
     try {
-      const reponse = await demanderAssistant(question, messages)
+      const reponse = await demanderAssistant(question, messages, { isAdmin })
       setMessages(prev => [...prev, { id: `a-${Date.now()}`, role: 'assistant', content: reponse, ts: Date.now() }])
     } catch (err) {
       setMessages(prev => [...prev, { id: `e-${Date.now()}`, role: 'error', content: err.message || 'Erreur. Réessayez.', ts: Date.now() }])

@@ -119,9 +119,10 @@ export default function AdminBaseConnaissances() {
         <AIChat
           storageKey="unic-ia-admin"
           welcomeTitle="Bonjour"
-          welcomeText="Je suis votre assistant interne. Je connais votre entreprise, vos tarifs, procédures et projets. Comment puis-je vous aider ?"
+          welcomeText="Je suis ton assistant interne. Je connais ton entreprise, tes tarifs, procédures et projets. Que veux-tu faire ?"
           placeholder="Pose ta question ou demande quelque chose..."
           userName="Ousmane"
+          isAdmin={true}
         />
       )}
 
