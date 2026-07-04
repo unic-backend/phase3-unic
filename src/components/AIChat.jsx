@@ -1,31 +1,23 @@
 /**
  * AIChat — Composant partagé de conversation IA premium
  *
- * Utilisé par :
- *  - /client/assistant  (AssistantIA.jsx)
- *  - /admin/connaissances  (AdminBaseConnaissances.jsx)
+ * FIX CRITIQUE : chaque utilisateur a sa propre conversation isolée.
+ * - La clé sessionStorage inclut le user.id Firebase
+ * - Un useEffect recharge les messages quand l'utilisateur change
+ * - Les messages ne sont sauvegardés que quand le user.id est connu
  *
- * Design inspiré de la capture de référence :
- *  - Avatar IA = logo UniC Plaquiste
- *  - 4 cartes actions rapides avec icônes colorées
- *  - Bulles dorées (user) à droite, dark (IA) à gauche
- *  - Accusés de lecture ✓✓
- *  - Typing indicator "UniC IA analyse..."
- *  - Disclaimer en bas de l'input
- *  - Historique persisté en sessionStorage
- *  - Markdown rendu (gras, titres, listes)
- *
- * Backend 100% inchangé : demanderAssistant() de iaService.js
+ * Mode admin : l'IA traite Ousmane comme le patron, pas un client
+ * Mode client : l'IA est professionnelle et redirige vers Ousmane
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { demanderAssistant } from '../services/iaService'
-import { Send, FileText, Calculator, Lightbulb, Building2, Sparkles } from 'lucide-react'
+import { Send, FileText, Calculator, Lightbulb, Building2, Sparkles, Bell } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import logo from '../assets/logo.webp'
 
 // ── Markdown inline ──────────────────────────────────────────────────────────
-function parseInline(text, keyPrefix = '') {
+function parseInline(text, kp = '') {
   if (!text) return null
   const parts = []
   let rem = text, k = 0
@@ -37,11 +29,11 @@ function parseInline(text, keyPrefix = '') {
     if (!bm && !im) { parts.push(rem); break }
     if (bi <= ii && bm) {
       if (bi > 0) parts.push(rem.slice(0, bi))
-      parts.push(<strong key={`${keyPrefix}b${k++}`} className="font-semibold text-white">{bm[1]}</strong>)
+      parts.push(<strong key={`${kp}b${k++}`} className="font-semibold text-white">{bm[1]}</strong>)
       rem = rem.slice(bi + bm[0].length)
     } else if (im) {
       if (ii > 0) parts.push(rem.slice(0, ii))
-      parts.push(<em key={`${keyPrefix}i${k++}`} className="italic">{im[1]}</em>)
+      parts.push(<em key={`${kp}i${k++}`} className="italic">{im[1]}</em>)
       rem = rem.slice(ii + im[0].length)
     } else { parts.push(rem); break }
   }
@@ -51,24 +43,17 @@ function parseInline(text, keyPrefix = '') {
 // ── Markdown bloc ────────────────────────────────────────────────────────────
 function MarkdownContent({ text }) {
   if (!text) return null
-  const normalized = text
-    .replace(/([^\n])\s*---\s*([^\n])/g, '$1\n---\n$2')
-    .replace(/([^\n])\s*## /g, '$1\n## ')
-    .replace(/([^\n])\s*# /g, '$1\n# ')
+  const normalized = text.replace(/([^\n])\s*---\s*([^\n])/g, '$1\n---\n$2').replace(/([^\n])\s*## /g, '$1\n## ').replace(/([^\n])\s*# /g, '$1\n# ')
   const lines = normalized.split('\n'), output = [], listBuf = []
   let key = 0
   function flushList() {
     if (!listBuf.length) return
-    output.push(
-      <ul key={key++} className="space-y-1.5 my-2">
-        {listBuf.map((item, i) => (
-          <li key={i} className="flex gap-2.5 text-sm leading-relaxed">
-            <span className="w-1.5 h-1.5 rounded-full shrink-0 mt-2" style={{ background: 'var(--gold)' }} />
-            <span style={{ color: '#D1DBF0' }}>{parseInline(item, `l${i}-`)}</span>
-          </li>
-        ))}
-      </ul>
-    )
+    output.push(<ul key={key++} className="space-y-1.5 my-2">{listBuf.map((item, i) => (
+      <li key={i} className="flex gap-2.5 text-sm leading-relaxed">
+        <span className="w-1.5 h-1.5 rounded-full shrink-0 mt-2" style={{ background: 'var(--gold)' }} />
+        <span style={{ color: '#D1DBF0' }}>{parseInline(item, `l${i}-`)}</span>
+      </li>
+    ))}</ul>)
     listBuf.length = 0
   }
   lines.forEach((raw) => {
@@ -93,7 +78,7 @@ function TypingDots() {
         <img src={logo} alt="UniC" className="w-full h-full object-contain" style={{ background: '#0C1829' }} />
       </div>
       <div className="px-4 py-3 rounded-2xl rounded-bl-sm" style={{ background: 'var(--dark-elevated)', border: '1px solid var(--dark-border)' }}>
-        <span className="text-[10px] font-bold mb-1 block" style={{ color: 'var(--gold)' }}>UniC IA analyse...</span>
+        <span className="text-[10px] font-bold mb-1 block" style={{ color: 'var(--gold)' }}>UniC IA réfléchit...</span>
         <div className="flex items-center gap-[5px]">
           {[0, 160, 320].map(d => (
             <span key={d} className="block w-1.5 h-1.5 rounded-full"
@@ -105,15 +90,21 @@ function TypingDots() {
   )
 }
 
-// ── Timestamp formatter ──────────────────────────────────────────────────────
 const fmtTime = (ts) => new Date(ts).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
 
-// ── Quick Action Card ────────────────────────────────────────────────────────
-const QUICK_ACTIONS = [
-  { icon: FileText,    color: '#F6C344', bg: 'rgba(246,195,68,0.12)',  label: 'Rédiger un devis',      desc: 'Générer un devis professionnel personnalisé', prompt: 'Je veux rédiger un devis pour un client' },
-  { icon: Calculator,  color: '#34D399', bg: 'rgba(52,211,153,0.12)',  label: 'Calculer un prix',      desc: 'Estimer le coût d\'un projet en fonction des surfaces', prompt: 'Calcule le prix pour un faux plafond BA13' },
-  { icon: Lightbulb,   color: '#60A5FA', bg: 'rgba(96,165,250,0.12)',  label: 'Conseil technique',     desc: 'Obtenir des conseils sur les matériaux et techniques', prompt: 'Donne-moi un conseil technique sur le BA13' },
-  { icon: Building2,   color: '#A78BFA', bg: 'rgba(167,139,250,0.12)', label: 'Infos entreprise',      desc: 'En savoir plus sur UniC Plaquiste', prompt: 'Quels sont les services de UniC Plaquiste ?' },
+// ── Quick Actions ────────────────────────────────────────────────────────────
+const CLIENT_ACTIONS = [
+  { icon: FileText,   color: '#F6C344', bg: 'rgba(246,195,68,0.12)',  label: 'Rédiger un devis',  desc: 'Devis professionnel personnalisé', prompt: 'Je voudrais un devis pour un faux plafond BA13' },
+  { icon: Calculator, color: '#34D399', bg: 'rgba(52,211,153,0.12)',  label: 'Calculer un prix',  desc: 'Estimation selon vos surfaces',     prompt: 'Quel est le prix pour un faux plafond BA13 ?' },
+  { icon: Lightbulb,  color: '#60A5FA', bg: 'rgba(96,165,250,0.12)',  label: 'Conseil technique', desc: 'Matériaux et techniques',            prompt: 'Donne-moi un conseil technique sur le BA13' },
+  { icon: Building2,  color: '#A78BFA', bg: 'rgba(167,139,250,0.12)', label: 'Infos entreprise',  desc: 'Services de UniC Plaquiste',        prompt: 'Quels sont les services de UniC Plaquiste ?' },
+]
+
+const ADMIN_ACTIONS = [
+  { icon: FileText,   color: '#F6C344', bg: 'rgba(246,195,68,0.12)',  label: 'Préparer un devis', desc: 'Chiffrage rapide pour un client',    prompt: 'Aide-moi à chiffrer un devis pour un client' },
+  { icon: Calculator, color: '#34D399', bg: 'rgba(52,211,153,0.12)',  label: 'Calcul express',    desc: 'Surface × prix au m²',              prompt: 'Calcule-moi le prix pour 80m² de faux plafond avec peinture' },
+  { icon: Lightbulb,  color: '#60A5FA', bg: 'rgba(96,165,250,0.12)',  label: 'Conseil business',  desc: 'Stratégie et gestion',              prompt: 'Donne-moi un conseil pour développer mon activité' },
+  { icon: Building2,  color: '#A78BFA', bg: 'rgba(167,139,250,0.12)', label: 'Rédiger message',   desc: 'Message pro pour un client',        prompt: 'Aide-moi à rédiger un message pour un client qui hésite' },
 ]
 
 function QuickActionCard({ action, onSend, disabled }) {
@@ -137,42 +128,36 @@ function MessageBubble({ msg }) {
   const isUser = msg.role === 'user'
   const isError = msg.role === 'error'
 
-  if (isUser) {
-    return (
-      <div className="flex justify-end gap-2.5 msg-pop">
-        <div className="max-w-[80%] sm:max-w-[68%]">
-          <div className="px-4 py-3 rounded-2xl rounded-br-sm chat-bubble-client">
-            <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{msg.content}</p>
-          </div>
-          <div className="flex items-center justify-end gap-1 mt-1 pr-1">
-            <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{fmtTime(msg.ts)}</span>
-            <span className="text-[11px] font-medium" style={{ color: '#34D399' }}>✓✓</span>
-          </div>
+  if (isUser) return (
+    <div className="flex justify-end gap-2.5 msg-pop">
+      <div className="max-w-[80%] sm:max-w-[68%]">
+        <div className="px-4 py-3 rounded-2xl rounded-br-sm chat-bubble-client">
+          <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{msg.content}</p>
+        </div>
+        <div className="flex items-center justify-end gap-1 mt-1 pr-1">
+          <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{fmtTime(msg.ts)}</span>
+          <span className="text-[11px] font-medium" style={{ color: '#34D399' }}>✓✓</span>
         </div>
       </div>
-    )
-  }
+    </div>
+  )
 
-  if (isError) {
-    return (
-      <div className="flex items-end gap-2.5 msg-pop">
-        <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
-          style={{ background: 'rgba(248,113,113,0.15)', border: '2px solid rgba(248,113,113,0.3)' }}>
-          <span className="text-xs font-bold" style={{ color: '#F87171' }}>!</span>
-        </div>
-        <div className="max-w-[80%] px-4 py-3 rounded-2xl rounded-bl-sm text-sm"
-          style={{ background: 'rgba(248,113,113,0.06)', border: '1px solid rgba(248,113,113,0.15)', color: '#F87171' }}>
-          ⚠️ {msg.content}
-        </div>
+  if (isError) return (
+    <div className="flex items-end gap-2.5 msg-pop">
+      <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
+        style={{ background: 'rgba(248,113,113,0.15)', border: '2px solid rgba(248,113,113,0.3)' }}>
+        <span className="text-xs font-bold" style={{ color: '#F87171' }}>!</span>
       </div>
-    )
-  }
+      <div className="max-w-[80%] px-4 py-3 rounded-2xl rounded-bl-sm text-sm"
+        style={{ background: 'rgba(248,113,113,0.06)', border: '1px solid rgba(248,113,113,0.15)', color: '#F87171' }}>
+        {msg.content}
+      </div>
+    </div>
+  )
 
-  // IA message
   return (
     <div className="flex items-end gap-2.5 msg-pop">
-      <div className="w-9 h-9 rounded-full overflow-hidden shrink-0 shadow-lg self-start mt-1"
-        style={{ border: '2px solid rgba(246,195,68,0.3)' }}>
+      <div className="w-9 h-9 rounded-full overflow-hidden shrink-0 shadow-lg self-start mt-1" style={{ border: '2px solid rgba(246,195,68,0.3)' }}>
         <img src={logo} alt="UniC IA" className="w-full h-full object-contain" style={{ background: '#0C1829' }} />
       </div>
       <div className="max-w-[84%] sm:max-w-[75%]">
@@ -189,62 +174,112 @@ function MessageBubble({ msg }) {
   )
 }
 
-// ── Composant principal ───────────────────────────────────────────────────────
-export default function AIChat({
-  storageKey   = 'unic-ia-default',
-  welcomeTitle = 'Bonjour',
-  welcomeText  = 'Je suis votre assistant IA. Je connais votre entreprise, vos services, vos outils et vos méthodes. Comment puis-je vous aider aujourd\'hui ?',
-  suggestions  = [],
-  placeholder  = 'Pose ta question ou demande quelque chose...',
-  compact      = false,
-  userName     = '',
-  isAdmin      = false,
-}) {
-  // ── State ──────────────────────────────────────────────────────────────────
-  const { user } = useAuth()
-  // Clé de stockage unique par utilisateur — empêche le mélange de conversations
-  const userStorageKey = `${storageKey}-${user?.id || 'anon'}`
+// ── Notification Card (admin only) ────────────────────────────────────────────
+function NotificationCard({ notifications }) {
+  if (!notifications || notifications.length === 0) return null
+  return (
+    <div className="card-glass p-4 animate-fade-in">
+      <div className="flex items-center gap-2 mb-3">
+        <Bell size={14} style={{ color: 'var(--gold)' }} />
+        <span className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--gold)' }}>Résumé du jour</span>
+      </div>
+      <div className="space-y-2">
+        {notifications.map((n, i) => (
+          <div key={i} className="flex items-center gap-2.5 text-sm">
+            <span className="w-2 h-2 rounded-full shrink-0" style={{ background: n.color || '#60A5FA' }} />
+            <span style={{ color: '#D1DBF0' }}>{n.text}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
 
-  const [messages, setMessages] = useState(() => {
-    try { const s = sessionStorage.getItem(userStorageKey); return s ? JSON.parse(s) : [] }
-    catch { return [] }
-  })
+// ══════════════════════════════════════════════════════════════════════════════
+// COMPOSANT PRINCIPAL
+// ══════════════════════════════════════════════════════════════════════════════
+export default function AIChat({
+  storageKey     = 'unic-ia',
+  welcomeTitle   = 'Bonjour',
+  welcomeText    = 'Je suis votre assistant IA. Comment puis-je vous aider ?',
+  placeholder    = 'Pose ta question ou demande quelque chose...',
+  compact        = false,
+  userName       = '',
+  isAdmin        = false,
+  notifications  = [],
+}) {
+  const { user } = useAuth()
+
+  // ── Clé unique par utilisateur ────────────────────────────────────────────
+  // CRITIQUE : cette clé change quand l'utilisateur change de compte.
+  // Le useEffect ci-dessous recharge les messages de la bonne clé.
+  const userId = user?.id || null
+  const fullKey = userId ? `${storageKey}-${userId}` : null
+
+  const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [isTyping, setIsTyping] = useState(false)
   const bottomRef = useRef(null)
   const inputRef = useRef(null)
+  const loadedKeyRef = useRef(null)
 
-  useEffect(() => { try { sessionStorage.setItem(userStorageKey, JSON.stringify(messages)) } catch {} }, [messages, userStorageKey])
+  // ── Charger les messages quand l'utilisateur change ───────────────────────
+  // C'est LE fix du bug de conversations mélangées.
+  // Avant : useState(() => sessionStorage.get(key)) — ne se relançait jamais.
+  // Maintenant : useEffect qui surveille fullKey et recharge proprement.
+  useEffect(() => {
+    if (!fullKey) { setMessages([]); return }
+    if (loadedKeyRef.current === fullKey) return // déjà chargé
+    loadedKeyRef.current = fullKey
+    try {
+      const saved = sessionStorage.getItem(fullKey)
+      setMessages(saved ? JSON.parse(saved) : [])
+    } catch {
+      setMessages([])
+    }
+  }, [fullKey])
+
+  // ── Sauvegarder quand les messages changent ───────────────────────────────
+  // Ne sauvegarde QUE si on a un vrai user ID (jamais sous 'anon').
+  useEffect(() => {
+    if (!fullKey || !loadedKeyRef.current) return
+    try { sessionStorage.setItem(fullKey, JSON.stringify(messages)) } catch {}
+  }, [messages, fullKey])
+
+  // ── Auto-scroll ───────────────────────────────────────────────────────────
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages, isTyping])
 
-  // ── Envoi — demanderAssistant() INCHANGÉ ───────────────────────────────────
+  // ── Envoi — demanderAssistant() backend INCHANGÉ ──────────────────────────
   const sendMessage = useCallback(async (text) => {
     const question = (text || input).trim()
     if (!question || isTyping) return
-    setMessages(prev => [...prev, { id: `u-${Date.now()}`, role: 'user', content: question, ts: Date.now() }])
+    const userMsg = { id: `u-${Date.now()}`, role: 'user', content: question, ts: Date.now() }
+    setMessages(prev => [...prev, userMsg])
     setInput('')
     inputRef.current?.focus()
     setIsTyping(true)
     try {
-      const reponse = await demanderAssistant(question, messages, { isAdmin })
+      const allMessages = [...messages, userMsg]
+      const reponse = await demanderAssistant(question, allMessages, { isAdmin })
       setMessages(prev => [...prev, { id: `a-${Date.now()}`, role: 'assistant', content: reponse, ts: Date.now() }])
     } catch (err) {
       setMessages(prev => [...prev, { id: `e-${Date.now()}`, role: 'error', content: err.message || 'Erreur. Réessayez.', ts: Date.now() }])
     } finally { setIsTyping(false) }
-  }, [input, isTyping])
+  }, [input, isTyping, messages, isAdmin])
 
   const handleKeyDown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() } }
   const autoResize = (e) => { e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px' }
 
   const hasUserMessages = messages.some(m => m.role === 'user')
-  const displayName = userName || 'Ousmane'
+  const displayName = userName || user?.nom?.split(' ')[0] || user?.email?.split('@')[0] || ''
+  const actions = isAdmin ? ADMIN_ACTIONS : CLIENT_ACTIONS
 
-  // ── Render ─────────────────────────────────────────────────────────────────
+  // ── Rendu ─────────────────────────────────────────────────────────────────
   return (
     <div className={compact ? 'flex flex-col' : 'flex flex-col chat-container rounded-2xl overflow-hidden max-w-3xl mx-auto'}
       style={compact ? {} : { background: 'var(--dark-surface)', border: '1px solid var(--dark-border)' }}>
 
-      {/* ── Header ── */}
+      {/* Header */}
       {!compact && (
         <div className="flex items-center gap-3 px-4 py-3 shrink-0"
           style={{ borderBottom: '1px solid var(--dark-border)', background: 'linear-gradient(180deg, rgba(26,63,160,0.06) 0%, transparent 100%)' }}>
@@ -261,54 +296,57 @@ export default function AIChat({
         </div>
       )}
 
-      {/* ── Zone messages ── */}
+      {/* Zone messages */}
       <div className="flex-1 overflow-y-auto px-4 py-4 dark-scrollbar space-y-4" style={{ minHeight: 0 }}>
 
         {/* Carte bienvenue — seulement avant le 1er message */}
         {!hasUserMessages && (
-          <div className="animate-fade-in space-y-5">
-            {/* Titre premium */}
+          <div className="animate-fade-in space-y-4">
             <div className="text-center pt-2">
               <h2 className="text-xl font-extrabold text-white" style={{ letterSpacing: '-0.02em' }}>
-                {welcomeTitle} {displayName} ! <span className="inline-block animate-bounce">👋</span>
+                {welcomeTitle} {displayName} ! <span className="inline-block">👋</span>
               </h2>
               <p className="text-sm mt-2 mx-auto max-w-md" style={{ color: 'var(--text-secondary)', lineHeight: '1.6' }}>
                 {welcomeText}
               </p>
             </div>
 
-            {/* 4 cartes actions rapides */}
+            {/* Notifications admin */}
+            {isAdmin && <NotificationCard notifications={notifications} />}
+
+            {/* 4 cartes actions */}
             <div className="grid grid-cols-2 gap-2.5">
-              {QUICK_ACTIONS.map((a, i) => (
-                <QuickActionCard key={i} action={a} onSend={sendMessage} disabled={isTyping} />
-              ))}
+              {actions.map((a, i) => <QuickActionCard key={i} action={a} onSend={sendMessage} disabled={isTyping} />)}
             </div>
 
-            {/* Séparateur contextuel */}
+            {/* Séparateur */}
             <div className="flex items-center gap-3 select-none">
               <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.05)' }} />
               <span className="text-[10px] px-3 py-1 rounded-full flex items-center gap-1.5"
                 style={{ background: 'var(--dark-elevated)', color: 'var(--text-muted)', border: '1px solid var(--dark-border)' }}>
-                <span className="text-[8px]">⦿⦿⦿</span> Je comprends votre entreprise et me souviens de tout.
+                {isAdmin ? '🔑 Mode administrateur — accès complet' : '⦿ Je comprends votre projet et m\'adapte à vous.'}
               </span>
               <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.05)' }} />
             </div>
 
             {/* Message de bienvenue IA */}
             <div className="flex items-start gap-2.5">
-              <div className="w-9 h-9 rounded-full overflow-hidden shrink-0 shadow-lg mt-0.5"
-                style={{ border: '2px solid rgba(246,195,68,0.3)' }}>
+              <div className="w-9 h-9 rounded-full overflow-hidden shrink-0 shadow-lg mt-0.5" style={{ border: '2px solid rgba(246,195,68,0.3)' }}>
                 <img src={logo} alt="UniC IA" className="w-full h-full object-contain" style={{ background: '#0C1829' }} />
               </div>
               <div className="flex-1">
                 <div className="px-4 py-3 rounded-2xl rounded-bl-sm" style={{ background: 'var(--dark-elevated)', border: '1px solid var(--dark-border)' }}>
-                  <p className="text-sm leading-relaxed" style={{ color: '#D1DBF0' }}>
-                    <strong className="text-white">Salut {displayName} !</strong> 👋<br />
-                    Je suis là pour t'aider dans ton quotidien : devis, conseils, calculs, gestion de projets et bien plus encore.
-                  </p>
-                  <p className="text-sm mt-2" style={{ color: '#D1DBF0' }}>
-                    Que souhaites-tu faire aujourd'hui ?
-                  </p>
+                  {isAdmin ? (
+                    <p className="text-sm leading-relaxed" style={{ color: '#D1DBF0' }}>
+                      <strong className="text-white">Salut {displayName} !</strong> 👋<br />
+                      Je suis ton assistant personnel. Dis-moi ce que tu veux faire — chiffrage, message client, analyse, planning...
+                    </p>
+                  ) : (
+                    <p className="text-sm leading-relaxed" style={{ color: '#D1DBF0' }}>
+                      <strong className="text-white">Bonjour {displayName} !</strong> 👋<br />
+                      Je suis là pour vous aider. Devis, calculs de prix, conseils techniques — n'hésitez pas à me poser vos questions.
+                    </p>
+                  )}
                 </div>
                 <p className="text-[10px] mt-1 pl-1" style={{ color: 'var(--text-muted)' }}>{fmtTime(Date.now())}</p>
               </div>
@@ -316,43 +354,28 @@ export default function AIChat({
           </div>
         )}
 
-        {/* Historique de conversation */}
+        {/* Historique */}
         {messages.map(msg => <MessageBubble key={msg.id} msg={msg} />)}
-
-        {/* Typing indicator */}
         {isTyping && <TypingDots />}
-
         <div ref={bottomRef} />
       </div>
 
-      {/* ── Zone de saisie premium ── */}
+      {/* Input */}
       <div className="px-4 pt-3 pb-3 shrink-0" style={{ borderTop: '1px solid var(--dark-border)' }}>
         <div className="flex items-end gap-2 rounded-2xl px-1 py-1"
           style={{ background: 'var(--dark-elevated)', border: '1.5px solid var(--dark-border)' }}>
-          {/* Icône IA */}
           <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ml-1"
             style={{ background: 'rgba(246,195,68,0.1)' }}>
             <Sparkles size={16} style={{ color: 'var(--gold)' }} />
           </div>
-          {/* Textarea */}
-          <textarea
-            ref={inputRef}
-            value={input}
+          <textarea ref={inputRef} value={input}
             onChange={(e) => { setInput(e.target.value); autoResize(e) }}
-            onKeyDown={handleKeyDown}
-            placeholder={placeholder}
-            disabled={isTyping}
-            rows={1}
+            onKeyDown={handleKeyDown} placeholder={placeholder} disabled={isTyping} rows={1}
             className="flex-1 py-2.5 px-1 text-sm bg-transparent text-white outline-none resize-none disabled:opacity-50 placeholder-[#4A5B73]"
-            style={{ minHeight: '38px', maxHeight: '120px' }}
-          />
-          {/* Bouton envoyer */}
+            style={{ minHeight: '38px', maxHeight: '120px' }} />
           <button onClick={() => sendMessage()} disabled={isTyping || !input.trim()}
             className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 mr-0.5 transition-all duration-200 disabled:opacity-30 btn-press"
-            style={{
-              background: input.trim() ? 'var(--gold)' : 'transparent',
-              color: input.trim() ? '#060D18' : 'var(--text-muted)',
-            }}>
+            style={{ background: input.trim() ? 'var(--gold)' : 'transparent', color: input.trim() ? '#060D18' : 'var(--text-muted)' }}>
             <Send size={16} strokeWidth={2.2} />
           </button>
         </div>

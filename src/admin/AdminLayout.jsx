@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import SideDrawer from '../components/SideDrawer'
 import NotificationBell from '../components/NotificationBell'
 import PullToRefresh from '../components/PullToRefresh'
+import { creerRappelAdminQuotidien } from '../services/adminDailyDigestService'
 import {
   LayoutDashboard, Users, FileText, Building2,
   Receipt, MessageSquare, User, LogOut, Menu,
@@ -26,6 +27,11 @@ export default function AdminLayout() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
+
+  useEffect(() => {
+    if (!user?.email) return
+    creerRappelAdminQuotidien(user.email)
+  }, [user?.email])
 
   const menuItems = [
     { icon: LayoutDashboard, label: 'Accueil', path: '/admin/dashboard' },

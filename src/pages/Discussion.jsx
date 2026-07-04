@@ -32,7 +32,7 @@ export default function Discussion() {
       })
       .catch((e) => {
         console.error('Erreur démarrage session:', e)
-        setErreurDemarrage('Impossible de démarrer la page. Recharge-la.')
+        setErreurDemarrage(e.message || 'Impossible de demarrer la page. Recharge-la.')
         setChargement(false)
       })
     return () => { actif = false; unsubscribe() }

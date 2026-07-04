@@ -16,6 +16,10 @@ import {
   modifierConnaissance,
   supprimerConnaissance,
 } from '../services/iaService'
+import { getTousDevis } from '../services/quoteService'
+import { getToutesFactures } from '../services/invoiceService'
+import { getTousProspects } from '../services/prospectService'
+import { getConversationsAdmin } from '../services/messageService'
 import AIChat from '../components/AIChat'
 import { Plus, Trash2, Pencil, Brain, X, Database, MessageCircle } from 'lucide-react'
 
@@ -31,6 +35,39 @@ const ADMIN_SUGGESTIONS = [
 export default function AdminBaseConnaissances() {
   // ── Onglet actif ───────────────────────────────────────────────────────────
   const [onglet, setOnglet] = useState('assistant') // 'assistant' | 'base'
+
+  // ── Notifications admin — résumé du jour ───────────────────────────────────
+  const [notifs, setNotifs] = useState([])
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const [devis, factures, prospects, convs] = await Promise.all([
+          getTousDevis().catch(() => []),
+          getToutesFactures().catch(() => []),
+          getTousProspects().catch(() => []),
+          getConversationsAdmin().catch(() => []),
+        ])
+        const n = []
+        const devisEnAttente = devis.filter(d => d.status === 'En attente').length
+        const devisApprouves = devis.filter(d => d.status === 'Approuvé').length
+        const devisSignes = devis.filter(d => d.status === 'Signé').length
+        const facturesImpayees = factures.filter(f => f.status !== 'Payée').length
+        const msgsNonLus = convs.reduce((sum, c) => sum + (c.unreadAdmin || 0), 0)
+        const nbProspects = prospects.length
+
+        if (devisEnAttente > 0) n.push({ text: `${devisEnAttente} devis en attente de traitement`, color: '#FBBF24' })
+        if (devisApprouves > 0) n.push({ text: `${devisApprouves} devis approuvé(s) — prêts à signer`, color: '#34D399' })
+        if (devisSignes > 0)    n.push({ text: `${devisSignes} devis signé(s) ✓`, color: '#34D399' })
+        if (facturesImpayees > 0) n.push({ text: `${facturesImpayees} facture(s) en attente de paiement`, color: '#F87171' })
+        if (msgsNonLus > 0)     n.push({ text: `${msgsNonLus} message(s) non lu(s)`, color: '#60A5FA' })
+        if (nbProspects > 0)    n.push({ text: `${nbProspects} prospect(s) dans le pipeline`, color: '#A78BFA' })
+        if (n.length === 0)     n.push({ text: 'Tout est à jour — rien en attente 👍', color: '#34D399' })
+
+        setNotifs(n)
+      } catch { /* silencieux */ }
+    })()
+  }, [])
 
   // ── Base de connaissances (logique INCHANGÉE) ──────────────────────────────
   const [connaissances, setConnaissances] = useState([])
@@ -119,10 +156,11 @@ export default function AdminBaseConnaissances() {
         <AIChat
           storageKey="unic-ia-admin"
           welcomeTitle="Bonjour"
-          welcomeText="Je suis ton assistant interne. Je connais ton entreprise, tes tarifs, procédures et projets. Que veux-tu faire ?"
+          welcomeText="Je suis ton assistant personnel. Dis-moi ce que tu veux faire — chiffrage, message client, analyse, planning..."
           placeholder="Pose ta question ou demande quelque chose..."
           userName="Ousmane"
           isAdmin={true}
+          notifications={notifs}
         />
       )}
 

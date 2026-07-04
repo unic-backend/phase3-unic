@@ -35,7 +35,8 @@ export function AuthProvider({ children }) {
           email: firebaseUser.email,
           emailLower: (firebaseUser.email || '').toLowerCase(),
           nom: firebaseUser.displayName || 'Utilisateur',
-          telephone: ''
+          telephone: '',
+          isAdmin: isAdminEmail(firebaseUser.email)
         })
         setLoading(false)
 
@@ -51,8 +52,8 @@ export function AuthProvider({ children }) {
                 emailLower: (firebaseUser.email || '').toLowerCase(),
                 nom: profile.nom || 'Utilisateur',
                 telephone: profile.telephone || '',
-                isAdmin: profile.isAdmin || false,
-                ...profile
+                ...profile,
+                isAdmin: profile.isAdmin || isAdminEmail(firebaseUser.email)
               }))
             }
           })

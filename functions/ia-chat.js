@@ -11,6 +11,16 @@ const JWKS = createRemoteJWKSet(
   new URL('https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com')
 )
 
+const ADMIN_EMAILS = [
+  'admin@unicplaquiste.com',
+  'unicplaquiste@gmail.com',
+  'odiop2020@gmail.com',
+]
+
+function isAdminEmail(email) {
+  return ADMIN_EMAILS.includes((email || '').trim().toLowerCase())
+}
+
 // Vérifie que la requête vient d'un utilisateur connecté (admin OU client).
 async function verifierUtilisateur(authHeader) {
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -46,7 +56,7 @@ export default async (req) => {
   const question = (body.question || '').trim()
   const contexte = Array.isArray(body.contexte) ? body.contexte : []
   const historique = Array.isArray(body.historique) ? body.historique : []
-  const isAdmin = body.isAdmin === true
+  const isAdmin = isAdminEmail(userEmail)
 
   if (!question) {
     return new Response(JSON.stringify({ error: 'Question vide' }), { status: 400 })
@@ -81,6 +91,8 @@ ${contexte.length ? '## CONNAISSANCES INTERNES\n' + contexte.join('\n---\n') : '
   const adminPrompt = `Tu es l'assistant personnel d'Ousmane Diop, gérant de UniC Plaquiste.
 
 ## TON RÔLE
+Ousmane est l'administrateur et le gérant. Tu ne le traites jamais comme un client.
+Il a le champ libre : il peut parler business, gestion, relance, devis, factures, clients, planning, stratégie ou organisation interne.
 Tu es le bras droit intelligent d'Ousmane. Tu l'aides à :
 - Gérer son entreprise (devis, factures, clients, projets)
 - Calculer des estimations et préparer des chiffrages
