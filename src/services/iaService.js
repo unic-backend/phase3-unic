@@ -1,10 +1,8 @@
 import { collection, addDoc, updateDoc, deleteDoc, doc, getDocs, Timestamp } from 'firebase/firestore'
 import { db, auth } from '../firebase/init'
-import { construireContexte } from '../ia/brain'
 
 // ==================== Base de connaissances ====================
 
-// Retourne les N projets du portfolio les plus récents comme contexte pour l'IA
 async function getContextePortfolio() {
   try {
     const snap = await getDocs(collection(db, 'portfolio'))
@@ -61,8 +59,6 @@ export const supprimerConnaissance = async (id) => {
   }
 }
 
-// Recherche simple côté client : suffisante pour une petite base de connaissances.
-// Si la base dépasse ~200 entrées un jour, remplacer par une recherche côté serveur (Algolia, etc.)
 const trouverPertinentes = (toutes, question) => {
   const mots = question.toLowerCase().split(/\s+/).filter((m) => m.length > 2)
   if (mots.length === 0) return []
@@ -76,27 +72,27 @@ const trouverPertinentes = (toutes, question) => {
 
 // ==================== Assistant IA ====================
 
-// Pose une question à l'assistant. L'utilisateur doit être connecté en tant qu'admin
-// (le token Firebase est vérifié côté serveur dans la fonction Netlify ia-chat).
-export const demanderAssistant = async (question) => {
+/**
+ * Pose une question à l'assistant IA.
+ * @param {string} question — La question actuelle
+ * @param {Array}  [historique] — L'historique de conversation (messages précédents)
+ *                                pour que l'IA garde le contexte et s'adapte au client.
+ */
+export const demanderAssistant = async (question, historique = []) => {
   const utilisateur = auth.currentUser
-  if (!utilisateur) throw new Error('Tu dois être connecté pour utiliser l\'assistant.')
+  if (!utilisateur) throw new Error('Connectez-vous pour utiliser l\'assistant.')
 
   const toutes = await getConnaissances()
-const pertinentes = trouverPertinentes(toutes, question)
+  const pertinentes = trouverPertinentes(toutes, question)
+  const portfolio = await getContextePortfolio()
+  const contexte = [...pertinentes.map((c) => `[${c.categorie}] ${c.titre} : ${c.contenu}`), ...portfolio]
 
-const connaissances = pertinentes.map(
-  (c) => `[${c.categorie}] ${c.titre} : ${c.contenu}`
-)
-
-const portfolio = await getContextePortfolio()
-
-const contexte = construireContexte(
-  question,
-  connaissances,
-  portfolio
-)
   const idToken = await utilisateur.getIdToken()
+
+  // Envoyer l'historique de conversation pour que l'IA se souvienne du contexte
+  const historiqueFiltre = historique
+    .filter(m => m.role === 'user' || m.role === 'assistant')
+    .map(m => ({ role: m.role, content: m.content }))
 
   const res = await fetch('/.netlify/functions/ia-chat', {
     method: 'POST',
@@ -104,7 +100,7 @@ const contexte = construireContexte(
       'content-type': 'application/json',
       authorization: `Bearer ${idToken}`,
     },
-    body: JSON.stringify({ question, contexte }),
+    body: JSON.stringify({ question, contexte, historique: historiqueFiltre }),
   })
 
   const data = await res.json().catch(() => ({}))

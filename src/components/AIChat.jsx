@@ -220,7 +220,7 @@ export default function AIChat({
     inputRef.current?.focus()
     setIsTyping(true)
     try {
-      const reponse = await demanderAssistant(question)
+      const reponse = await demanderAssistant(question, messages)
       setMessages(prev => [...prev, { id: `a-${Date.now()}`, role: 'assistant', content: reponse, ts: Date.now() }])
     } catch (err) {
       setMessages(prev => [...prev, { id: `e-${Date.now()}`, role: 'error', content: err.message || 'Erreur. Réessayez.', ts: Date.now() }])

@@ -4,7 +4,7 @@
 // tous les deux ce fichier, donc ils restent toujours synchronisés.
 
 export const TARIFS = {
-  'faux-plafond': { avecPeinture: 13500, sansPeinture: 11000 },
+  'faux-plafond': { avecPeinture: 15000, sansPeinture: 11000 },
 }
 
 // Types pour lesquels le prix n'est pas encore fixé : pas d'estimation chiffrée
