@@ -1,15 +1,8 @@
 import { webcrypto } from 'node:crypto'
-import { jwtVerify, createRemoteJWKSet } from 'jose'
 
 if (!globalThis.crypto) {
   globalThis.crypto = webcrypto
 }
-
-const FIREBASE_PROJECT_ID = 'unic-plaquiste'
-
-const JWKS = createRemoteJWKSet(
-  new URL('https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com')
-)
 
 export default async (req) => {
   if (req.method !== 'POST') {
@@ -48,7 +41,7 @@ RÈGLES DE PRIX OBLIGATOIRES :
 
 RÈGLES IMPORTANTES :
 - Tu ne dois JAMAIS dire que la pose seule coûte 11 000 FCFA.
-- Quand le client a déjà les matériaux, tu ne donnes aucun prix. Tu demandes les infos puis tu dis : "Ousmane va vous contacter pour vous donner le prix de la pose seulement."
+- Quand le client a déjà les matériaux, tu ne donnes aucun prix. Tu demandes les infos nécessaires puis tu dis : "Ousmane va vous contacter pour vous donner le prix de la pose seulement."
 - Après chaque estimation, tu dis toujours : "Le devis final sera donné par Ousmane. Ousmane va vous contacter pour vous envoyer le devis final."
 - Tu ne poses jamais deux fois la même question.
 - Tu gardes en mémoire toute la conversation.
@@ -63,7 +56,7 @@ RÈGLES IMPORTANTES :
         'content-type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'claude-3-5-sonnet-20241022',   // ← Modèle corrigé
+        model: 'claude-3-5-sonnet-20241022',
         max_tokens: 1024,
         system: SYSTEM_PROMPT,
         messages: historique,
