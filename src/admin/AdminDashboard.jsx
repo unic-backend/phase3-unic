@@ -94,20 +94,16 @@ export default function AdminDashboard() {
       {/* ========== CRÉER FACTURE — Mobile Quick Action ========== */}
       <button
         onClick={() => navigate('/admin/factures')}
-        className="md:hidden w-full flex items-center justify-between p-4 rounded-3xl btn-press animate-fade-in animation-delay-100"
-        style={{
-          background: 'linear-gradient(135deg, var(--gold) 0%, var(--gold-dim) 100%)',
-          color: '#060D18',
-          opacity: 0
-        }}
+        className="md:hidden w-full flex items-center justify-between p-4 cta-gold animate-fade-in animation-delay-100"
+        style={{ opacity: 0 }}
       >
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-2xl bg-black/10 flex items-center justify-center">
             <Plus size={20} strokeWidth={2.5} />
           </div>
           <div className="text-left">
-            <p className="font-bold text-sm">Créer une facture</p>
-            <p className="text-xs opacity-70">Générez et envoyez une nouvelle facture</p>
+            <p className="font-extrabold text-sm tracking-tight">Créer une facture</p>
+            <p className="text-xs opacity-60 font-medium">Générez et envoyez une nouvelle facture</p>
           </div>
         </div>
         <ChevronRight size={20} />
@@ -124,20 +120,20 @@ export default function AdminDashboard() {
           return (
             <div
               key={idx}
-              className="card-dark p-4 md:p-5 animate-fade-in"
+              className="card-glass p-4 md:p-5 animate-fade-in"
               style={{ opacity: 0, animationDelay: `${idx * 80}ms` }}
             >
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-3"
-                style={{ background: stat.bg }}>
-                <Icon size={20} strokeWidth={2} style={{ color: stat.color }} />
+              <div className="w-10 h-10 rounded-2xl flex items-center justify-center mb-3"
+                style={{ background: stat.bg, boxShadow: `0 4px 12px ${stat.bg}` }}>
+                <Icon size={20} strokeWidth={1.8} style={{ color: stat.color }} />
               </div>
-              <p className="text-xs font-medium mb-1" style={{ color: 'var(--text-muted)' }}>
+              <p className="text-[11px] font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--text-muted)' }}>
                 {stat.label}
               </p>
-              <p className="text-2xl md:text-3xl font-bold text-white">
+              <p className="text-2xl md:text-3xl font-extrabold text-white" style={{ letterSpacing: '-0.03em' }}>
                 <AnimatedNumber value={stat.value} />
               </p>
-              <p className="text-[11px] mt-1" style={{ color: stat.color }}>
+              <p className="text-[11px] font-medium mt-1.5" style={{ color: stat.color }}>
                 {stat.sub}
               </p>
             </div>
@@ -147,7 +143,7 @@ export default function AdminDashboard() {
 
       {/* ========== REVENUS ========== */}
       {!loading && (
-        <div className="card-dark p-5 md:p-6 animate-fade-in animation-delay-300" style={{ opacity: 0 }}>
+        <div className="card-glass p-5 md:p-6 animate-fade-in animation-delay-300" style={{ opacity: 0 }}>
           <div className="flex items-center justify-between mb-4">
             <div>
               <p className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>Revenus</p>

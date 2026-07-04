@@ -33,9 +33,11 @@ html {
 }
 
 body {
-  @apply bg-white text-gray-900 font-sans;
+  @apply bg-white text-gray-900;
+  font-family: 'Manrope', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  letter-spacing: -0.01em;
 }
 
 /* ============================================
@@ -124,12 +126,82 @@ body {
   background: var(--dark-surface);
   border: 1px solid var(--dark-border);
   border-radius: 20px;
-  transition: all 0.25s ease;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .card-dark:hover {
   border-color: var(--dark-border-strong);
-  background: var(--dark-elevated);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.15);
 }
+
+/* Card Glassmorphism iOS — pour les stats et widgets principaux */
+.card-glass {
+  background: rgba(12, 24, 41, 0.6);
+  backdrop-filter: blur(24px) saturate(140%);
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 20px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.card-glass::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.12) 50%, transparent 100%);
+}
+.card-glass:hover {
+  border-color: rgba(255,255,255,0.12);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+  transform: translateY(-1px);
+}
+
+/* CTA Premium gradient doré */
+.cta-gold {
+  background: linear-gradient(135deg, #C89B2F 0%, #F6C344 50%, #F2C200 100%);
+  color: #060D18;
+  border-radius: 20px;
+  box-shadow: 0 4px 16px rgba(246,195,68,0.25), 0 1px 3px rgba(0,0,0,0.1);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.cta-gold:hover {
+  box-shadow: 0 6px 24px rgba(246,195,68,0.35), 0 2px 6px rgba(0,0,0,0.15);
+  transform: translateY(-1px);
+}
+.cta-gold:active {
+  transform: scale(0.97);
+  box-shadow: 0 2px 8px rgba(246,195,68,0.2);
+}
+
+/* Bottom Nav Premium */
+.nav-bottom-premium {
+  background: rgba(6, 13, 24, 0.92);
+  backdrop-filter: blur(24px) saturate(150%);
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
+  border-top: 1px solid rgba(255,255,255,0.04);
+}
+
+.nav-pill-active {
+  background: rgba(246,195,68,0.12);
+  border-radius: 12px;
+  padding: 6px 14px;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Séparateurs ultra-fins */
+.separator-thin {
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.06) 50%, transparent 100%);
+}
+
+/* Entrées animations stagger */
+.stagger-1 { animation-delay: 0.05s; }
+.stagger-2 { animation-delay: 0.1s; }
+.stagger-3 { animation-delay: 0.15s; }
+.stagger-4 { animation-delay: 0.2s; }
+.stagger-5 { animation-delay: 0.25s; }
+.stagger-6 { animation-delay: 0.3s; }
 
 /* Glass effect subtil */
 .glass-dark {

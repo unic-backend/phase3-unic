@@ -143,52 +143,54 @@ export default function ClientLayout() {
         </PullToRefresh>
       </div>
 
-      {/* Bottom Nav Mobile — design premium minimal */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50"
-        style={{
-          background: 'var(--dark-surface, #0C1829)',
-          borderTop: '1px solid rgba(255,255,255,0.05)',
-          paddingBottom: 'env(safe-area-inset-bottom)',
-        }}>
-        <div className="flex items-stretch h-[58px]">
+      {/* Bottom Nav Mobile — Premium Glass */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 nav-bottom-premium"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+        <div className="flex items-center justify-around h-[62px] px-2">
           {mobileNavItems.map((item) => {
             const active = isActive(item.path)
             const Icon = item.icon
             return (
               <button key={item.path} onClick={() => navigate(item.path)}
-                className="relative flex flex-col items-center justify-center flex-1 gap-[3px] transition-all duration-200 active:scale-90 select-none">
-                {/* Indicateur fin en haut de l'onglet actif */}
-                <span
-                  className="absolute top-0 left-1/2 -translate-x-1/2 rounded-full transition-all duration-300"
+                className="relative flex flex-col items-center justify-center transition-all duration-300 active:scale-90 select-none"
+                style={{ minWidth: '56px' }}>
+                {/* Indicateur fin doré en haut */}
+                <span className="absolute -top-[1px] left-1/2 -translate-x-1/2 rounded-full transition-all duration-300"
                   style={{
-                    width: active ? '20px' : '0px',
+                    width: active ? '16px' : '0px',
                     height: '2px',
-                    background: active ? '#F2C200' : 'transparent',
-                    boxShadow: active ? '0 0 8px rgba(242,194,0,0.6)' : 'none',
-                  }}
-                />
-                {/* Icône avec badge */}
-                <span className="relative">
-                  {item.badge > 0 && (
-                    <span className="absolute -top-1 -right-1.5 w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold text-white z-10"
-                      style={{ background: '#F87171' }}>
-                      {item.badge}
-                    </span>
-                  )}
-                  <Icon
-                    size={21}
-                    strokeWidth={active ? 2.2 : 1.6}
-                    style={{
-                      color: active ? '#F2C200' : '#566380',
-                      transition: 'color 0.2s, stroke-width 0.2s',
-                    }}
-                  />
-                </span>
-                {/* Label */}
-                <span
-                  className="text-[9.5px] font-semibold tracking-wide transition-colors duration-200"
-                  style={{ color: active ? '#F2C200' : '#566380' }}>
-                  {item.label}
+                    background: active ? '#F6C344' : 'transparent',
+                    boxShadow: active ? '0 0 10px rgba(246,195,68,0.5)' : 'none',
+                  }} />
+                {/* Pill glass derrière l'icône active */}
+                <span className="relative flex flex-col items-center gap-[2px]"
+                  style={active ? {
+                    background: 'rgba(246,195,68,0.1)',
+                    borderRadius: '12px',
+                    padding: '5px 14px 3px',
+                    transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+                  } : {
+                    padding: '5px 14px 3px',
+                    transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+                  }}>
+                  <span className="relative">
+                    {item.badge > 0 && (
+                      <span className="absolute -top-1.5 -right-2 w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold text-white z-10"
+                        style={{ background: '#F87171', boxShadow: '0 2px 6px rgba(248,113,113,0.4)' }}>
+                        {item.badge}
+                      </span>
+                    )}
+                    <Icon size={20} strokeWidth={active ? 2 : 1.5}
+                      style={{
+                        color: active ? '#F6C344' : '#4A5B73',
+                        transition: 'all 0.25s ease',
+                        filter: active ? 'drop-shadow(0 0 4px rgba(246,195,68,0.3))' : 'none',
+                      }} />
+                  </span>
+                  <span className="text-[9px] font-semibold tracking-wider transition-colors duration-200"
+                    style={{ color: active ? '#F6C344' : '#4A5B73' }}>
+                    {item.label}
+                  </span>
                 </span>
               </button>
             )

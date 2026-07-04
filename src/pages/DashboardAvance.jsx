@@ -85,15 +85,15 @@ export default function DashboardAvance() {
 
       {/* Quick Action */}
       <button onClick={() => navigate('/client/devis/new')}
-        className="w-full flex items-center justify-between p-4 rounded-3xl btn-press animate-fade-in animation-delay-100"
-        style={{ background: 'linear-gradient(135deg, var(--gold) 0%, var(--gold-dim) 100%)', color: '#060D18', opacity: 0 }}>
+        className="w-full flex items-center justify-between p-4 cta-gold animate-fade-in animation-delay-100"
+        style={{ opacity: 0 }}>
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-2xl bg-black/10 flex items-center justify-center">
             <Plus size={20} strokeWidth={2.5} />
           </div>
           <div className="text-left">
-            <p className="font-bold text-sm">Demander un devis</p>
-            <p className="text-xs opacity-70">Obtenez une estimation gratuite</p>
+            <p className="font-extrabold text-sm tracking-tight">Demander un devis</p>
+            <p className="text-xs opacity-60 font-medium">Obtenez une estimation gratuite</p>
           </div>
         </div>
         <ChevronRight size={20} />
@@ -121,19 +121,19 @@ export default function DashboardAvance() {
         {cards.map((c, i) => {
           const Icon = c.icon
           return (
-            <div key={i} className="card-dark p-4 animate-fade-in" style={{ opacity: 0, animationDelay: `${(i+2) * 80}ms` }}>
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-3" style={{ background: c.bg }}>
-                <Icon size={20} strokeWidth={2} style={{ color: c.color }} />
+            <div key={i} className="card-glass p-4 animate-fade-in" style={{ opacity: 0, animationDelay: `${(i+2) * 80}ms` }}>
+              <div className="w-10 h-10 rounded-2xl flex items-center justify-center mb-3" style={{ background: c.bg, boxShadow: `0 4px 12px ${c.bg}` }}>
+                <Icon size={20} strokeWidth={1.8} style={{ color: c.color }} />
               </div>
-              <p className="text-xs font-medium mb-1" style={{ color: 'var(--text-muted)' }}>{c.label}</p>
-              <p className="text-2xl font-bold text-white">
+              <p className="text-[11px] font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--text-muted)' }}>{c.label}</p>
+              <p className="text-2xl font-extrabold text-white" style={{ letterSpacing: '-0.03em' }}>
                 {c.isMoney ? (
                   <>{(c.value || 0).toLocaleString('fr-FR')} <span className="text-xs font-normal" style={{ color: 'var(--text-muted)' }}>FCFA</span></>
                 ) : (
                   <AnimatedNumber value={c.value} />
                 )}
               </p>
-              {c.sub && <p className="text-[11px] mt-1" style={{ color: c.color }}>{c.sub}</p>}
+              {c.sub && <p className="text-[11px] font-medium mt-1.5" style={{ color: c.color }}>{c.sub}</p>}
             </div>
           )
         })}
