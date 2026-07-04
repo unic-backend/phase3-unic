@@ -1,11 +1,17 @@
-import ClientAIAssistant_Claude from '../components/ClientAIAssistant_Claude';
+import AIChat from '../components/AIChat'
+import { useAuth } from '../hooks/useAuth'
 
 export default function AssistantIA() {
+  const { user } = useAuth()
+  const prenom = user?.nom?.split(' ')[0] || user?.email?.split('@')[0] || ''
+
   return (
-    <div className="p-6">
-      <h1 className="text-3xl font-bold text-white mb-2">Assistant IA</h1>
-      <p className="text-gray-400">Votre assistant intelligent disponible 24h/24.</p>
-      <ClientAIAssistant_Claude />
-    </div>
-  );
+    <AIChat
+      storageKey="unic-ia-client"
+      welcomeTitle="Bonjour"
+      welcomeText="Je suis votre assistant IA. Je connais votre entreprise, vos services, vos outils et vos méthodes. Comment puis-je vous aider aujourd'hui ?"
+      placeholder="Pose ta question ou demande quelque chose..."
+      userName={prenom}
+    />
+  )
 }

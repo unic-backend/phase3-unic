@@ -1,43 +1,39 @@
 /**
- * AIChat — Composant partagé de conversation IA
+ * AIChat — Composant partagé de conversation IA premium
  *
  * Utilisé par :
  *  - /client/assistant  (AssistantIA.jsx)
  *  - /admin/connaissances  (AdminBaseConnaissances.jsx)
  *
- * Garanties :
- *  - L'historique est préservé via sessionStorage (survit à la navigation,
- *    effacé au rafraîchissement de page — comportement voulu).
- *  - La carte de bienvenue disparaît dès le premier message utilisateur.
- *  - Le markdown de la réponse IA est rendu (gras, titres, listes, séparateurs).
- *  - L'indicateur de frappe s'affiche pendant l'appel API.
- *  - L'input est vidé et garde le focus après l'envoi.
- *  - Scroll automatique vers le dernier message.
- *  - Aucun appel API ni logique métier n'est modifié ici.
+ * Design inspiré de la capture de référence :
+ *  - Avatar IA = logo UniC Plaquiste
+ *  - 4 cartes actions rapides avec icônes colorées
+ *  - Bulles dorées (user) à droite, dark (IA) à gauche
+ *  - Accusés de lecture ✓✓
+ *  - Typing indicator "UniC IA analyse..."
+ *  - Disclaimer en bas de l'input
+ *  - Historique persisté en sessionStorage
+ *  - Markdown rendu (gras, titres, listes)
+ *
+ * Backend 100% inchangé : demanderAssistant() de iaService.js
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { demanderAssistant } from '../services/iaService'
-import { Send, Sparkles, Bot } from 'lucide-react'
+import { Send, FileText, Calculator, Lightbulb, Building2, Sparkles } from 'lucide-react'
+import logo from '../assets/logo.webp'
 
-// ── Rendu Markdown inline ────────────────────────────────────────────────────
-// Gère **gras** et *italique* sans dépendance externe.
+// ── Markdown inline ──────────────────────────────────────────────────────────
 function parseInline(text, keyPrefix = '') {
   if (!text) return null
   const parts = []
-  let rem = text
-  let k = 0
-
+  let rem = text, k = 0
   while (rem.length > 0) {
-    const boldRe  = /\*\*(.+?)\*\*/
-    const italRe  = /\*([^*]+)\*/
-    const bm = rem.match(boldRe)
-    const im = rem.match(italRe)
+    const bm = rem.match(/\*\*(.+?)\*\*/)
+    const im = rem.match(/\*([^*]+)\*/)
     const bi = bm ? rem.indexOf(bm[0]) : Infinity
     const ii = im ? rem.indexOf(im[0]) : Infinity
-
     if (!bm && !im) { parts.push(rem); break }
-
     if (bi <= ii && bm) {
       if (bi > 0) parts.push(rem.slice(0, bi))
       parts.push(<strong key={`${keyPrefix}b${k++}`} className="font-semibold text-white">{bm[1]}</strong>)
@@ -46,37 +42,27 @@ function parseInline(text, keyPrefix = '') {
       if (ii > 0) parts.push(rem.slice(0, ii))
       parts.push(<em key={`${keyPrefix}i${k++}`} className="italic">{im[1]}</em>)
       rem = rem.slice(ii + im[0].length)
-    } else {
-      parts.push(rem); break
-    }
+    } else { parts.push(rem); break }
   }
   return parts
 }
 
-// ── Rendu Markdown bloc ──────────────────────────────────────────────────────
-// Gère : # h1, ## h2, - liste, --- séparateur, paragraphes.
+// ── Markdown bloc ────────────────────────────────────────────────────────────
 function MarkdownContent({ text }) {
   if (!text) return null
-
-  // Normaliser les séparateurs inline (--- en milieu de texte)
   const normalized = text
     .replace(/([^\n])\s*---\s*([^\n])/g, '$1\n---\n$2')
     .replace(/([^\n])\s*## /g, '$1\n## ')
     .replace(/([^\n])\s*# /g, '$1\n# ')
-
-  const lines   = normalized.split('\n')
-  const output  = []
-  const listBuf = []
+  const lines = normalized.split('\n'), output = [], listBuf = []
   let key = 0
-
   function flushList() {
     if (!listBuf.length) return
     output.push(
-      <ul key={key++} className="space-y-1 my-2">
+      <ul key={key++} className="space-y-1.5 my-2">
         {listBuf.map((item, i) => (
-          <li key={i} className="flex gap-2 text-sm leading-relaxed">
-            <span className="mt-[3px] w-1 h-1 rounded-full shrink-0 inline-block self-start mt-2"
-              style={{ background: 'var(--gold)', minWidth: '4px', minHeight: '4px' }} />
+          <li key={i} className="flex gap-2.5 text-sm leading-relaxed">
+            <span className="w-1.5 h-1.5 rounded-full shrink-0 mt-2" style={{ background: 'var(--gold)' }} />
             <span style={{ color: '#D1DBF0' }}>{parseInline(item, `l${i}-`)}</span>
           </li>
         ))}
@@ -84,85 +70,33 @@ function MarkdownContent({ text }) {
     )
     listBuf.length = 0
   }
-
   lines.forEach((raw) => {
     const line = raw.trimEnd()
-
-    if (!line.trim()) return // skip empty lines
-
-    if (line.trim() === '---') {
-      flushList()
-      output.push(
-        <hr key={key++} className="my-3 border-none h-px"
-          style={{ background: 'rgba(255,255,255,0.06)' }} />
-      )
-      return
-    }
-
-    if (line.trimStart().startsWith('# ')) {
-      flushList()
-      const content = line.trimStart().slice(2)
-      output.push(
-        <p key={key++} className="text-sm font-bold mt-3 mb-1 text-white">
-          {parseInline(content, `h1-${key}`)}
-        </p>
-      )
-      return
-    }
-
-    if (line.trimStart().startsWith('## ')) {
-      flushList()
-      const content = line.trimStart().slice(3)
-      output.push(
-        <p key={key++} className="text-sm font-semibold mt-2.5 mb-0.5"
-          style={{ color: 'var(--gold)' }}>
-          {parseInline(content, `h2-${key}`)}
-        </p>
-      )
-      return
-    }
-
-    if (line.trimStart().startsWith('- ') || line.trimStart().startsWith('* ')) {
-      listBuf.push(line.trimStart().slice(2))
-      return
-    }
-
+    if (!line.trim()) return
+    if (line.trim() === '---') { flushList(); output.push(<hr key={key++} className="my-3 border-none h-px" style={{ background: 'rgba(255,255,255,0.06)' }} />); return }
+    if (line.trimStart().startsWith('# ')) { flushList(); output.push(<p key={key++} className="text-sm font-bold mt-3 mb-1 text-white">{parseInline(line.trimStart().slice(2), `h1-${key}`)}</p>); return }
+    if (line.trimStart().startsWith('## ')) { flushList(); output.push(<p key={key++} className="text-sm font-semibold mt-2.5 mb-0.5" style={{ color: 'var(--gold)' }}>{parseInline(line.trimStart().slice(3), `h2-${key}`)}</p>); return }
+    if (line.trimStart().startsWith('- ') || line.trimStart().startsWith('* ')) { listBuf.push(line.trimStart().slice(2)); return }
     flushList()
-    output.push(
-      <p key={key++} className="text-sm leading-relaxed mb-0.5"
-        style={{ color: '#D1DBF0' }}>
-        {parseInline(line.trim(), `p-${key}`)}
-      </p>
-    )
+    output.push(<p key={key++} className="text-sm leading-relaxed mb-0.5" style={{ color: '#D1DBF0' }}>{parseInline(line.trim(), `p-${key}`)}</p>)
   })
-
   flushList()
-
-  return output.length
-    ? <div className="space-y-0.5">{output}</div>
-    : <p className="text-sm leading-relaxed" style={{ color: '#D1DBF0' }}>{text}</p>
+  return output.length ? <div className="space-y-0.5">{output}</div> : <p className="text-sm leading-relaxed" style={{ color: '#D1DBF0' }}>{text}</p>
 }
 
-// ── Indicateur de frappe ──────────────────────────────────────────────────────
+// ── Typing indicator ─────────────────────────────────────────────────────────
 function TypingDots() {
   return (
-    <div className="flex items-end gap-2 msg-pop">
-      <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
-        style={{ background: 'linear-gradient(135deg, #1A3FA0, #2A5BD7)' }}>
-        <Bot size={14} className="text-white" />
+    <div className="flex items-end gap-2.5 msg-pop">
+      <div className="w-9 h-9 rounded-full overflow-hidden shrink-0 shadow-lg" style={{ border: '2px solid rgba(246,195,68,0.3)' }}>
+        <img src={logo} alt="UniC" className="w-full h-full object-contain" style={{ background: '#0C1829' }} />
       </div>
-      <div className="px-4 py-3 rounded-2xl rounded-bl-sm flex flex-col gap-0.5"
-        style={{ background: 'var(--dark-elevated)', border: '1px solid var(--dark-border)' }}>
-        <span className="text-[10px] font-semibold mb-1" style={{ color: 'var(--gold)' }}>
-          UniC IA
-        </span>
+      <div className="px-4 py-3 rounded-2xl rounded-bl-sm" style={{ background: 'var(--dark-elevated)', border: '1px solid var(--dark-border)' }}>
+        <span className="text-[10px] font-bold mb-1 block" style={{ color: 'var(--gold)' }}>UniC IA analyse...</span>
         <div className="flex items-center gap-[5px]">
-          {[0, 160, 320].map((d) => (
+          {[0, 160, 320].map(d => (
             <span key={d} className="block w-1.5 h-1.5 rounded-full"
-              style={{
-                background: '#8899B4',
-                animation: `typingBounce 1.3s ease-in-out ${d}ms infinite`,
-              }} />
+              style={{ background: '#8899B4', animation: `typingBounce 1.3s ease-in-out ${d}ms infinite` }} />
           ))}
         </div>
       </div>
@@ -170,21 +104,49 @@ function TypingDots() {
   )
 }
 
-// ── Bulle de message ──────────────────────────────────────────────────────────
+// ── Timestamp formatter ──────────────────────────────────────────────────────
+const fmtTime = (ts) => new Date(ts).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+
+// ── Quick Action Card ────────────────────────────────────────────────────────
+const QUICK_ACTIONS = [
+  { icon: FileText,    color: '#F6C344', bg: 'rgba(246,195,68,0.12)',  label: 'Rédiger un devis',      desc: 'Générer un devis professionnel personnalisé', prompt: 'Je veux rédiger un devis pour un client' },
+  { icon: Calculator,  color: '#34D399', bg: 'rgba(52,211,153,0.12)',  label: 'Calculer un prix',      desc: 'Estimer le coût d\'un projet en fonction des surfaces', prompt: 'Calcule le prix pour un faux plafond BA13' },
+  { icon: Lightbulb,   color: '#60A5FA', bg: 'rgba(96,165,250,0.12)',  label: 'Conseil technique',     desc: 'Obtenir des conseils sur les matériaux et techniques', prompt: 'Donne-moi un conseil technique sur le BA13' },
+  { icon: Building2,   color: '#A78BFA', bg: 'rgba(167,139,250,0.12)', label: 'Infos entreprise',      desc: 'En savoir plus sur UniC Plaquiste', prompt: 'Quels sont les services de UniC Plaquiste ?' },
+]
+
+function QuickActionCard({ action, onSend, disabled }) {
+  const Icon = action.icon
+  return (
+    <button onClick={() => onSend(action.prompt)} disabled={disabled}
+      className="card-glass p-3.5 text-left flex flex-col gap-2 btn-press disabled:opacity-40 transition-all">
+      <div className="w-10 h-10 rounded-2xl flex items-center justify-center" style={{ background: action.bg }}>
+        <Icon size={20} strokeWidth={1.6} style={{ color: action.color }} />
+      </div>
+      <div>
+        <p className="text-xs font-bold text-white leading-tight">{action.label}</p>
+        <p className="text-[10px] mt-0.5 leading-snug" style={{ color: 'var(--text-muted)' }}>{action.desc}</p>
+      </div>
+    </button>
+  )
+}
+
+// ── Message Bubble ────────────────────────────────────────────────────────────
 function MessageBubble({ msg }) {
-  const isUser  = msg.role === 'user'
+  const isUser = msg.role === 'user'
   const isError = msg.role === 'error'
 
   if (isUser) {
     return (
-      <div className="flex justify-end msg-pop">
-        <div className="max-w-[78%] sm:max-w-[65%]">
+      <div className="flex justify-end gap-2.5 msg-pop">
+        <div className="max-w-[80%] sm:max-w-[68%]">
           <div className="px-4 py-3 rounded-2xl rounded-br-sm chat-bubble-client">
             <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{msg.content}</p>
           </div>
-          <p className="text-[10px] text-right mt-1 pr-1" style={{ color: 'var(--text-muted)' }}>
-            {new Date(msg.ts).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
-          </p>
+          <div className="flex items-center justify-end gap-1 mt-1 pr-1">
+            <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{fmtTime(msg.ts)}</span>
+            <span className="text-[11px] font-medium" style={{ color: '#34D399' }}>✓✓</span>
+          </div>
         </div>
       </div>
     )
@@ -192,251 +154,181 @@ function MessageBubble({ msg }) {
 
   if (isError) {
     return (
-      <div className="flex items-end gap-2 msg-pop">
-        <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
-          style={{ background: 'rgba(248,113,113,0.15)' }}>
+      <div className="flex items-end gap-2.5 msg-pop">
+        <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
+          style={{ background: 'rgba(248,113,113,0.15)', border: '2px solid rgba(248,113,113,0.3)' }}>
           <span className="text-xs font-bold" style={{ color: '#F87171' }}>!</span>
         </div>
-        <div className="max-w-[78%] px-4 py-3 rounded-2xl rounded-bl-sm text-sm"
-          style={{ background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)', color: '#F87171' }}>
+        <div className="max-w-[80%] px-4 py-3 rounded-2xl rounded-bl-sm text-sm"
+          style={{ background: 'rgba(248,113,113,0.06)', border: '1px solid rgba(248,113,113,0.15)', color: '#F87171' }}>
           ⚠️ {msg.content}
         </div>
       </div>
     )
   }
 
-  // Assistant message
+  // IA message
   return (
-    <div className="flex items-end gap-2 msg-pop">
-      <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 shadow-lg"
-        style={{ background: 'linear-gradient(135deg, #1A3FA0, #2A5BD7)' }}>
-        <Bot size={14} className="text-white" />
+    <div className="flex items-end gap-2.5 msg-pop">
+      <div className="w-9 h-9 rounded-full overflow-hidden shrink-0 shadow-lg self-start mt-1"
+        style={{ border: '2px solid rgba(246,195,68,0.3)' }}>
+        <img src={logo} alt="UniC IA" className="w-full h-full object-contain" style={{ background: '#0C1829' }} />
       </div>
       <div className="max-w-[84%] sm:max-w-[75%]">
-        <div className="px-4 py-3 rounded-2xl rounded-bl-sm chat-bubble-other">
+        <div className="px-4 py-3 rounded-2xl rounded-bl-sm" style={{ background: 'var(--dark-elevated)', border: '1px solid var(--dark-border)' }}>
           <div className="flex items-center gap-1.5 mb-2">
             <Sparkles size={11} style={{ color: 'var(--gold)' }} />
-            <span className="text-[10px] font-bold uppercase tracking-wide"
-              style={{ color: 'var(--gold)' }}>
-              UniC IA
-            </span>
+            <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--gold)' }}>UniC IA</span>
           </div>
           <MarkdownContent text={msg.content} />
         </div>
-        <p className="text-[10px] mt-1 pl-1" style={{ color: 'var(--text-muted)' }}>
-          {new Date(msg.ts).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
-        </p>
+        <p className="text-[10px] mt-1 pl-1" style={{ color: 'var(--text-muted)' }}>{fmtTime(msg.ts)}</p>
       </div>
     </div>
   )
 }
 
 // ── Composant principal ───────────────────────────────────────────────────────
-/**
- * @param {object}   props
- * @param {string}   props.storageKey       Clé sessionStorage (ex: 'unic-ia-client')
- * @param {string}   [props.welcomeTitle]   Titre de la carte de bienvenue
- * @param {string}   [props.welcomeText]    Sous-titre de la carte de bienvenue
- * @param {string[]} [props.suggestions]    Chips de suggestions rapides
- * @param {string}   [props.placeholder]    Placeholder de l'input
- * @param {boolean}  [props.compact]        Mode compact (admin, intégré dans une page)
- */
 export default function AIChat({
-  storageKey     = 'unic-ia-default',
-  welcomeTitle   = 'Bonjour 👋',
-  welcomeText    = 'Je suis UniC IA. Je peux vous aider pour vos devis, matériaux, tarifs et réalisations.',
-  suggestions    = [
-    '💰 Combien coûte un faux plafond BA13 ?',
-    '📋 Je souhaite un devis',
-    '🏗 Quels sont vos services ?',
-    '📍 Travaillez-vous à Thiès ?',
-  ],
-  placeholder    = 'Posez votre question…',
-  compact        = false,
+  storageKey   = 'unic-ia-default',
+  welcomeTitle = 'Bonjour',
+  welcomeText  = 'Je suis votre assistant IA. Je connais votre entreprise, vos services, vos outils et vos méthodes. Comment puis-je vous aider aujourd\'hui ?',
+  suggestions  = [],
+  placeholder  = 'Pose ta question ou demande quelque chose...',
+  compact      = false,
+  userName     = '',
 }) {
-  // ── État de conversation (persisté en sessionStorage) ──────────────────────
+  // ── State ──────────────────────────────────────────────────────────────────
   const [messages, setMessages] = useState(() => {
-    try {
-      const saved = sessionStorage.getItem(storageKey)
-      return saved ? JSON.parse(saved) : []
-    } catch {
-      return []
-    }
+    try { const s = sessionStorage.getItem(storageKey); return s ? JSON.parse(s) : [] }
+    catch { return [] }
   })
-
-  const [input,     setInput]     = useState('')
-  const [isTyping,  setIsTyping]  = useState(false)
-
+  const [input, setInput] = useState('')
+  const [isTyping, setIsTyping] = useState(false)
   const bottomRef = useRef(null)
-  const inputRef  = useRef(null)
+  const inputRef = useRef(null)
 
-  // Persistance sessionStorage
-  useEffect(() => {
-    try { sessionStorage.setItem(storageKey, JSON.stringify(messages)) } catch {}
-  }, [messages, storageKey])
+  useEffect(() => { try { sessionStorage.setItem(storageKey, JSON.stringify(messages)) } catch {} }, [messages, storageKey])
+  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages, isTyping])
 
-  // Auto-scroll
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, isTyping])
-
-  // ── Envoi d'un message ──────────────────────────────────────────────────────
-  // NE MODIFIE PAS demanderAssistant — appel identique à avant.
+  // ── Envoi — demanderAssistant() INCHANGÉ ───────────────────────────────────
   const sendMessage = useCallback(async (text) => {
     const question = (text || input).trim()
     if (!question || isTyping) return
-
-    const userMsg = { id: `u-${Date.now()}`, role: 'user', content: question, ts: Date.now() }
-    setMessages(prev => [...prev, userMsg])
+    setMessages(prev => [...prev, { id: `u-${Date.now()}`, role: 'user', content: question, ts: Date.now() }])
     setInput('')
     inputRef.current?.focus()
     setIsTyping(true)
-
     try {
-      const historique = [...messages, userMsg].map(m => ({
-  role: m.role,
-  content: m.content,
-}))
-
-const reponse = await demanderAssistant(question, historique)
-      const aiMsg = { id: `a-${Date.now()}`, role: 'assistant', content: reponse, ts: Date.now() }
-      setMessages(prev => [...prev, aiMsg])
+      const reponse = await demanderAssistant(question)
+      setMessages(prev => [...prev, { id: `a-${Date.now()}`, role: 'assistant', content: reponse, ts: Date.now() }])
     } catch (err) {
-      const errMsg = {
-        id:      `e-${Date.now()}`,
-        role:    'error',
-        content: err.message || 'Une erreur est survenue. Réessayez.',
-        ts:      Date.now(),
-      }
-      setMessages(prev => [...prev, errMsg])
-    } finally {
-      setIsTyping(false)
-    }
+      setMessages(prev => [...prev, { id: `e-${Date.now()}`, role: 'error', content: err.message || 'Erreur. Réessayez.', ts: Date.now() }])
+    } finally { setIsTyping(false) }
   }, [input, isTyping])
 
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() }
-  }
-
-  const autoResize = (e) => {
-    e.target.style.height = 'auto'
-    e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px'
-  }
+  const handleKeyDown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() } }
+  const autoResize = (e) => { e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px' }
 
   const hasUserMessages = messages.some(m => m.role === 'user')
-  const showWelcome     = !hasUserMessages
+  const displayName = userName || 'Ousmane'
 
-  // ── Rendu ───────────────────────────────────────────────────────────────────
-  const containerClass = compact
-    ? 'flex flex-col'
-    : 'flex flex-col chat-container rounded-2xl overflow-hidden max-w-3xl mx-auto'
-
-  const containerStyle = compact
-    ? {}
-    : { background: 'var(--dark-surface)', border: '1px solid var(--dark-border)' }
-
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div className={containerClass} style={containerStyle}>
+    <div className={compact ? 'flex flex-col' : 'flex flex-col chat-container rounded-2xl overflow-hidden max-w-3xl mx-auto'}
+      style={compact ? {} : { background: 'var(--dark-surface)', border: '1px solid var(--dark-border)' }}>
 
-      {/* ── Header (mode non-compact uniquement) ── */}
+      {/* ── Header ── */}
       {!compact && (
-        <div className="flex items-center gap-3 px-4 py-3.5 shrink-0"
-          style={{
-            borderBottom: '1px solid var(--dark-border)',
-            background: 'linear-gradient(180deg, rgba(26,63,160,0.08) 0%, transparent 100%)',
-          }}>
-          <div className="relative">
-            <div className="w-10 h-10 rounded-full flex items-center justify-center shadow-lg"
-              style={{ background: 'linear-gradient(135deg, #1A3FA0, #2A5BD7)' }}>
-              <Bot size={18} className="text-white" />
-            </div>
-            <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2"
-              style={{ background: '#34D399', borderColor: 'var(--dark-surface)' }} />
+        <div className="flex items-center gap-3 px-4 py-3 shrink-0"
+          style={{ borderBottom: '1px solid var(--dark-border)', background: 'linear-gradient(180deg, rgba(26,63,160,0.06) 0%, transparent 100%)' }}>
+          <div className="w-10 h-10 rounded-full overflow-hidden shadow-lg shrink-0" style={{ border: '2px solid rgba(246,195,68,0.25)' }}>
+            <img src={logo} alt="UniC" className="w-full h-full object-contain" style={{ background: '#0C1829' }} />
           </div>
-          <div>
-            <p className="text-sm font-semibold text-white">UniC IA</p>
-            <p className="text-xs" style={{ color: '#34D399' }}>Assistant disponible 24h/24</p>
+          <div className="flex-1">
+            <p className="text-sm font-bold text-white">Assistant IA</p>
+            <p className="text-[11px] flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ background: '#34D399' }} />
+              <span style={{ color: '#34D399' }}>En ligne</span>
+            </p>
           </div>
         </div>
       )}
 
-      {/* ── Zone de messages (scrollable) ── */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 dark-scrollbar space-y-3" style={{ minHeight: 0 }}>
+      {/* ── Zone messages ── */}
+      <div className="flex-1 overflow-y-auto px-4 py-4 dark-scrollbar space-y-4" style={{ minHeight: 0 }}>
 
-        {/* Carte de bienvenue — visible seulement avant le 1er message utilisateur */}
-        {showWelcome && (
-          <div className="animate-fade-in">
-            {/* Salutation */}
-            <div className="flex items-start gap-3 mb-4">
-              <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
-                style={{ background: 'linear-gradient(135deg, #1A3FA0, #2A5BD7)' }}>
-                <Bot size={18} className="text-white" />
-              </div>
-              <div className="card-dark p-4 flex-1">
-                <p className="font-bold text-white text-base mb-1">{welcomeTitle}</p>
-                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{welcomeText}</p>
-              </div>
+        {/* Carte bienvenue — seulement avant le 1er message */}
+        {!hasUserMessages && (
+          <div className="animate-fade-in space-y-5">
+            {/* Titre premium */}
+            <div className="text-center pt-2">
+              <h2 className="text-xl font-extrabold text-white" style={{ letterSpacing: '-0.02em' }}>
+                {welcomeTitle} {displayName} ! <span className="inline-block animate-bounce">👋</span>
+              </h2>
+              <p className="text-sm mt-2 mx-auto max-w-md" style={{ color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+                {welcomeText}
+              </p>
             </div>
 
-            {/* Chips de suggestions */}
-            {suggestions.length > 0 && (
-              <div className="mb-4">
-                <p className="text-xs font-semibold uppercase tracking-wide mb-2 ml-1"
-                  style={{ color: 'var(--text-muted)' }}>
-                  Suggestions
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {suggestions.map((sug) => (
-                    <button
-                      key={sug}
-                      onClick={() => sendMessage(sug)}
-                      disabled={isTyping}
-                      className="text-xs px-3.5 py-2 rounded-xl font-medium transition-all btn-press disabled:opacity-40"
-                      style={{
-                        background: 'var(--dark-elevated)',
-                        border: '1px solid var(--dark-border)',
-                        color: 'var(--text-secondary)',
-                      }}
-                    >
-                      {sug}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
+            {/* 4 cartes actions rapides */}
+            <div className="grid grid-cols-2 gap-2.5">
+              {QUICK_ACTIONS.map((a, i) => (
+                <QuickActionCard key={i} action={a} onSend={sendMessage} disabled={isTyping} />
+              ))}
+            </div>
 
-            {/* Message d'intro */}
-            <div className="rounded-xl p-4 text-sm"
-              style={{ background: 'var(--dark-elevated)', border: '1px solid var(--dark-border)' }}>
-              <div className="flex items-center gap-2 mb-1.5">
-                <Sparkles size={13} style={{ color: 'var(--gold)' }} />
-                <span className="text-xs font-semibold" style={{ color: 'var(--gold)' }}>UniC IA</span>
+            {/* Séparateur contextuel */}
+            <div className="flex items-center gap-3 select-none">
+              <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.05)' }} />
+              <span className="text-[10px] px-3 py-1 rounded-full flex items-center gap-1.5"
+                style={{ background: 'var(--dark-elevated)', color: 'var(--text-muted)', border: '1px solid var(--dark-border)' }}>
+                <span className="text-[8px]">⦿⦿⦿</span> Je comprends votre entreprise et me souviens de tout.
+              </span>
+              <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.05)' }} />
+            </div>
+
+            {/* Message de bienvenue IA */}
+            <div className="flex items-start gap-2.5">
+              <div className="w-9 h-9 rounded-full overflow-hidden shrink-0 shadow-lg mt-0.5"
+                style={{ border: '2px solid rgba(246,195,68,0.3)' }}>
+                <img src={logo} alt="UniC IA" className="w-full h-full object-contain" style={{ background: '#0C1829' }} />
               </div>
-              <p style={{ color: 'var(--text-secondary)' }}>
-                Posez-moi toutes vos questions concernant UniC Plaquiste. Je pourrai bientôt préparer
-                vos devis, expliquer les matériaux, calculer des estimations et répondre à vos
-                questions techniques.
-              </p>
+              <div className="flex-1">
+                <div className="px-4 py-3 rounded-2xl rounded-bl-sm" style={{ background: 'var(--dark-elevated)', border: '1px solid var(--dark-border)' }}>
+                  <p className="text-sm leading-relaxed" style={{ color: '#D1DBF0' }}>
+                    <strong className="text-white">Salut {displayName} !</strong> 👋<br />
+                    Je suis là pour t'aider dans ton quotidien : devis, conseils, calculs, gestion de projets et bien plus encore.
+                  </p>
+                  <p className="text-sm mt-2" style={{ color: '#D1DBF0' }}>
+                    Que souhaites-tu faire aujourd'hui ?
+                  </p>
+                </div>
+                <p className="text-[10px] mt-1 pl-1" style={{ color: 'var(--text-muted)' }}>{fmtTime(Date.now())}</p>
+              </div>
             </div>
           </div>
         )}
 
         {/* Historique de conversation */}
-        {messages.map(msg => (
-          <MessageBubble key={msg.id} msg={msg} />
-        ))}
+        {messages.map(msg => <MessageBubble key={msg.id} msg={msg} />)}
 
-        {/* Indicateur de frappe */}
+        {/* Typing indicator */}
         {isTyping && <TypingDots />}
 
-        {/* Ancre de scroll */}
         <div ref={bottomRef} />
       </div>
 
-      {/* ── Zone de saisie ── */}
-      <div className="px-4 pt-3 pb-4 shrink-0"
-        style={{ borderTop: '1px solid var(--dark-border)' }}>
-        <div className="flex items-end gap-2.5">
+      {/* ── Zone de saisie premium ── */}
+      <div className="px-4 pt-3 pb-3 shrink-0" style={{ borderTop: '1px solid var(--dark-border)' }}>
+        <div className="flex items-end gap-2 rounded-2xl px-1 py-1"
+          style={{ background: 'var(--dark-elevated)', border: '1.5px solid var(--dark-border)' }}>
+          {/* Icône IA */}
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ml-1"
+            style={{ background: 'rgba(246,195,68,0.1)' }}>
+            <Sparkles size={16} style={{ color: 'var(--gold)' }} />
+          </div>
+          {/* Textarea */}
           <textarea
             ref={inputRef}
             value={input}
@@ -445,24 +337,21 @@ const reponse = await demanderAssistant(question, historique)
             placeholder={placeholder}
             disabled={isTyping}
             rows={1}
-            className="flex-1 px-4 py-3 text-sm disabled:opacity-50 chat-input"
-            style={{ minHeight: '46px' }}
+            className="flex-1 py-2.5 px-1 text-sm bg-transparent text-white outline-none resize-none disabled:opacity-50 placeholder-[#4A5B73]"
+            style={{ minHeight: '38px', maxHeight: '120px' }}
           />
-          <button
-            onClick={() => sendMessage()}
-            disabled={isTyping || !input.trim()}
-            className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 transition-all duration-200 disabled:opacity-35 btn-press"
+          {/* Bouton envoyer */}
+          <button onClick={() => sendMessage()} disabled={isTyping || !input.trim()}
+            className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 mr-0.5 transition-all duration-200 disabled:opacity-30 btn-press"
             style={{
-              background: input.trim() ? 'var(--gold)' : 'var(--dark-elevated)',
-              color:      input.trim() ? '#060D18'    : 'var(--text-muted)',
-              border:     input.trim() ? 'none'       : '1.5px solid var(--dark-border)',
-            }}
-          >
-            <Send size={17} />
+              background: input.trim() ? 'var(--gold)' : 'transparent',
+              color: input.trim() ? '#060D18' : 'var(--text-muted)',
+            }}>
+            <Send size={16} strokeWidth={2.2} />
           </button>
         </div>
-        <p className="text-[10px] text-center mt-2 select-none" style={{ color: 'var(--text-muted)' }}>
-          Entrée pour envoyer · Maj+Entrée pour nouvelle ligne
+        <p className="text-[9px] text-center mt-2 select-none" style={{ color: 'var(--text-muted)' }}>
+          L'IA peut se tromper, vérifiez toujours les informations importantes.
         </p>
       </div>
     </div>

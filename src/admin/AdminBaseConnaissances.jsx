@@ -118,10 +118,10 @@ export default function AdminBaseConnaissances() {
       {onglet === 'assistant' && (
         <AIChat
           storageKey="unic-ia-admin"
-          welcomeTitle="Bonjour Ousmane 👋"
-          welcomeText="Je suis votre assistant interne. Posez-moi vos questions sur UniC Plaquiste, vos tarifs, procédures ou projets."
-          suggestions={ADMIN_SUGGESTIONS}
-          placeholder="Ex : Quel est notre tarif au m² pour un faux plafond BA13 ?"
+          welcomeTitle="Bonjour"
+          welcomeText="Je suis votre assistant interne. Je connais votre entreprise, vos tarifs, procédures et projets. Comment puis-je vous aider ?"
+          placeholder="Pose ta question ou demande quelque chose..."
+          userName="Ousmane"
         />
       )}
 
