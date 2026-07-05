@@ -100,7 +100,7 @@ export const demanderAssistant = async (question, historique = [], options = {})
       'content-type': 'application/json',
       authorization: `Bearer ${idToken}`,
     },
-    body: JSON.stringify({ question, contexte, historique: historiqueFiltre, isAdmin: !!options.isAdmin }),
+    body: JSON.stringify({ question, contexte, historique: historiqueFiltre, isAdmin: !!options.isAdmin, stats: options.stats || '' }),
   })
 
   const data = await res.json().catch(() => ({}))

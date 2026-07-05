@@ -44,8 +44,9 @@ function parseInline(text, kp = '') {
 function MarkdownContent({ text }) {
   if (!text) return null
   const normalized = text.replace(/([^\n])\s*---\s*([^\n])/g, '$1\n---\n$2').replace(/([^\n])\s*## /g, '$1\n## ').replace(/([^\n])\s*# /g, '$1\n# ')
-  const lines = normalized.split('\n'), output = [], listBuf = []
+  const lines = normalized.split('\n'), output = [], listBuf = [], tableBuf = []
   let key = 0
+
   function flushList() {
     if (!listBuf.length) return
     output.push(<ul key={key++} className="space-y-1.5 my-2">{listBuf.map((item, i) => (
@@ -56,9 +57,52 @@ function MarkdownContent({ text }) {
     ))}</ul>)
     listBuf.length = 0
   }
+
+  function flushTable() {
+    if (!tableBuf.length) return
+    const rows = tableBuf.filter(r => !r.match(/^\|[\s-:|]+\|$/)) // skip separator rows
+    const parsed = rows.map(r => r.split('|').map(c => c.trim()).filter(Boolean))
+    if (parsed.length === 0) { tableBuf.length = 0; return }
+    const header = parsed[0]
+    const body = parsed.slice(1)
+    output.push(
+      <div key={key++} className="my-3 rounded-xl overflow-hidden" style={{ border: '1px solid var(--dark-border)' }}>
+        <table className="w-full text-sm">
+          <thead>
+            <tr style={{ background: 'rgba(246,195,68,0.08)' }}>
+              {header.map((h, i) => (
+                <th key={i} className="px-3 py-2 text-left font-semibold text-white text-xs">{parseInline(h, `th${i}`)}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {body.map((row, ri) => (
+              <tr key={ri} style={{ borderTop: '1px solid var(--dark-border)' }}>
+                {row.map((cell, ci) => (
+                  <td key={ci} className="px-3 py-2 text-xs" style={{ color: '#D1DBF0' }}>{parseInline(cell, `td${ri}${ci}`)}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )
+    tableBuf.length = 0
+  }
+
   lines.forEach((raw) => {
     const line = raw.trimEnd()
     if (!line.trim()) return
+
+    // Table rows (lines starting and ending with |)
+    if (line.trim().startsWith('|') && line.trim().endsWith('|')) {
+      flushList()
+      tableBuf.push(line.trim())
+      return
+    } else if (tableBuf.length > 0) {
+      flushTable()
+    }
+
     if (line.trim() === '---') { flushList(); output.push(<hr key={key++} className="my-3 border-none h-px" style={{ background: 'rgba(255,255,255,0.06)' }} />); return }
     if (line.trimStart().startsWith('# ')) { flushList(); output.push(<p key={key++} className="text-sm font-bold mt-3 mb-1 text-white">{parseInline(line.trimStart().slice(2), `h1-${key}`)}</p>); return }
     if (line.trimStart().startsWith('## ')) { flushList(); output.push(<p key={key++} className="text-sm font-semibold mt-2.5 mb-0.5" style={{ color: 'var(--gold)' }}>{parseInline(line.trimStart().slice(3), `h2-${key}`)}</p>); return }
@@ -67,6 +111,7 @@ function MarkdownContent({ text }) {
     output.push(<p key={key++} className="text-sm leading-relaxed mb-0.5" style={{ color: '#D1DBF0' }}>{parseInline(line.trim(), `p-${key}`)}</p>)
   })
   flushList()
+  flushTable()
   return output.length ? <div className="space-y-0.5">{output}</div> : <p className="text-sm leading-relaxed" style={{ color: '#D1DBF0' }}>{text}</p>
 }
 
@@ -260,7 +305,10 @@ export default function AIChat({
     setIsTyping(true)
     try {
       const allMessages = [...messages, userMsg]
-      const reponse = await demanderAssistant(question, allMessages, { isAdmin })
+      const statsText = isAdmin && notifications.length > 0
+        ? notifications.map(n => n.text).join('\n')
+        : ''
+      const reponse = await demanderAssistant(question, allMessages, { isAdmin, stats: statsText })
       setMessages(prev => [...prev, { id: `a-${Date.now()}`, role: 'assistant', content: reponse, ts: Date.now() }])
     } catch (err) {
       setMessages(prev => [...prev, { id: `e-${Date.now()}`, role: 'error', content: err.message || 'Erreur. Réessayez.', ts: Date.now() }])
