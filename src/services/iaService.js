@@ -7,12 +7,7 @@ async function getContextePortfolio() {
   try {
     const snap = await getDocs(collection(db, 'portfolio'))
     const projets = snap.docs.map(d => d.data()).slice(0, 5)
-    return projets.map(p => {
-      const photo = Array.isArray(p.photos) && p.photos[0] ? p.photos[0] : (p.photo || null)
-      const infos = `[Projet réalisé] ${p.titre} (${p.type || ''}) — ${p.localisation || ''}, ${p.surfaceM2 ? p.surfaceM2 + ' m²' : ''}, ${p.cout ? Math.round(p.cout).toLocaleString('fr-FR') + ' FCFA' : ''}, ${p.dureeJours ? p.dureeJours + ' jours' : ''}${p.notes ? ' — ' + p.notes : ''}`
-      // L'URL photo permet a l'IA de proposer une image concrete au client.
-      return photo ? `${infos} [PHOTO: ${photo}]` : infos
-    })
+    return projets.map(p => `[Projet réalisé] ${p.titre} (${p.type || ''}) — ${p.localisation || ''}, ${p.surfaceM2 ? p.surfaceM2 + ' m²' : ''}, ${p.cout ? Math.round(p.cout).toLocaleString('fr-FR') + ' FCFA' : ''}, ${p.dureeJours ? p.dureeJours + ' jours' : ''}${p.notes ? ' — ' + p.notes : ''}`)
   } catch { return [] }
 }
 
@@ -94,12 +89,10 @@ export const demanderAssistant = async (question, historique = [], options = {})
 
   const idToken = await utilisateur.getIdToken()
 
-  // Envoyer l'historique de conversation pour que l'IA se souvienne du contexte.
-  // On ne transmet que le texte des tours precedents (jamais les base64 images,
-  // pour eviter d'exploser la taille de la requete).
+  // Envoyer l'historique de conversation pour que l'IA se souvienne du contexte
   const historiqueFiltre = historique
     .filter(m => m.role === 'user' || m.role === 'assistant')
-    .map(m => ({ role: m.role, content: typeof m.content === 'string' ? m.content : (m.text || '') }))
+    .map(m => ({ role: m.role, content: m.content }))
 
   const res = await fetch('/.netlify/functions/ia-chat', {
     method: 'POST',
@@ -107,14 +100,7 @@ export const demanderAssistant = async (question, historique = [], options = {})
       'content-type': 'application/json',
       authorization: `Bearer ${idToken}`,
     },
-    body: JSON.stringify({
-      question,
-      contexte,
-      historique: historiqueFiltre,
-      isAdmin: !!options.isAdmin,
-      stats: options.stats || '',
-      image: options.image || null, // { base64, mediaType } ou null
-    }),
+    body: JSON.stringify({ question, contexte, historique: historiqueFiltre, isAdmin: !!options.isAdmin, stats: options.stats || '' }),
   })
 
   const data = await res.json().catch(() => ({}))

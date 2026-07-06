@@ -42,14 +42,8 @@ export default async (req) => {
   const historique  = Array.isArray(body.historique) ? body.historique : []
   const isAdmin     = body.isAdmin === true
   const stats       = body.stats || ''
-  // Image jointe pour analyse vision : { base64, mediaType }
-  const image       = (body.image && body.image.base64 && body.image.mediaType) ? body.image : null
 
-  // On accepte une question vide SI une image est jointe (le client peut juste
-  // envoyer une photo sans texte pour demander un avis).
-  const questionEffective = question || (image ? 'Analyse cette image et donne ton avis professionnel.' : '')
-
-  if (!questionEffective) return new Response(JSON.stringify({ error: 'Question vide' }), { status: 400 })
+  if (!question) return new Response(JSON.stringify({ error: 'Question vide' }), { status: 400 })
   if (!process.env.CLAUDE_API_KEY)
     return new Response(JSON.stringify({ error: 'Assistant IA non configuré.' }), { status: 500 })
 
@@ -106,14 +100,6 @@ ${contexte.length ? '## CONNAISSANCES INTERNES (base de données UniC — utilis
 7. **Conseil technique** — méthodes de pose, choix de matériaux, résolution de problèmes chantier
 8. **Suivi d'activité** — analyser les stats en cours et proposer des actions
 
-## ANALYSE D'IMAGES (vision)
-Ousmane peut t'envoyer une photo de chantier, un plan, un plafond existant, une déco de référence, un dégât. Quand tu reçois une image :
-- Analyse techniquement : type de travaux, surface estimée si visible, complexité, matériaux nécessaires
-- Propose un chiffrage si Ousmane le demande (rappelle-lui de confirmer la surface exacte)
-- Identifie les difficultés potentielles du chantier (accès, hauteur, humidité, reprises)
-- Suggère la meilleure approche technique
-- Si c'est une photo de référence client, aide Ousmane à préparer une proposition adaptée
-
 ## COMMENT TU TRAVAILLES AVEC OUSMANE
 - Tu le tutoies — relation de confiance directe
 - Réponses courtes et actionnables. Pas de blabla, pas de répétitions
@@ -145,19 +131,6 @@ ${baseInfo}`
 - Tu détectes quand une demande est ambiguë et tu poses UNE question précise plutôt que de deviner
 - Tu vérifies tes calculs avant de les envoyer
 - Tu adaptes ton niveau de détail : réponse courte pour question simple, structurée pour un devis
-
-## ANALYSE D'IMAGES (vision)
-Le client peut t'envoyer une photo (son salon, sa chambre, son bureau, un plafond, une déco de référence). Quand tu reçois une image :
-- Décris ce que tu vois de façon professionnelle et bienveillante
-- Donne un avis d'expert : est-ce que ce style/déco/plafond convient à la pièce ? Points forts, points d'amélioration
-- Propose des solutions UniC concrètes (type de faux plafond, couleur, spots LED, finition) adaptées à ce que tu vois
-- Si le client demande une estimation, demande la surface de la pièce puis calcule
-- Quand c'est pertinent, propose de voir des réalisations similaires : dans les CONNAISSANCES INTERNES, certains projets ont une balise [PHOTO: url]. Tu peux partager ce lien au client en disant "Voici un exemple de réalisation similaire : [url]"
-- Reste honnête : si une déco ne va pas bien, dis-le avec tact et propose mieux
-- Ne juge JAMAIS négativement le logement ou les moyens du client
-
-## PROPOSER DES IMAGES
-Quand un projet du portfolio (CONNAISSANCES INTERNES) a une balise [PHOTO: url] et qu'il correspond au besoin du client, partage l'url directement dans ta réponse pour illustrer ta proposition. Écris l'url complète, elle sera affichée comme image.
 
 ## TON RÔLE COMMERCIAL
 - Accueillir, informer, rassurer, convertir
@@ -224,19 +197,7 @@ ${baseInfo}`
     if (msg.role === 'user' || msg.role === 'assistant')
       messages.push({ role: msg.role, content: msg.content })
   }
-
-  // Message courant : avec image (multimodal) ou texte seul.
-  if (image) {
-    messages.push({
-      role: 'user',
-      content: [
-        { type: 'image', source: { type: 'base64', media_type: image.mediaType, data: image.base64 } },
-        { type: 'text', text: questionEffective },
-      ],
-    })
-  } else {
-    messages.push({ role: 'user', content: questionEffective })
-  }
+  messages.push({ role: 'user', content: question })
 
   try {
     const r = await fetch('https://api.anthropic.com/v1/messages', {

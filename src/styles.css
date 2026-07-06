@@ -32,12 +32,6 @@ html {
   scroll-behavior: smooth;
 }
 
-/* Compense le header sticky (~80px) pour que le titre des sections
-   ne soit pas masque lors du defilement par ancre. */
-section[id] {
-  scroll-margin-top: 88px;
-}
-
 body {
   @apply bg-white text-gray-900;
   font-family: 'Manrope', system-ui, -apple-system, sans-serif;

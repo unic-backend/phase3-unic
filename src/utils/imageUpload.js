@@ -38,27 +38,3 @@ export async function uploadImagePublique(file) {
   if (!data.success) throw new Error('ImgBB erreur')
   return data.data.url
 }
-
-// Prepare une image pour l'analyse par l'IA (vision Claude).
-// Retourne { dataUrl, base64, mediaType } : dataUrl pour l'apercu local,
-// base64 + mediaType pour l'API. Image compressee (max 1024px) pour limiter
-// la taille des tokens vision et rester rapide.
-export async function prepareImagePourIA(file) {
-  if (!file || !file.type.startsWith('image/')) {
-    throw new Error('Format non supporté. Envoie une image (JPG, PNG).')
-  }
-  if (file.size > 12 * 1024 * 1024) {
-    throw new Error('Image trop lourde (max 12 Mo).')
-  }
-  const compressed = await compresserImage(file, 1024, 0.8)
-  const dataUrl = await new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onerror = () => reject(new Error('Lecture impossible'))
-    reader.onload = () => resolve(reader.result)
-    reader.readAsDataURL(compressed)
-  })
-  // dataUrl = "data:image/jpeg;base64,XXXX" -> on extrait mediaType + base64
-  const match = dataUrl.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/)
-  if (!match) throw new Error('Conversion image échouée')
-  return { dataUrl, mediaType: match[1], base64: match[2] }
-}

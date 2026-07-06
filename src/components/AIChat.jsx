@@ -12,9 +12,8 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { demanderAssistant } from '../services/iaService'
-import { Send, FileText, Calculator, Lightbulb, Building2, Sparkles, Bell, Paperclip, X, ImageIcon } from 'lucide-react'
+import { Send, FileText, Calculator, Lightbulb, Building2, Sparkles, Bell } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
-import { prepareImagePourIA } from '../utils/imageUpload'
 import logo from '../assets/logo.webp'
 
 // ── Markdown inline ──────────────────────────────────────────────────────────
@@ -104,24 +103,6 @@ function MarkdownContent({ text }) {
       flushTable()
     }
 
-    // Detection d'une URL image (le portfolio propose des liens .jpg/.png/ibb.co).
-    // Si la ligne contient une URL d'image, on l'affiche comme photo.
-    const imgUrlMatch = line.match(/(https?:\/\/[^\s)]+?(?:\.(?:jpg|jpeg|png|webp|gif)|ibb\.co\/[^\s)]+))/i)
-    if (imgUrlMatch) {
-      flushList()
-      const url = imgUrlMatch[1]
-      const texteAvant = line.slice(0, line.indexOf(url)).replace(/[:\-–—\s]+$/, '').trim()
-      if (texteAvant) output.push(<p key={key++} className="text-sm leading-relaxed mb-1" style={{ color: '#D1DBF0' }}>{parseInline(texteAvant, `pt-${key}`)}</p>)
-      output.push(
-        <a key={key++} href={url} target="_blank" rel="noopener noreferrer" className="block my-2">
-          <img src={url} alt="Réalisation UniC Plaquiste" loading="lazy"
-            className="rounded-xl max-w-full w-full object-cover"
-            style={{ maxHeight: '220px', border: '1px solid var(--dark-border)' }} />
-        </a>
-      )
-      return
-    }
-
     if (line.trim() === '---') { flushList(); output.push(<hr key={key++} className="my-3 border-none h-px" style={{ background: 'rgba(255,255,255,0.06)' }} />); return }
     if (line.trimStart().startsWith('# ')) { flushList(); output.push(<p key={key++} className="text-sm font-bold mt-3 mb-1 text-white">{parseInline(line.trimStart().slice(2), `h1-${key}`)}</p>); return }
     if (line.trimStart().startsWith('## ')) { flushList(); output.push(<p key={key++} className="text-sm font-semibold mt-2.5 mb-0.5" style={{ color: 'var(--gold)' }}>{parseInline(line.trimStart().slice(3), `h2-${key}`)}</p>); return }
@@ -195,15 +176,8 @@ function MessageBubble({ msg }) {
   if (isUser) return (
     <div className="flex justify-end gap-2.5 msg-pop">
       <div className="max-w-[80%] sm:max-w-[68%]">
-        <div className="rounded-2xl rounded-br-sm chat-bubble-client overflow-hidden">
-          {/* Image jointe par l'utilisateur */}
-          {msg.image && (
-            <img src={msg.image} alt="Image envoyée" className="w-full object-cover"
-              style={{ maxHeight: '240px', display: 'block' }} />
-          )}
-          {msg.content && (
-            <p className="text-sm leading-relaxed whitespace-pre-wrap break-words px-4 py-3">{msg.content}</p>
-          )}
+        <div className="px-4 py-3 rounded-2xl rounded-br-sm chat-bubble-client">
+          <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{msg.content}</p>
         </div>
         <div className="flex items-center justify-end gap-1 mt-1 pr-1">
           <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{fmtTime(msg.ts)}</span>
@@ -290,15 +264,9 @@ export default function AIChat({
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [isTyping, setIsTyping] = useState(false)
-  const [streamingText, setStreamingText] = useState('')  // texte en cours de reveal
-  const [isStreaming, setIsStreaming] = useState(false)    // animation en cours
-  const [imageJointe, setImageJointe] = useState(null)     // { dataUrl, base64, mediaType }
-  const [imageLoading, setImageLoading] = useState(false)  // preparation image en cours
   const bottomRef = useRef(null)
   const inputRef = useRef(null)
-  const fileInputRef = useRef(null)
   const loadedKeyRef = useRef(null)
-  const streamIntervalRef = useRef(null)
 
   // ── Charger les messages quand l'utilisateur change ───────────────────────
   // C'est LE fix du bug de conversations mélangées.
@@ -324,47 +292,15 @@ export default function AIChat({
   }, [messages, fullKey])
 
   // ── Auto-scroll ───────────────────────────────────────────────────────────
-  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages, isTyping, streamingText])
+  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages, isTyping])
 
-  // ── Cleanup streaming interval on unmount ──────────────────────────────────
-  useEffect(() => () => { if (streamIntervalRef.current) clearInterval(streamIntervalRef.current) }, [])
-
-  // ── Selection d'une image ─────────────────────────────────────────────────
-  const handleImageSelect = async (e) => {
-    const file = e.target.files?.[0]
-    e.target.value = '' // permet de re-selectionner le meme fichier
-    if (!file) return
-    setImageLoading(true)
-    try {
-      const prepared = await prepareImagePourIA(file)
-      setImageJointe(prepared)
-    } catch (err) {
-      setMessages(prev => [...prev, { id: `e-${Date.now()}`, role: 'error', content: err.message || 'Image non supportée.', ts: Date.now() }])
-    } finally {
-      setImageLoading(false)
-    }
-  }
-
-  const retirerImage = () => setImageJointe(null)
-
-  // ── Envoi avec animation streaming (texte + image optionnelle) ─────────────
+  // ── Envoi — demanderAssistant() backend INCHANGÉ ──────────────────────────
   const sendMessage = useCallback(async (text) => {
     const question = (text || input).trim()
-    // On peut envoyer si : texte non vide, OU une image est jointe.
-    if ((!question && !imageJointe) || isTyping || isStreaming || imageLoading) return
-
-    const userMsg = {
-      id: `u-${Date.now()}`,
-      role: 'user',
-      content: question,
-      image: imageJointe?.dataUrl || null, // apercu affiche dans la bulle
-      ts: Date.now(),
-    }
-    const imagePayload = imageJointe ? { base64: imageJointe.base64, mediaType: imageJointe.mediaType } : null
-
+    if (!question || isTyping) return
+    const userMsg = { id: `u-${Date.now()}`, role: 'user', content: question, ts: Date.now() }
     setMessages(prev => [...prev, userMsg])
     setInput('')
-    setImageJointe(null)
     inputRef.current?.focus()
     setIsTyping(true)
     try {
@@ -372,35 +308,12 @@ export default function AIChat({
       const statsText = isAdmin && notifications.length > 0
         ? notifications.map(n => n.text).join('\n')
         : ''
-      const reponse = await demanderAssistant(question, allMessages, { isAdmin, stats: statsText, image: imagePayload })
-
-      // ── Animation streaming : révéler mot par mot ─────────────────────────
-      setIsTyping(false)
-      setIsStreaming(true)
-      setStreamingText('')
-      const words = reponse.split(/(\s+)/) // split keeping whitespace
-      let idx = 0
-      const aiMsgData = { id: `a-${Date.now()}`, role: 'assistant', content: reponse, ts: Date.now() }
-
-      if (streamIntervalRef.current) clearInterval(streamIntervalRef.current)
-      streamIntervalRef.current = setInterval(() => {
-        idx += 3 // 3 tokens per step for smooth speed
-        if (idx >= words.length) {
-          clearInterval(streamIntervalRef.current)
-          streamIntervalRef.current = null
-          setStreamingText('')
-          setIsStreaming(false)
-          setMessages(prev => [...prev, aiMsgData])
-        } else {
-          setStreamingText(words.slice(0, idx).join(''))
-        }
-      }, 18) // ~18ms per step = fluide et rapide
-
+      const reponse = await demanderAssistant(question, allMessages, { isAdmin, stats: statsText })
+      setMessages(prev => [...prev, { id: `a-${Date.now()}`, role: 'assistant', content: reponse, ts: Date.now() }])
     } catch (err) {
       setMessages(prev => [...prev, { id: `e-${Date.now()}`, role: 'error', content: err.message || 'Erreur. Réessayez.', ts: Date.now() }])
-      setIsTyping(false)
-    }
-  }, [input, isTyping, isStreaming, imageLoading, imageJointe, messages, isAdmin, notifications])
+    } finally { setIsTyping(false) }
+  }, [input, isTyping, messages, isAdmin])
 
   const handleKeyDown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() } }
   const autoResize = (e) => { e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px' }
@@ -491,81 +404,26 @@ export default function AIChat({
 
         {/* Historique */}
         {messages.map(msg => <MessageBubble key={msg.id} msg={msg} />)}
-
-        {/* Bulle de streaming — texte qui apparaît mot par mot */}
-        {isStreaming && streamingText && (
-          <div className="flex items-end gap-2.5 msg-pop">
-            <div className="w-9 h-9 rounded-full overflow-hidden shrink-0 shadow-lg self-start mt-1" style={{ border: '2px solid rgba(246,195,68,0.3)' }}>
-              <img src={logo} alt="UniC IA" className="w-full h-full object-contain" style={{ background: '#0C1829' }} />
-            </div>
-            <div className="max-w-[84%] sm:max-w-[75%]">
-              <div className="px-4 py-3 rounded-2xl rounded-bl-sm" style={{ background: 'var(--dark-elevated)', border: '1px solid var(--dark-border)' }}>
-                <div className="flex items-center gap-1.5 mb-2">
-                  <Sparkles size={11} style={{ color: 'var(--gold)' }} />
-                  <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--gold)' }}>UniC IA</span>
-                  <span className="ml-1 w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: 'var(--gold)' }} />
-                </div>
-                <MarkdownContent text={streamingText} />
-              </div>
-            </div>
-          </div>
-        )}
-
         {isTyping && <TypingDots />}
         <div ref={bottomRef} />
       </div>
 
       {/* Input */}
       <div className="px-4 pt-3 pb-3 shrink-0" style={{ borderTop: '1px solid var(--dark-border)' }}>
-
-        {/* Apercu de l'image jointe (avant envoi) */}
-        {(imageJointe || imageLoading) && (
-          <div className="mb-2 flex items-center gap-2">
-            {imageLoading ? (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs"
-                style={{ background: 'var(--dark-elevated)', border: '1px solid var(--dark-border)', color: 'var(--text-muted)' }}>
-                <ImageIcon size={14} className="animate-pulse" style={{ color: 'var(--gold)' }} />
-                Préparation de l'image...
-              </div>
-            ) : (
-              <div className="relative inline-block">
-                <img src={imageJointe.dataUrl} alt="Aperçu" className="h-16 w-16 object-cover rounded-xl"
-                  style={{ border: '2px solid var(--gold)' }} />
-                <button onClick={retirerImage}
-                  className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center shadow-lg"
-                  style={{ background: '#F87171', color: 'white' }} aria-label="Retirer l'image">
-                  <X size={12} strokeWidth={3} />
-                </button>
-              </div>
-            )}
-            <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-              {isAdmin ? 'Photo à analyser' : 'Demande un avis sur cette photo'}
-            </span>
-          </div>
-        )}
-
         <div className="flex items-end gap-2 rounded-2xl px-1 py-1"
           style={{ background: 'var(--dark-elevated)', border: '1.5px solid var(--dark-border)' }}>
-
-          {/* Input file cache */}
-          <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
-
-          {/* Bouton piece jointe */}
-          <button onClick={() => fileInputRef.current?.click()} disabled={isTyping || isStreaming || imageLoading}
-            className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ml-1 transition disabled:opacity-40 hover:bg-white/5"
-            style={{ color: 'var(--gold)' }} aria-label="Joindre une image" title="Joindre une image">
-            <Paperclip size={17} />
-          </button>
-
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ml-1"
+            style={{ background: 'rgba(246,195,68,0.1)' }}>
+            <Sparkles size={16} style={{ color: 'var(--gold)' }} />
+          </div>
           <textarea ref={inputRef} value={input}
             onChange={(e) => { setInput(e.target.value); autoResize(e) }}
-            onKeyDown={handleKeyDown} placeholder={placeholder} disabled={isTyping || isStreaming} rows={1}
+            onKeyDown={handleKeyDown} placeholder={placeholder} disabled={isTyping} rows={1}
             className="flex-1 py-2.5 px-1 text-sm bg-transparent text-white outline-none resize-none disabled:opacity-50 placeholder-[#4A5B73]"
             style={{ minHeight: '38px', maxHeight: '120px' }} />
-
-          <button onClick={() => sendMessage()} disabled={isTyping || isStreaming || imageLoading || (!input.trim() && !imageJointe)}
+          <button onClick={() => sendMessage()} disabled={isTyping || !input.trim()}
             className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 mr-0.5 transition-all duration-200 disabled:opacity-30 btn-press"
-            style={{ background: (input.trim() || imageJointe) ? 'var(--gold)' : 'transparent', color: (input.trim() || imageJointe) ? '#060D18' : 'var(--text-muted)' }}>
+            style={{ background: input.trim() ? 'var(--gold)' : 'transparent', color: input.trim() ? '#060D18' : 'var(--text-muted)' }}>
             <Send size={16} strokeWidth={2.2} />
           </button>
         </div>

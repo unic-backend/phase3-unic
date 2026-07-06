@@ -22,7 +22,7 @@ export default function Hero() {
           <a href="#contact" className="bg-[#F2C200] text-[#1A3FA0] px-10 py-4 rounded-lg font-bold text-lg hover:bg-yellow-400 transition transform hover:scale-105 shadow-lg">
             Demander un Devis
           </a>
-          <a href="#realisations" className="border-2 border-[#F2C200] text-[#F2C200] px-10 py-4 rounded-lg font-bold text-lg hover:bg-[#F2C200] hover:text-[#1A3FA0] transition">
+          <a href="#galerie" className="border-2 border-[#F2C200] text-[#F2C200] px-10 py-4 rounded-lg font-bold text-lg hover:bg-[#F2C200] hover:text-[#1A3FA0] transition">
             Voir nos projets
           </a>
         </div>
