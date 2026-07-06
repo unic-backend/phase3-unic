@@ -19,8 +19,8 @@ export default function Tarifs() {
           <div className="text-center mb-8">
             <p className="text-gray-600 mb-2">Prix unitaire</p>
             <p className="text-5xl font-bold text-[#F2C200]">11,000 FCFA</p>
-            <p className="text-gray-600 text-sm mt-2">par m² — pose sans peinture</p>
-            <p className="text-gray-500 text-xs mt-1">Avec finition peinture : 13 500 FCFA/m²</p>
+            <p className="text-gray-600 text-sm mt-2">par m² — pose + fourniture sans peinture</p>
+            <p className="text-gray-500 text-xs mt-1">Avec finition peinture : 15 000 FCFA/m²</p>
           </div>
 
           {/* Description du prix */}
@@ -30,10 +30,10 @@ export default function Tarifs() {
               <li className="flex items-start gap-2"><Check size={16} className="text-green-600 mt-1 shrink-0" /><span><strong>Achat des matériaux</strong> (BA13, vis, joints, etc.)</span></li>
               <li className="flex items-start gap-2"><Check size={16} className="text-green-600 mt-1 shrink-0" /><span><strong>Pose complète</strong> (installation professionnelle)</span></li>
               <li className="flex items-start gap-2"><Check size={16} className="text-green-600 mt-1 shrink-0" /><span><strong>Fournitures</strong> (vis, joints, adhésif, etc.)</span></li>
-              <li className="flex items-start gap-2"><Check size={16} className="text-green-600 mt-1 shrink-0" /><span><strong>Finition peinture</strong> (2 couches minimum)</span></li>
               <li className="flex items-start gap-2"><Check size={16} className="text-green-600 mt-1 shrink-0" /><span><strong>Main-d'œuvre</strong> (équipe qualifiée)</span></li>
               <li className="flex items-start gap-2"><Check size={16} className="text-green-600 mt-1 shrink-0" /><span><strong>Nettoyage du chantier</strong></span></li>
             </ul>
+            <p className="text-xs text-gray-500 mt-3">💡 Option finition peinture (2 couches minimum) : 15 000 FCFA/m² au lieu de 11 000.</p>
           </div>
 
           {/* Calculatrice */}

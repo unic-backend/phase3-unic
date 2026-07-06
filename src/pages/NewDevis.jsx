@@ -100,7 +100,7 @@ export default function NewDevis() {
                   <button type="button" onClick={() => setFormData({ ...formData, avecPeinture: true })}
                     className="flex-1 py-3 rounded-xl text-sm font-medium transition-all"
                     style={formData.avecPeinture ? { background: 'rgba(246,195,68,0.1)', border: '1px solid rgba(246,195,68,0.3)', color: 'white' } : { background: 'var(--dark-elevated)', border: '1px solid var(--dark-border)', color: 'var(--text-secondary)' }}>
-                    Avec peinture<br /><span className="text-xs" style={{ color: 'var(--gold)' }}>13 500 FCFA/m²</span>
+                    Avec peinture<br /><span className="text-xs" style={{ color: 'var(--gold)' }}>15 000 FCFA/m²</span>
                   </button>
                   <button type="button" onClick={() => setFormData({ ...formData, avecPeinture: false })}
                     className="flex-1 py-3 rounded-xl text-sm font-medium transition-all"
