@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo } from 'react'
-import { getToutesFactures, marquerFacturePayee, creerFacture, supprimerFacture, enregistrerDetailFacture } from '../services/invoiceService'
+import { getToutesFactures, marquerFacturePayee, creerFacture, supprimerFacture, enregistrerDetailFacture, genererLienSignatureFacture } from '../services/invoiceService'
 import { getUsersForSelect } from '../services/userService'
 import { telechargerFacturePDF } from '../pdf/generatePdf'
-import { Plus, X, Save, CheckCircle2, Trash2, Receipt, Clock, Eye, FileDown, ListPlus, Check } from 'lucide-react'
+import { Plus, X, Save, CheckCircle2, Trash2, Receipt, Clock, Eye, FileDown, ListPlus, Check, PenTool, Copy } from 'lucide-react'
 import SearchBar from '../components/SearchBar'
 import SortSelect from '../components/SortSelect'
 import { trierListe, OPTIONS_TRI } from '../utils/tri'
@@ -86,6 +86,28 @@ export default function AdminFactures() {
   }
 
   const payer = async (f) => { if (await marquerFacturePayee(f.id)) setFactures(prev => prev.map(x => x.id === f.id ? { ...x, status: 'Payée' } : x)) }
+
+  const [lienSignature, setLienSignature] = useState(null) // { factureId, lien }
+  const [lienEnCours, setLienEnCours] = useState(null)
+
+  const envoyerPourSignature = async (f) => {
+    setLienEnCours(f.id)
+    const token = await genererLienSignatureFacture(f.id)
+    if (token) {
+      const lien = `${window.location.origin}/signer-facture/${token}`
+      setLienSignature({ factureId: f.id, lien })
+      setFactures(prev => prev.map(x => x.id === f.id ? { ...x, status: 'En attente de signature', signatureToken: token } : x))
+      flash('Lien de signature généré — copie-le et envoie-le sur WhatsApp')
+    } else {
+      flash('Erreur lors de la génération du lien')
+    }
+    setLienEnCours(null)
+  }
+
+  const copierLien = async (lien) => {
+    await navigator.clipboard.writeText(lien)
+    flash('Lien copié !')
+  }
 
   const handleDelete = async (f) => {
     if (!window.confirm(`Supprimer ${f.invoiceNumber} ?`)) return
@@ -225,8 +247,45 @@ export default function AdminFactures() {
                 style={{ background: 'var(--dark-elevated)', border: '1px solid var(--dark-border)', color: 'var(--gold)' }}>
                 <FileDown size={13}/> {pdfEnCours === f.id ? 'Génération...' : 'Télécharger le PDF'}
               </button>
+              {/* Signature électronique */}
+              {(f.status === 'En attente de signature') && f.signatureToken && (
+                <div className="space-y-1.5 rounded-xl p-3" style={{ background: 'rgba(96,165,250,0.06)', border: '1px solid rgba(96,165,250,0.15)' }}>
+                  <p className="text-xs font-semibold" style={{ color: '#60A5FA' }}>⏳ En attente de signature — lien WhatsApp :</p>
+                  <p className="text-[10px] break-all" style={{ color: 'var(--text-muted)' }}>
+                    {`${window.location.origin}/signer-facture/${f.signatureToken}`}
+                  </p>
+                  <button onClick={() => copierLien(`${window.location.origin}/signer-facture/${f.signatureToken}`)}
+                    className="w-full py-1.5 rounded-lg text-xs font-semibold btn-press flex items-center justify-center gap-1.5"
+                    style={{ background: 'rgba(96,165,250,0.12)', color: '#60A5FA' }}>
+                    <Copy size={12}/> Copier le lien
+                  </button>
+                </div>
+              )}
+              {f.status === 'Signée' && f.signatureClient && (
+                <div className="rounded-xl p-3 flex items-center gap-2" style={{ background: 'rgba(52,211,153,0.06)', border: '1px solid rgba(52,211,153,0.15)' }}>
+                  <CheckCircle2 size={14} style={{ color: '#34D399' }}/>
+                  <p className="text-xs font-semibold" style={{ color: '#34D399' }}>Signée par le client ✓</p>
+                </div>
+              )}
+              {lienSignature?.factureId === f.id && f.status === 'En attente de signature' && (
+                <div className="space-y-1.5 rounded-xl p-3" style={{ background: 'rgba(246,195,68,0.06)', border: '1px solid rgba(246,195,68,0.2)' }}>
+                  <p className="text-xs font-semibold" style={{ color: 'var(--gold)' }}>Lien à envoyer sur WhatsApp :</p>
+                  <button onClick={() => copierLien(lienSignature.lien)}
+                    className="w-full py-1.5 rounded-lg text-xs font-semibold btn-press"
+                    style={{ background: 'var(--gold)', color: '#060D18' }}>
+                    Copier le lien
+                  </button>
+                </div>
+              )}
               {f.status !== 'Payée' && (
                 <div className="space-y-2 pt-1">
+                  {f.status !== 'En attente de signature' && f.status !== 'Signée' && (
+                    <button onClick={() => envoyerPourSignature(f)} disabled={lienEnCours === f.id}
+                      className="w-full py-2 rounded-xl font-semibold text-xs transition btn-press disabled:opacity-50 flex items-center justify-center gap-1.5"
+                      style={{ background: 'rgba(96,165,250,0.12)', color: '#60A5FA' }}>
+                      <PenTool size={13}/> {lienEnCours === f.id ? 'Génération...' : 'Envoyer pour signature'}
+                    </button>
+                  )}
                   <button onClick={() => payer(f)}
                     className="w-full py-2.5 rounded-xl font-semibold text-sm transition btn-press flex items-center justify-center gap-1.5"
                     style={{ background: 'rgba(52,211,153,0.15)', color: '#34D399' }}>

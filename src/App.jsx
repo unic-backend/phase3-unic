@@ -9,6 +9,7 @@ import AdminLayout from './admin/AdminLayout'
 import HomePage from './pages/HomePage'
 import Discussion from './pages/Discussion'
 import SignerDevis from './pages/SignerDevis'
+import SignerFacture from './pages/SignerFacture'
 import Login from './pages/Login'
 import InitAdmin from './pages/InitAdmin'
 import Signup from './pages/Signup'
@@ -50,6 +51,7 @@ export default function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/discussion" element={<Discussion />} />
           <Route path="/signer/:token" element={<SignerDevis />} />
+          <Route path="/signer-facture/:token" element={<SignerFacture />} />
           <Route path="/login" element={<Login />} />
           <Route path="/init-admin" element={<InitAdmin />} />
           <Route path="/signup" element={<Signup />} />

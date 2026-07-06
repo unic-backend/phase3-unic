@@ -54,6 +54,58 @@ export const getToutesFactures = async () => {
 }
 
 // Marquer payée (admin)
+// ==================== Signature électronique facture ====================
+// Même système que les devis : lien token → page publique → signature client.
+
+// Génère un lien de signature pour une facture (admin)
+export const genererLienSignatureFacture = async (factureId) => {
+  try {
+    const token = Array.from(crypto.getRandomValues(new Uint8Array(16)))
+      .map(b => b.toString(16).padStart(2, '0')).join('')
+    await updateDoc(doc(db, 'invoices', factureId), {
+      signatureToken: token,
+      signatureTokenDate: Timestamp.now(),
+      status: 'En attente de signature',
+      updatedAt: Timestamp.now(),
+    })
+    return token
+  } catch (e) {
+    console.error('genererLienSignatureFacture:', e)
+    return null
+  }
+}
+
+// Récupère une facture par son token (page publique /signer-facture/:token)
+export const getFactureParToken = async (token) => {
+  try {
+    const q = query(collection(db, 'invoices'), where('signatureToken', '==', token))
+    const snap = await getDocs(q)
+    if (snap.empty) return null
+    const d = snap.docs[0]
+    return { id: d.id, ...d.data() }
+  } catch (e) {
+    console.error('getFactureParToken:', e)
+    return null
+  }
+}
+
+// Enregistre la signature du client sur la facture (page publique, vérification par token)
+export const signerFactureClient = async (factureId, token, signatureBase64) => {
+  try {
+    await updateDoc(doc(db, 'invoices', factureId), {
+      signatureClient: signatureBase64,
+      signatureClientDate: Timestamp.now(),
+      signatureToken: token, // gardé tel quel pour maintenir les droits Firestore
+      status: 'Signée',
+      updatedAt: Timestamp.now(),
+    })
+    return true
+  } catch (e) {
+    console.error('signerFactureClient:', e)
+    return false
+  }
+}
+
 export const marquerFacturePayee = async (factureId) => {
   try {
     await updateDoc(doc(db, 'invoices', factureId), { status: 'Payée' })

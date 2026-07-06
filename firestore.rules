@@ -65,16 +65,23 @@ service cloud.firestore {
 
     // ==================== invoices (factures) ====================
     match /invoices/{invoiceId} {
-      allow read:   if isAuth() && (resource.data.clientId == request.auth.uid || isAdmin());
+      allow read:   if isAuth() && (resource.data.clientId == request.auth.uid || isAdmin())
+                    // Lecture publique par token de signature (lien WhatsApp envoyé au client)
+                    || resource.data.signatureToken != null;
       allow create: if isAuth() && isAdmin();
-      // Admin: tout modifier. Client: seulement passer SA facture en "En vérification"
+      // Admin: tout modifier. Client connecté: passer SA facture en "En vérification".
+      // Client via token: signer (seuls les champs signature sont modifiables).
       allow update: if isAuth() && (
         isAdmin() ||
         (resource.data.clientId == request.auth.uid
           && request.resource.data.status == 'En vérification'
           && request.resource.data.amount == resource.data.amount
           && request.resource.data.clientId == resource.data.clientId)
-      );
+      )
+      || resource.data.signatureToken != null
+         && request.resource.data.signatureToken == resource.data.signatureToken
+         && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['signatureClient', 'signatureClientDate', 'status', 'updatedAt']);
       allow delete: if isAuth() && (
         isAdmin() ||
         resource.data.clientId == request.auth.uid
