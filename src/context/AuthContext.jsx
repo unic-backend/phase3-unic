@@ -35,8 +35,7 @@ export function AuthProvider({ children }) {
           email: firebaseUser.email,
           emailLower: (firebaseUser.email || '').toLowerCase(),
           nom: firebaseUser.displayName || 'Utilisateur',
-          telephone: '',
-          isAdmin: isAdminEmail(firebaseUser.email)
+          telephone: ''
         })
         setLoading(false)
 
@@ -52,8 +51,8 @@ export function AuthProvider({ children }) {
                 emailLower: (firebaseUser.email || '').toLowerCase(),
                 nom: profile.nom || 'Utilisateur',
                 telephone: profile.telephone || '',
-                ...profile,
-                isAdmin: profile.isAdmin || isAdminEmail(firebaseUser.email)
+                isAdmin: profile.isAdmin || false,
+                ...profile
               }))
             }
           })
@@ -77,11 +76,9 @@ export function AuthProvider({ children }) {
   const signup = async (nom, email, telephone, password) => {
     try {
       const emailLower = email.toLowerCase().trim()
-      console.log('Signup start:', emailLower)
       
       // Créer compte Firebase
       const result = await createUserWithEmailAndPassword(auth, emailLower, password)
-      console.log('Account created:', result.user.uid)
 
       // Vérifier si c'est un admin (liste centrale, voir src/config/admins.js)
       const isAdminUser = isAdminEmail(emailLower)
@@ -106,10 +103,8 @@ export function AuthProvider({ children }) {
   const login = async (email, password) => {
     try {
       const emailLower = email.toLowerCase().trim()
-      console.log('Login start:', emailLower)
       
       const result = await signInWithEmailAndPassword(auth, emailLower, password)
-      console.log('Login successful:', result.user.uid)
 
       // onAuthStateChanged va mettre à jour l'utilisateur automatiquement
       return { success: true }
@@ -121,7 +116,6 @@ export function AuthProvider({ children }) {
 
   const logout = async () => {
     try {
-      console.log('Logout')
       await signOut(auth)
       setUser(null)
       return { success: true }

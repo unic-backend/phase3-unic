@@ -71,15 +71,12 @@ export const getDevisClient = async (clientId) => {
 // Récupérer TOUS les devis (admin) — AVEC LOGGING DÉTAILLÉ
 export const getTousDevis = async () => {
   try {
-    console.log('📋 getTousDevis: Tentative de lecture de toute la collection quotes...')
     
     // Tentative 1 : getDocs simple
     const snap = await getDocs(collection(db, 'quotes'))
     
-    console.log(`✅ getTousDevis: ${snap.docs.length} devis trouvés`)
     
     const list = snap.docs.map(d => {
-      console.log(`  - ${d.id}: ${d.data().quoteNumber} (client: ${d.data().clientEmail}, status: ${d.data().status})`)
       return { id: d.id, ...d.data() }
     })
     

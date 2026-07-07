@@ -56,7 +56,6 @@ export const logMetrics = () => {
   if ('PerformanceObserver' in window) {
     const observer = new PerformanceObserver((list) => {
       for (const entry of list.getEntries()) {
-        console.log(`${entry.name}: ${entry.duration}ms`)
       }
     })
     observer.observe({ entryTypes: ['measure'] })

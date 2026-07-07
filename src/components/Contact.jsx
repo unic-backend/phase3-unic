@@ -17,7 +17,6 @@ export default function Contact() {
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    console.log('Formulaire envoyé:', formData)
     setSubmitted(true)
     setTimeout(() => {
       setSubmitted(false)
