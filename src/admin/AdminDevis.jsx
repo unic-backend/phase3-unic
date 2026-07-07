@@ -7,7 +7,8 @@ import SearchBar from '../components/SearchBar'
 import SortSelect from '../components/SortSelect'
 import { trierListe, OPTIONS_TRI } from '../utils/tri'
 import { formatMontant } from '../utils/pricing'
-import { Check, X, RotateCcw, FileText, Trash2, Clock, CheckCircle2, XCircle, Pencil, FileDown, ListPlus, Plus, Sparkles, Send, Copy } from 'lucide-react'
+import { Check, X, RotateCcw, FileText, Trash2, Clock, CheckCircle2, XCircle, Pencil, FileDown, ListPlus, Plus, Sparkles, Send, Copy, Download } from 'lucide-react'
+import { exporterCSV, formatDate, formatMontant as formatMontantCSV } from '../utils/exportCSV'
 
 export default function AdminDevis() {
   const [devisList, setDevisList] = useState([])
@@ -211,9 +212,31 @@ export default function AdminDevis() {
 
   return (
     <div className="space-y-5 max-w-5xl mx-auto">
-      <div className="animate-fade-in">
-        <h1 className="text-2xl md:text-3xl font-bold text-white">Gérer Devis</h1>
-        <p className="mt-1" style={{ color: 'var(--text-secondary)' }}>Demandes de devis des clients</p>
+      <div className="animate-fade-in flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold text-white">Gérer Devis</h1>
+          <p className="mt-1" style={{ color: 'var(--text-secondary)' }}>Demandes de devis des clients</p>
+        </div>
+        <button
+          onClick={() => {
+            if (!devisList || devisList.length === 0) return
+            exporterCSV(devisList, [
+              { key: 'quoteNumber', label: 'N° Devis' },
+              { key: 'clientNom', label: 'Client' },
+              { key: 'clientEmail', label: 'Email' },
+              { key: 'designation', label: 'Désignation' },
+              { key: 'amount', label: 'Montant (FCFA)', format: (v, r) => formatMontantCSV(v ?? r.totalTTC) },
+              { key: 'status', label: 'Statut' },
+              { key: 'createdAt', label: 'Créé le', format: formatDate },
+            ], 'devis_unic')
+          }}
+          disabled={!devisList || devisList.length === 0}
+          className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold btn-press disabled:opacity-40 transition"
+          style={{ background: 'var(--dark-elevated)', color: 'var(--gold)', border: '1px solid var(--dark-border)' }}
+          title="Exporter en CSV (Excel)"
+        >
+          <Download size={13} /> Exporter
+        </button>
       </div>
 
       {message && (

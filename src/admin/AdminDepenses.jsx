@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from 'react'
 import { ajouterDepense, getToutesDepenses, supprimerDepense, CATEGORIES_DEPENSE } from '../services/depenseService'
 import { getTousProjets } from '../services/projectService'
-import { Receipt, Plus, Trash2, X, Check, Filter } from 'lucide-react'
+import { Receipt, Plus, Trash2, X, Check, Filter, Download } from 'lucide-react'
+import { exporterCSV, formatDate, formatMontant } from '../utils/exportCSV'
 
 const ic = "w-full px-3 py-2.5 rounded-xl text-sm text-white placeholder-[#4A5B73] outline-none bg-[#0C1829] border border-[rgba(255,255,255,0.06)]"
 
@@ -67,11 +68,31 @@ export default function AdminDepenses() {
             Total global : <span className="font-bold" style={{ color: 'var(--gold)' }}>{fmtFCFA(totalGlobal)}</span>
           </p>
         </div>
-        <button onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold btn-press"
-          style={{ background: 'var(--gold)', color: '#060D18' }}>
-          <Plus size={16} /> Ajouter
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              if (!depenses || depenses.length === 0) return
+              exporterCSV(depenses, [
+                { key: 'date', label: 'Date', format: formatDate },
+                { key: 'categorie', label: 'Catégorie' },
+                { key: 'description', label: 'Description' },
+                { key: 'projetNom', label: 'Projet' },
+                { key: 'montant', label: 'Montant (FCFA)', format: formatMontant },
+              ], 'depenses_unic')
+            }}
+            disabled={!depenses || depenses.length === 0}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold btn-press disabled:opacity-40"
+            style={{ background: 'var(--dark-elevated)', color: 'var(--gold)', border: '1px solid var(--dark-border)' }}
+            title="Exporter en CSV (Excel)"
+          >
+            <Download size={13} /> Exporter
+          </button>
+          <button onClick={() => setShowForm(true)}
+            className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold btn-press"
+            style={{ background: 'var(--gold)', color: '#060D18' }}>
+            <Plus size={16} /> Ajouter
+          </button>
+        </div>
       </div>
 
       {msg && <div className="px-4 py-2.5 rounded-2xl text-sm font-semibold badge-success">{msg}</div>}

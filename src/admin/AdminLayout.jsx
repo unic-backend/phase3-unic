@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import SideDrawer from '../components/SideDrawer'
 import NotificationBell from '../components/NotificationBell'
+import GlobalSearch from '../components/GlobalSearch'
 import PullToRefresh from '../components/PullToRefresh'
-import { creerRappelAdminQuotidien } from '../services/adminDailyDigestService'
 import {
   LayoutDashboard, Users, FileText, Building2,
   Receipt, MessageSquare, User, LogOut, Menu,
@@ -17,6 +17,19 @@ import logo from '../assets/logo.webp'
 export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
+
+  // Raccourci Ctrl/Cmd+K pour ouvrir la recherche globale
+  useEffect(() => {
+    const onKey = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault()
+        setSearchOpen((v) => !v)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
   const [refreshKey, setRefreshKey] = useState(0)
 
   const handleRefresh = async () => {
@@ -27,11 +40,6 @@ export default function AdminLayout() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
-
-  useEffect(() => {
-    if (!user?.email) return
-    creerRappelAdminQuotidien(user.email)
-  }, [user?.email])
 
   const menuItems = [
     { icon: LayoutDashboard, label: 'Accueil', path: '/admin/dashboard' },
@@ -169,6 +177,17 @@ export default function AdminLayout() {
 
             <NotificationBell mode="admin" />
 
+            {/* Recherche globale — bouton visible partout */}
+            <button
+              onClick={() => setSearchOpen(true)}
+              className="p-2 rounded-xl transition active:scale-90 hover:bg-white/5"
+              style={{ color: 'var(--text-secondary)', border: '1px solid var(--dark-border)' }}
+              title="Rechercher (Ctrl+K)"
+              aria-label="Rechercher"
+            >
+              <Search size={18} />
+            </button>
+
             {/* Mobile: Hamburger */}
             <button
               onClick={() => setDrawerOpen(true)}
@@ -243,6 +262,7 @@ export default function AdminLayout() {
       </nav>
 
       <SideDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} mode="admin" />
+      <GlobalSearch isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
     </div>
   )
 }

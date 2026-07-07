@@ -50,6 +50,14 @@ export default function NotificationBell({ mode, userId }) {
 
   const nonLues = notifs.filter(n => !n.read).length
 
+  // Titre d'onglet dynamique : affiche le compteur de notifications non lues
+  // pour attirer l'œil quand l'utilisateur est sur un autre onglet.
+  useEffect(() => {
+    const baseTitle = 'UniC Plaquiste'
+    document.title = nonLues > 0 ? `(${nonLues}) ${baseTitle}` : baseTitle
+    return () => { document.title = baseTitle }
+  }, [nonLues])
+
   const handleClickNotif = async (n) => {
     if (!n.read) {
       await marquerNotificationLue(n.id)

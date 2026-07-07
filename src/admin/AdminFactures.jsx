@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo } from 'react'
 import { getToutesFactures, marquerFacturePayee, creerFacture, supprimerFacture, enregistrerDetailFacture, genererLienSignatureFacture } from '../services/invoiceService'
-import { getUsersForSelect } from '../services/userService'
+import { getUsersForSelect, getUserProfile } from '../services/userService'
 import { telechargerFacturePDF } from '../pdf/generatePdf'
-import { Plus, X, Save, CheckCircle2, Trash2, Receipt, Clock, Eye, FileDown, ListPlus, Check, PenTool, Copy, AlertTriangle, MessageCircle } from 'lucide-react'
+import { Plus, X, Save, CheckCircle2, Trash2, Receipt, Clock, Eye, FileDown, ListPlus, Check, PenTool, Copy, AlertTriangle, MessageCircle, Download } from 'lucide-react'
+import { exporterCSV, formatDate, formatMontant } from '../utils/exportCSV'
 import SearchBar from '../components/SearchBar'
 import SortSelect from '../components/SortSelect'
 import { trierListe, OPTIONS_TRI } from '../utils/tri'
@@ -124,9 +125,9 @@ export default function AdminFactures() {
   }
 
   // Ouvre WhatsApp avec un message de relance professionnel pré-rempli.
-  // Pas de numéro stocké sur la facture → wa.me sans numéro laisse Ousmane
-  // choisir le contact ; le message est déjà prêt.
-  const relancerWhatsApp = (f) => {
+  // Récupère le téléphone du client depuis son profil pour un envoi en un clic ;
+  // fallback sur wa.me sans numéro si aucun téléphone stocké.
+  const relancerWhatsApp = async (f) => {
     const montant = (f.amount || f.totalTTC || 0).toLocaleString('fr-FR')
     const retard = joursDeRetard(f)
     const msg =
@@ -142,7 +143,24 @@ Si le règlement a déjà été effectué, merci de ne pas tenir compte de ce me
 
 Cordialement,
 Ousmane Diop — UniC Plaquiste`
-    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank', 'noopener')
+
+    // Récupère le téléphone client depuis Firestore (silencieux si échec)
+    let numero = ''
+    if (f.clientId) {
+      try {
+        const profile = await getUserProfile(f.clientId)
+        // Nettoie : garde uniquement les chiffres, préfixe 221 si numéro sénégalais sans indicatif
+        const raw = (profile?.telephone || '').replace(/[^\d]/g, '')
+        if (raw) {
+          numero = raw.length === 9 ? '221' + raw : raw
+        }
+      } catch { /* fallback silencieux */ }
+    }
+
+    const url = numero
+      ? `https://wa.me/${numero}?text=${encodeURIComponent(msg)}`
+      : `https://wa.me/?text=${encodeURIComponent(msg)}`
+    window.open(url, '_blank', 'noopener')
   }
 
   const nbEnRetard = useMemo(() => factures.filter(f => joursDeRetard(f) > 0).length, [factures])
@@ -172,10 +190,33 @@ Ousmane Diop — UniC Plaquiste`
           <h1 className="text-2xl md:text-3xl font-bold text-white">Gérer Factures</h1>
           <p className="mt-1" style={{ color: 'var(--text-secondary)' }}>Factures émises aux clients</p>
         </div>
-        <button onClick={() => setShowForm(!showForm)} className="px-4 py-2.5 rounded-xl font-semibold text-sm btn-press flex items-center gap-2"
-          style={{ background: showForm ? 'var(--dark-elevated)' : 'var(--gold)', color: showForm ? 'var(--text-secondary)' : '#060D18' }}>
-          {showForm ? <><X size={16}/> Annuler</> : <><Plus size={16} strokeWidth={2.5}/> Créer</>}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              if (!factures || factures.length === 0) return
+              exporterCSV(factures, [
+                { key: 'invoiceNumber', label: 'N° Facture' },
+                { key: 'clientNom', label: 'Client' },
+                { key: 'clientEmail', label: 'Email' },
+                { key: 'designation', label: 'Désignation' },
+                { key: 'amount', label: 'Montant (FCFA)', format: formatMontant },
+                { key: 'status', label: 'Statut' },
+                { key: 'issueDate', label: 'Émission', format: formatDate },
+                { key: 'dueDate', label: 'Échéance', format: formatDate },
+              ], 'factures_unic')
+            }}
+            disabled={!factures || factures.length === 0}
+            className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-semibold btn-press disabled:opacity-40"
+            style={{ background: 'var(--dark-elevated)', color: 'var(--gold)', border: '1px solid var(--dark-border)' }}
+            title="Exporter en CSV (Excel)"
+          >
+            <Download size={13} /> Exporter
+          </button>
+          <button onClick={() => setShowForm(!showForm)} className="px-4 py-2.5 rounded-xl font-semibold text-sm btn-press flex items-center gap-2"
+            style={{ background: showForm ? 'var(--dark-elevated)' : 'var(--gold)', color: showForm ? 'var(--text-secondary)' : '#060D18' }}>
+            {showForm ? <><X size={16}/> Annuler</> : <><Plus size={16} strokeWidth={2.5}/> Créer</>}
+          </button>
+        </div>
       </div>
 
       {message && <div className={`px-4 py-2.5 rounded-xl text-sm font-semibold animate-scale-in ${message.includes('créée') ? 'badge-success' : 'badge-danger'}`}>{message}</div>}

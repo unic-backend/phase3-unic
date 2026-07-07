@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react'
 import SearchBar from '../components/SearchBar'
 import { getTousProjets, creerProjet, changerEtape, ajouterPhoto, uploadPhotoFichier, ETAPES_CHANTIER } from '../services/projectService'
 import { getTousDevis } from '../services/quoteService'
-import { Building2, Plus, ChevronRight, ChevronLeft, Camera, Upload, X } from 'lucide-react'
+import { Building2, Plus, ChevronRight, ChevronLeft, Camera, Upload, X, LayoutGrid, List } from 'lucide-react'
 
 export default function AdminProjets() {
   const [projets, setProjets] = useState([])
@@ -13,6 +13,8 @@ export default function AdminProjets() {
   const [selected, setSelected] = useState(null)
   const [uploading, setUploading] = useState(false)
   const [search, setSearch] = useState('')
+  const [vue, setVue] = useState('liste') // 'liste' | 'kanban'
+  const [dragOverEtape, setDragOverEtape] = useState(null)
   const fileInputRef = useRef(null)
 
   const [form, setForm] = useState({ clientId: '', clientEmail: '', name: '', type: '', surface: '', montant: '', dateDebut: '', notes: '' })
@@ -42,6 +44,15 @@ export default function AdminProjets() {
     if (await changerEtape(p.id, newIndex)) {
       setProjets(prev => prev.map(x => x.id === p.id ? { ...x, etapeIndex: newIndex } : x))
       setSelected(s => s?.id === p.id ? { ...s, etapeIndex: newIndex } : s)
+    }
+  }
+
+  // Déplace un projet à une étape précise (utilisé par le drag-and-drop Kanban)
+  const deplacerAEtape = async (projetId, nouvelIndex) => {
+    const projet = projets.find(p => p.id === projetId)
+    if (!projet || projet.etapeIndex === nouvelIndex) return
+    if (await changerEtape(projetId, nouvelIndex)) {
+      setProjets(prev => prev.map(x => x.id === projetId ? { ...x, etapeIndex: nouvelIndex } : x))
     }
   }
 
@@ -86,10 +97,31 @@ export default function AdminProjets() {
           <h1 className="text-2xl md:text-3xl font-bold text-white">Gérer Projets</h1>
           <p className="mt-1" style={{ color: 'var(--text-secondary)' }}>Chantiers en cours</p>
         </div>
-        <button onClick={() => setShowForm(true)} className="px-4 py-2.5 rounded-xl font-semibold text-sm btn-press flex items-center gap-2"
-          style={{ background: 'var(--gold)', color: '#060D18' }}>
-          <Plus size={16} strokeWidth={2.5}/> Nouveau
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Toggle vue liste / kanban */}
+          <div className="hidden sm:flex rounded-xl overflow-hidden" style={{ border: '1px solid var(--dark-border)' }}>
+            <button onClick={() => setVue('liste')} title="Vue liste"
+              className="px-3 py-2.5 transition"
+              style={{
+                background: vue === 'liste' ? 'var(--gold)' : 'var(--dark-elevated)',
+                color: vue === 'liste' ? '#060D18' : 'var(--text-secondary)',
+              }}>
+              <List size={16} />
+            </button>
+            <button onClick={() => setVue('kanban')} title="Vue Kanban"
+              className="px-3 py-2.5 transition"
+              style={{
+                background: vue === 'kanban' ? 'var(--gold)' : 'var(--dark-elevated)',
+                color: vue === 'kanban' ? '#060D18' : 'var(--text-secondary)',
+              }}>
+              <LayoutGrid size={16} />
+            </button>
+          </div>
+          <button onClick={() => setShowForm(true)} className="px-4 py-2.5 rounded-xl font-semibold text-sm btn-press flex items-center gap-2"
+            style={{ background: 'var(--gold)', color: '#060D18' }}>
+            <Plus size={16} strokeWidth={2.5}/> Nouveau
+          </button>
+        </div>
       </div>
 
       {message && <div className="px-4 py-2.5 rounded-xl text-sm font-semibold badge-success animate-scale-in">{message}</div>}
@@ -107,6 +139,9 @@ export default function AdminProjets() {
       {!loading && projets.length > 0 && (
         <>
           <SearchBar value={search} onChange={setSearch} placeholder="Rechercher un projet..." dark />
+
+          {/* ── Vue Liste ── */}
+          {vue === 'liste' && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {filteredProjets.map((p, i) => (
               <div key={p.id} className="card-dark p-4 space-y-3 animate-fade-in" style={{ opacity: 0, animationDelay: `${i * 60}ms` }}>
@@ -126,6 +161,74 @@ export default function AdminProjets() {
               </div>
             ))}
           </div>
+          )}
+
+          {/* ── Vue Kanban ── glissez-déposez pour changer d'étape */}
+          {vue === 'kanban' && (
+            <div className="overflow-x-auto dark-scrollbar pb-2 -mx-4 px-4">
+              <div className="flex gap-3 min-w-max">
+                {ETAPES_CHANTIER.map((etape, etapeIdx) => {
+                  const projetsEtape = filteredProjets.filter(p => (p.etapeIndex ?? 0) === etapeIdx)
+                  const estCible = dragOverEtape === etapeIdx
+                  return (
+                    <div
+                      key={etape}
+                      onDragOver={(e) => { e.preventDefault(); setDragOverEtape(etapeIdx) }}
+                      onDragLeave={() => setDragOverEtape(null)}
+                      onDrop={(e) => {
+                        e.preventDefault()
+                        const projetId = e.dataTransfer.getData('text/plain')
+                        setDragOverEtape(null)
+                        if (projetId) deplacerAEtape(projetId, etapeIdx)
+                      }}
+                      className="w-[260px] shrink-0 rounded-2xl p-3 transition"
+                      style={{
+                        background: estCible ? 'rgba(246,195,68,0.08)' : 'var(--dark-surface)',
+                        border: `1px solid ${estCible ? 'var(--gold)' : 'var(--dark-border)'}`,
+                        minHeight: '400px',
+                      }}
+                    >
+                      <div className="flex items-center justify-between mb-3 px-1">
+                        <p className="text-xs font-bold uppercase tracking-wider text-white">{etape}</p>
+                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
+                          style={{ background: 'var(--dark-elevated)', color: 'var(--text-muted)' }}>
+                          {projetsEtape.length}
+                        </span>
+                      </div>
+                      <div className="space-y-2">
+                        {projetsEtape.map((p) => (
+                          <div
+                            key={p.id}
+                            draggable
+                            onDragStart={(e) => { e.dataTransfer.setData('text/plain', p.id); e.dataTransfer.effectAllowed = 'move' }}
+                            onClick={() => setSelected(p)}
+                            className="card-dark p-3 cursor-grab active:cursor-grabbing transition hover:border-[rgba(246,195,68,0.3)]"
+                            title="Glissez vers une autre colonne pour changer d'étape"
+                          >
+                            <p className="text-sm font-semibold text-white truncate">{p.name}</p>
+                            <p className="text-[11px] truncate mt-0.5" style={{ color: 'var(--text-muted)' }}>{p.clientEmail}</p>
+                            {p.montant > 0 && (
+                              <p className="text-[11px] mt-1.5 font-semibold" style={{ color: 'var(--gold)' }}>
+                                {Math.round(p.montant).toLocaleString('fr-FR')} FCFA
+                              </p>
+                            )}
+                          </div>
+                        ))}
+                        {projetsEtape.length === 0 && (
+                          <p className="text-[11px] text-center py-6" style={{ color: 'var(--text-muted)' }}>
+                            {estCible ? 'Déposer ici' : 'Vide'}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+              <p className="text-[10px] text-center mt-3" style={{ color: 'var(--text-muted)' }}>
+                💡 Glissez une carte vers une autre colonne pour changer son étape.
+              </p>
+            </div>
+          )}
         </>
       )}
 
