@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { getToutesFactures, marquerFacturePayee, creerFacture, supprimerFacture, enregistrerDetailFacture, genererLienSignatureFacture } from '../services/invoiceService'
 import { getUsersForSelect } from '../services/userService'
 import { telechargerFacturePDF } from '../pdf/generatePdf'
-import { Plus, X, Save, CheckCircle2, Trash2, Receipt, Clock, Eye, FileDown, ListPlus, Check, PenTool, Copy } from 'lucide-react'
+import { Plus, X, Save, CheckCircle2, Trash2, Receipt, Clock, Eye, FileDown, ListPlus, Check, PenTool, Copy, AlertTriangle, MessageCircle } from 'lucide-react'
 import SearchBar from '../components/SearchBar'
 import SortSelect from '../components/SortSelect'
 import { trierListe, OPTIONS_TRI } from '../utils/tri'
@@ -115,9 +115,42 @@ export default function AdminFactures() {
     else flash('Erreur suppression')
   }
 
+  // ── Relances factures impayées ─────────────────────────────────────────────
+  // Une facture est "en retard" si elle a une échéance dépassée et n'est pas payée.
+  const joursDeRetard = (f) => {
+    if (!f.dueDate || f.status === 'Payée') return 0
+    const diff = Math.floor((Date.now() - new Date(f.dueDate + 'T00:00:00').getTime()) / 86400000)
+    return diff > 0 ? diff : 0
+  }
+
+  // Ouvre WhatsApp avec un message de relance professionnel pré-rempli.
+  // Pas de numéro stocké sur la facture → wa.me sans numéro laisse Ousmane
+  // choisir le contact ; le message est déjà prêt.
+  const relancerWhatsApp = (f) => {
+    const montant = (f.amount || f.totalTTC || 0).toLocaleString('fr-FR')
+    const retard = joursDeRetard(f)
+    const msg =
+`Bonjour ${f.clientNom || ''},
+
+Nous espérons que vous allez bien. Sauf erreur de notre part, la facture ${f.invoiceNumber} d'un montant de ${montant} FCFA, arrivée à échéance le ${f.dueDate}${retard > 0 ? ` (${retard} jour${retard > 1 ? 's' : ''} de retard)` : ''}, reste en attente de règlement.
+
+Moyens de paiement :
+• Wave / Orange Money : +221 77 708 50 92
+• Espèces ou virement
+
+Si le règlement a déjà été effectué, merci de ne pas tenir compte de ce message.
+
+Cordialement,
+Ousmane Diop — UniC Plaquiste`
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank', 'noopener')
+  }
+
+  const nbEnRetard = useMemo(() => factures.filter(f => joursDeRetard(f) > 0).length, [factures])
+
   const filteredFactures = useMemo(() => {
     let list = factures
-    if (filter !== 'Tous') list = list.filter(f => f.status === filter)
+    if (filter === 'En retard') list = list.filter(f => joursDeRetard(f) > 0)
+    else if (filter !== 'Tous') list = list.filter(f => f.status === filter)
     if (search.trim()) { const q = search.trim().toLowerCase(); list = list.filter(f => (f.invoiceNumber || '').toLowerCase().includes(q) || (f.clientEmail || '').toLowerCase().includes(q)) }
     return trierListe(list, sortKey, 'createdAt', 'amount')
   }, [factures, search, filter, sortKey])
@@ -125,6 +158,7 @@ export default function AdminFactures() {
   const filters = [
     { key: 'Tous', icon: Receipt, color: '#60A5FA' },
     { key: 'En attente', icon: Clock, color: '#FBBF24' },
+    { key: 'En retard', icon: AlertTriangle, color: '#F87171', count: nbEnRetard },
     { key: 'En vérification', icon: Eye, color: '#60A5FA' },
     { key: 'Payée', icon: CheckCircle2, color: '#34D399' },
   ]
@@ -202,6 +236,12 @@ export default function AdminFactures() {
                   : { background: 'var(--dark-surface)', border: '1px solid var(--dark-border)', color: 'var(--text-muted)' }
                 }>
                 <Icon size={14} /> {f.key}
+                {f.count > 0 && (
+                  <span className="w-4.5 h-4.5 min-w-[18px] px-1 rounded-full text-[10px] font-bold flex items-center justify-center"
+                    style={{ background: '#F87171', color: 'white' }}>
+                    {f.count}
+                  </span>
+                )}
               </button>
             )
           })}
@@ -231,8 +271,21 @@ export default function AdminFactures() {
                   <p className="font-semibold text-white truncate">{f.invoiceNumber}</p>
                   <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>{f.clientEmail}</p>
                 </div>
-                <span className={`px-2.5 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap ${badge(f.status)}`}>{f.status}</span>
+                <div className="flex flex-col items-end gap-1 shrink-0">
+                  <span className={`px-2.5 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap ${badge(f.status)}`}>{f.status}</span>
+                  {joursDeRetard(f) > 0 && (
+                    <span className="px-2.5 py-1 rounded-full text-[11px] font-bold whitespace-nowrap flex items-center gap-1"
+                      style={{ background: 'rgba(248,113,113,0.15)', color: '#F87171' }}>
+                      <AlertTriangle size={11} /> En retard · {joursDeRetard(f)} j
+                    </span>
+                  )}
+                </div>
               </div>
+              {f.dueDate && f.status !== 'Payée' && (
+                <p className="text-[11px]" style={{ color: joursDeRetard(f) > 0 ? '#F87171' : 'var(--text-muted)' }}>
+                  Échéance : {f.dueDate}
+                </p>
+              )}
               <div className="flex justify-between text-sm" style={{ borderTop: '1px solid var(--dark-border)', paddingTop: '10px' }}>
                 <span style={{ color: 'var(--text-muted)' }}>Montant</span>
                 <span className="font-semibold" style={{ color: 'var(--gold)' }}>{(f.amount || f.totalTTC || 0).toLocaleString('fr-FR')} FCFA</span>
@@ -279,6 +332,13 @@ export default function AdminFactures() {
               )}
               {f.status !== 'Payée' && (
                 <div className="space-y-2 pt-1">
+                  {joursDeRetard(f) > 0 && (
+                    <button onClick={() => relancerWhatsApp(f)}
+                      className="w-full py-2.5 rounded-xl font-semibold text-sm transition btn-press flex items-center justify-center gap-1.5"
+                      style={{ background: 'rgba(37,211,102,0.15)', color: '#25D366', border: '1px solid rgba(37,211,102,0.25)' }}>
+                      <MessageCircle size={15}/> Relancer sur WhatsApp
+                    </button>
+                  )}
                   {f.status !== 'En attente de signature' && f.status !== 'Signée' && (
                     <button onClick={() => envoyerPourSignature(f)} disabled={lienEnCours === f.id}
                       className="w-full py-2 rounded-xl font-semibold text-xs transition btn-press disabled:opacity-50 flex items-center justify-center gap-1.5"
