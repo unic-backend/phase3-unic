@@ -146,7 +146,7 @@ service cloud.firestore {
         (request.auth.uid == uid && request.resource.data.messages.size() <= 30) ||
         isAdmin()
       );
-      allow delete: if false;
+      allow delete: if isAuth() && isAdmin();
     }
 
     // ==================== depenses ====================

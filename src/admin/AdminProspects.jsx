@@ -1,13 +1,13 @@
 import { useState, useEffect, useMemo } from 'react'
 import {
   getTousProspects, marquerProspectStatut, enregistrerAnalyseIA,
-  convertirProspectEnClient, STATUTS_PIPELINE, SOURCES_LABEL,
+  convertirProspectEnClient, supprimerProspect, STATUTS_PIPELINE, SOURCES_LABEL,
 } from '../services/prospectService'
 import { demanderAssistant } from '../services/iaService'
 import { calculerPrixUnitaire, calculerMontant, estSurDevis } from '../utils/pricing'
 import {
   Users2, MessageCircle, X, MapPin, Ruler, Wallet, Clock,
-  Phone, Sparkles, ImageIcon, UserPlus, ChevronRight, FileText,
+  Phone, Sparkles, ImageIcon, UserPlus, ChevronRight, FileText, Trash2,
 } from 'lucide-react'
 
 const LABELS_TYPE = {
@@ -407,6 +407,20 @@ export default function AdminProspects() {
                   {conversionEnCours ? 'Création...' : 'Créer le compte client + le devis'}
                 </button>
               )}
+              <button
+                onClick={async () => {
+                  if (!window.confirm('Supprimer définitivement ce prospect ? Cette action est irréversible.')) return
+                  if (await supprimerProspect(selectionne.id)) {
+                    setProspects((prev) => prev.filter((x) => x.id !== selectionne.id))
+                    setSelectionne(null)
+                  } else {
+                    window.alert('Suppression impossible. Vérifie que les règles Firestore ont été republiées.')
+                  }
+                }}
+                className="w-full py-2 rounded-xl font-semibold text-xs btn-press flex items-center justify-center gap-1.5"
+                style={{ background: 'rgba(248,113,113,0.1)', color: '#F87171', border: '1px solid rgba(248,113,113,0.2)' }}>
+                <Trash2 size={14} /> Supprimer ce prospect
+              </button>
             </div>
           </div>
         </div>

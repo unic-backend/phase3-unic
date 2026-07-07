@@ -1,14 +1,11 @@
-import { signInAnonymously, signOut } from 'firebase/auth'
-import { collection, getDocs, doc, getDoc, setDoc, updateDoc, onSnapshot, Timestamp, arrayUnion, addDoc } from 'firebase/firestore'
+import { signInAnonymously } from 'firebase/auth'
+import { collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, Timestamp, arrayUnion, addDoc } from 'firebase/firestore'
 import { auth, db } from '../firebase/init'
 import { creerDevis } from './quoteService'
-import { notifierAdmins } from './notificationService'
-import { isAdminEmail } from '../config/admins'
 
 // Limite de messages par discussion (protection contre les coûts/abus,
 // surtout important ici car le lien est public et générique — voir prospect-chat.js)
 export const MAX_MESSAGES = 30
-const DISCUSSION_SESSION_KEY = 'unic-prospect-session-uid'
 
 // ─── Statuts du pipeline complet ────────────────────────────────────────────
 export const STATUTS_PIPELINE = [
@@ -34,33 +31,10 @@ export const SOURCES_LABEL = {
 // Démarre (ou reprend) une session anonyme + son document prospect associé.
 // Appelé au chargement de la page /discussion.
 export async function demarrerSession() {
-  if (typeof auth.authStateReady === 'function') {
-    await auth.authStateReady()
-  }
-
-  if (auth.currentUser && !auth.currentUser.isAnonymous) {
-    if (isAdminEmail(auth.currentUser.email)) {
-      throw new Error('Cette page est reservee aux prospects. Utilise l espace admin pour suivre les demandes.')
-    }
-    return ouvrirOuCreerProspect(auth.currentUser.uid)
-  }
-
-  let sessionUid = ''
-  try { sessionUid = sessionStorage.getItem(DISCUSSION_SESSION_KEY) || '' } catch {}
-
-  if (!auth.currentUser || auth.currentUser.uid !== sessionUid) {
-    if (auth.currentUser?.isAnonymous) {
-      await signOut(auth)
-    }
+  if (!auth.currentUser) {
     await signInAnonymously(auth)
-    try { sessionStorage.setItem(DISCUSSION_SESSION_KEY, auth.currentUser.uid) } catch {}
   }
-
   const uid = auth.currentUser.uid
-  return ouvrirOuCreerProspect(uid)
-}
-
-async function ouvrirOuCreerProspect(uid) {
   const ref = doc(db, 'prospects', uid)
   const snap = await getDoc(ref)
   if (!snap.exists()) {
@@ -112,20 +86,10 @@ export async function soumettreFormulaireProspect(uid, donnees) {
     messages: arrayUnion(messageAccueil),
     updatedAt: Timestamp.now(),
   })
-
-  notifierAdmins({
-    title: 'Nouveau prospect',
-    message: `${donnees.nom || 'Un prospect'} a envoye une demande${donnees.typeProjet ? ` (${donnees.typeProjet})` : ''}.`,
-    link: '/admin/prospects'
-  })
 }
 
 // Envoie un message du prospect (étape 2, après le formulaire) et obtient la réponse de l'IA.
 export async function envoyerMessageProspect(uid, texte) {
-  if (!auth.currentUser || auth.currentUser.uid !== uid) {
-    throw new Error('Session de discussion invalide. Recharge la page pour continuer.')
-  }
-
   const ref = doc(db, 'prospects', uid)
   const snap = await getDoc(ref)
   const data = snap.exists() ? snap.data() : { messages: [] }
@@ -172,6 +136,17 @@ export const getTousProspects = async () => {
   } catch (e) {
     console.error('getTousProspects:', e)
     return []
+  }
+}
+
+// Supprimer définitivement un prospect (admin uniquement — règle Firestore)
+export const supprimerProspect = async (uid) => {
+  try {
+    await deleteDoc(doc(db, 'prospects', uid))
+    return true
+  } catch (e) {
+    console.error('supprimerProspect:', e)
+    return false
   }
 }
 

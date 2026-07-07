@@ -12,7 +12,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { demanderAssistant } from '../services/iaService'
-import { Send, FileText, Calculator, Lightbulb, Building2, Sparkles, Bell, Paperclip, X, ImageIcon } from 'lucide-react'
+import { Send, FileText, Calculator, Lightbulb, Building2, Sparkles, Bell, Paperclip, X, ImageIcon, History, SquarePen, Trash2 } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { prepareImagePourIA } from '../utils/imageUpload'
 import logo from '../assets/logo.webp'
@@ -201,6 +201,11 @@ function MessageBubble({ msg }) {
             <img src={msg.image} alt="Image envoyée" className="w-full object-cover"
               style={{ maxHeight: '240px', display: 'block' }} />
           )}
+          {!msg.image && msg.hadImage && (
+            <p className="px-4 pt-3 text-xs font-medium flex items-center gap-1.5 opacity-70">
+              📷 Photo envoyée
+            </p>
+          )}
           {msg.content && (
             <p className="text-sm leading-relaxed whitespace-pre-wrap break-words px-4 py-3">{msg.content}</p>
           )}
@@ -283,10 +288,14 @@ export default function AIChat({
 
   // ── Clé unique par utilisateur ────────────────────────────────────────────
   // CRITIQUE : cette clé change quand l'utilisateur change de compte.
-  // Le useEffect ci-dessous recharge les messages de la bonne clé.
   const userId = user?.id || null
-  const fullKey = userId ? `${storageKey}-${userId}` : null
+  // localStorage (et non sessionStorage) : l'historique survit au refresh
+  // et à la fermeture du navigateur — par appareil et par utilisateur.
+  const fullKey = userId ? `${storageKey}-convs-${userId}` : null
 
+  const [conversations, setConversations] = useState([]) // [{id,titre,messages,updatedAt}]
+  const [activeConvId, setActiveConvId] = useState(null)
+  const [showHistory, setShowHistory] = useState(false)
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [isTyping, setIsTyping] = useState(false)
@@ -300,28 +309,97 @@ export default function AIChat({
   const loadedKeyRef = useRef(null)
   const streamIntervalRef = useRef(null)
 
-  // ── Charger les messages quand l'utilisateur change ───────────────────────
-  // C'est LE fix du bug de conversations mélangées.
-  // Avant : useState(() => sessionStorage.get(key)) — ne se relançait jamais.
-  // Maintenant : useEffect qui surveille fullKey et recharge proprement.
+  // ── Charger l'historique quand l'utilisateur change ────────────────────────
+  // Isolation stricte par user.id (fix du bug de conversations mélangées) +
+  // migration automatique de l'ancien format sessionStorage mono-conversation.
   useEffect(() => {
-    if (!fullKey) { setMessages([]); return }
-    if (loadedKeyRef.current === fullKey) return // déjà chargé
+    if (!fullKey) { setConversations([]); setMessages([]); setActiveConvId(null); return }
+    if (loadedKeyRef.current === fullKey) return
     loadedKeyRef.current = fullKey
     try {
-      const saved = sessionStorage.getItem(fullKey)
-      setMessages(saved ? JSON.parse(saved) : [])
+      let convs = JSON.parse(localStorage.getItem(fullKey) || '[]')
+      // Migration : ancien format (sessionStorage, une seule discussion)
+      const ancienneCle = `${storageKey}-${userId}`
+      const ancien = sessionStorage.getItem(ancienneCle)
+      if (ancien) {
+        const msgs = JSON.parse(ancien)
+        if (Array.isArray(msgs) && msgs.length > 0) {
+          convs.unshift({
+            id: `c-${Date.now()}`,
+            titre: (msgs.find(m => m.role === 'user')?.content || 'Discussion').slice(0, 42),
+            messages: msgs.map(m => m.image ? { ...m, image: null, hadImage: true } : m),
+            updatedAt: Date.now(),
+          })
+        }
+        sessionStorage.removeItem(ancienneCle)
+      }
+      setConversations(convs)
+      // Reprendre la discussion la plus récente (comportement "on continue")
+      if (convs.length > 0) { setActiveConvId(convs[0].id); setMessages(convs[0].messages || []) }
+      else { setActiveConvId(null); setMessages([]) }
     } catch {
-      setMessages([])
+      setConversations([]); setMessages([]); setActiveConvId(null)
     }
-  }, [fullKey])
+  }, [fullKey, storageKey, userId])
 
-  // ── Sauvegarder quand les messages changent ───────────────────────────────
-  // Ne sauvegarde QUE si on a un vrai user ID (jamais sous 'anon').
+  // ── Persister l'historique à chaque changement de messages ─────────────────
+  // Les images (base64 lourds) ne sont pas persistées : localStorage est
+  // limité à ~5 Mo. À la reprise, un marqueur "Photo" remplace l'aperçu.
   useEffect(() => {
-    if (!fullKey || !loadedKeyRef.current) return
-    try { sessionStorage.setItem(fullKey, JSON.stringify(messages)) } catch {}
-  }, [messages, fullKey])
+    if (!fullKey || loadedKeyRef.current !== fullKey || !activeConvId) return
+    setConversations(prev => {
+      const light = messages.map(m => m.image ? { ...m, image: null, hadImage: true } : m)
+      const idx = prev.findIndex(c => c.id === activeConvId)
+      let next
+      if (idx === -1) {
+        next = prev
+      } else {
+        const titre = prev[idx].titre || (messages.find(m => m.role === 'user')?.content || 'Discussion').slice(0, 42)
+        next = [...prev]
+        next[idx] = { ...next[idx], titre, messages: light, updatedAt: Date.now() }
+        // La conversation active remonte en tête de liste
+        const [conv] = next.splice(idx, 1)
+        next.unshift(conv)
+      }
+      try { localStorage.setItem(fullKey, JSON.stringify(next.slice(0, 30))) } catch {}
+      return next
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages])
+
+  // ── Actions historique ──────────────────────────────────────────────────────
+  const nouvelleDiscussion = () => {
+    if (streamIntervalRef.current) { clearInterval(streamIntervalRef.current); streamIntervalRef.current = null }
+    setIsStreaming(false); setStreamingText(''); setIsTyping(false)
+    const conv = { id: `c-${Date.now()}`, titre: '', messages: [], updatedAt: Date.now() }
+    setConversations(prev => {
+      const next = [conv, ...prev.filter(c => (c.messages || []).length > 0)] // purge les vides
+      try { if (fullKey) localStorage.setItem(fullKey, JSON.stringify(next.slice(0, 30))) } catch {}
+      return next
+    })
+    setActiveConvId(conv.id)
+    setMessages([])
+    setShowHistory(false)
+    inputRef.current?.focus()
+  }
+
+  const ouvrirDiscussion = (conv) => {
+    if (isTyping || isStreaming) return
+    setActiveConvId(conv.id)
+    setMessages(conv.messages || [])
+    setShowHistory(false)
+  }
+
+  const supprimerDiscussion = (e, convId) => {
+    e.stopPropagation()
+    if (!window.confirm('Supprimer cette discussion ?')) return
+    setConversations(prev => {
+      const next = prev.filter(c => c.id !== convId)
+      try { if (fullKey) localStorage.setItem(fullKey, JSON.stringify(next)) } catch {}
+      return next
+    })
+    if (convId === activeConvId) { setActiveConvId(null); setMessages([]) }
+  }
 
   // ── Auto-scroll ───────────────────────────────────────────────────────────
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages, isTyping, streamingText])
@@ -362,6 +440,13 @@ export default function AIChat({
     }
     const imagePayload = imageJointe ? { base64: imageJointe.base64, mediaType: imageJointe.mediaType } : null
 
+    // Premier message sans conversation active → en créer une automatiquement
+    if (!activeConvId) {
+      const conv = { id: `c-${Date.now()}`, titre: question.slice(0, 42) || 'Discussion', messages: [], updatedAt: Date.now() }
+      setConversations(prev => [conv, ...prev])
+      setActiveConvId(conv.id)
+    }
+
     setMessages(prev => [...prev, userMsg])
     setInput('')
     setImageJointe(null)
@@ -400,7 +485,7 @@ export default function AIChat({
       setMessages(prev => [...prev, { id: `e-${Date.now()}`, role: 'error', content: err.message || 'Erreur. Réessayez.', ts: Date.now() }])
       setIsTyping(false)
     }
-  }, [input, isTyping, isStreaming, imageLoading, imageJointe, messages, isAdmin, notifications])
+  }, [input, isTyping, isStreaming, imageLoading, imageJointe, messages, isAdmin, notifications, activeConvId])
 
   const handleKeyDown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() } }
   const autoResize = (e) => { e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px' }
@@ -428,6 +513,67 @@ export default function AIChat({
               <span style={{ color: '#34D399' }}>En ligne</span>
             </p>
           </div>
+          {/* Actions historique */}
+          <div className="flex items-center gap-1.5">
+            <button onClick={nouvelleDiscussion} title="Nouvelle discussion" aria-label="Nouvelle discussion"
+              className="w-9 h-9 rounded-xl flex items-center justify-center transition hover:bg-white/5 btn-press"
+              style={{ color: 'var(--gold)', border: '1px solid var(--dark-border)' }}>
+              <SquarePen size={16} />
+            </button>
+            <button onClick={() => setShowHistory(v => !v)} title="Historique des discussions" aria-label="Historique"
+              className="w-9 h-9 rounded-xl flex items-center justify-center transition hover:bg-white/5 btn-press relative"
+              style={{ color: showHistory ? '#060D18' : 'var(--text-secondary)', background: showHistory ? 'var(--gold)' : 'transparent', border: '1px solid var(--dark-border)' }}>
+              <History size={16} />
+              {conversations.length > 0 && !showHistory && (
+                <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-0.5 rounded-full text-[9px] font-bold flex items-center justify-center"
+                  style={{ background: 'var(--gold)', color: '#060D18' }}>
+                  {conversations.length}
+                </span>
+              )}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Panneau historique des discussions ── */}
+      {showHistory && !compact && (
+        <div className="shrink-0 max-h-[45%] overflow-y-auto dark-scrollbar px-3 py-3 space-y-1.5 animate-fade-in"
+          style={{ borderBottom: '1px solid var(--dark-border)', background: 'rgba(6,13,24,0.5)' }}>
+          <div className="flex items-center justify-between px-1 mb-1">
+            <p className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+              Discussions passées
+            </p>
+            <button onClick={nouvelleDiscussion}
+              className="text-[11px] font-semibold flex items-center gap-1 btn-press"
+              style={{ color: 'var(--gold)' }}>
+              <SquarePen size={11} /> Nouvelle
+            </button>
+          </div>
+          {conversations.filter(c => (c.messages || []).length > 0).length === 0 && (
+            <p className="text-xs text-center py-4" style={{ color: 'var(--text-muted)' }}>
+              Aucune discussion enregistrée pour l'instant.
+            </p>
+          )}
+          {conversations.filter(c => (c.messages || []).length > 0).map((c) => (
+            <button key={c.id} onClick={() => ouvrirDiscussion(c)}
+              className="w-full text-left px-3 py-2.5 rounded-xl flex items-center gap-2.5 transition group"
+              style={{
+                background: c.id === activeConvId ? 'rgba(246,195,68,0.08)' : 'var(--dark-elevated)',
+                border: `1px solid ${c.id === activeConvId ? 'rgba(246,195,68,0.25)' : 'var(--dark-border)'}`,
+              }}>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-white truncate">{c.titre || 'Discussion'}</p>
+                <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                  {new Date(c.updatedAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} · {(c.messages || []).length} message{(c.messages || []).length > 1 ? 's' : ''}
+                </p>
+              </div>
+              <span onClick={(e) => supprimerDiscussion(e, c.id)} role="button" aria-label="Supprimer la discussion"
+                className="p-1.5 rounded-lg shrink-0 opacity-60 hover:opacity-100 transition"
+                style={{ color: '#F87171' }}>
+                <Trash2 size={13} />
+              </span>
+            </button>
+          ))}
         </div>
       )}
 
