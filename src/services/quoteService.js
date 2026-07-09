@@ -89,6 +89,20 @@ export const getTousDevis = async () => {
   }
 }
 
+// Recharge un devis frais depuis Firestore par son ID.
+// Essentiel avant de générer le PDF : garantit d'avoir la signature client
+// la plus récente (le client a pu signer entre-temps via le lien).
+export const getDevisParId = async (devisId) => {
+  try {
+    const snap = await getDoc(doc(db, 'quotes', devisId))
+    if (!snap.exists()) return null
+    return { id: snap.id, ...snap.data() }
+  } catch (error) {
+    console.error('getDevisParId:', error)
+    return null
+  }
+}
+
 // Changer le statut (admin uniquement)
 export const changerStatutDevis = async (devisId, statut) => {
   try {

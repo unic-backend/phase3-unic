@@ -2,8 +2,9 @@ import { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { getDevisClient, supprimerDevis } from '../services/quoteService'
+import { telechargerDevisPDF } from '../pdf/generatePdf'
 import Toast from '../components/Toast'
-import { Plus, Trash2, FileText, Clock, CheckCircle2, XCircle, X } from 'lucide-react'
+import { Plus, Trash2, FileText, Clock, CheckCircle2, XCircle, X, Download } from 'lucide-react'
 import SortSelect from '../components/SortSelect'
 import { trierListe, OPTIONS_TRI } from '../utils/tri'
 import { formatMontant } from '../utils/pricing'
@@ -16,6 +17,22 @@ export default function DevisAvance() {
   const [toast, setToast] = useState(null)
   const [filter, setFilter] = useState('Tous')
   const [sortKey, setSortKey] = useState('date_desc')
+  const [pdfEnCours, setPdfEnCours] = useState(false)
+
+  // Le client peut télécharger son devis dès qu'il est approuvé ou signé.
+  const peutTelecharger = (s) => ['Approuvé', 'En attente de signature', 'Signé'].includes(s)
+
+  const telecharger = async (devis) => {
+    setPdfEnCours(true)
+    try {
+      await telechargerDevisPDF(devis)
+    } catch (e) {
+      console.error('Erreur PDF client:', e)
+      setToast({ message: 'Erreur lors du téléchargement. Réessayez.', type: 'error' })
+    } finally {
+      setPdfEnCours(false)
+    }
+  }
 
   const badge = (s) => {
     if (s === 'En attente') return 'badge-warning'
@@ -145,6 +162,16 @@ export default function DevisAvance() {
             {selectedDevis.status === 'Signé' && (
               <div className="rounded-xl p-3 text-xs badge-success">✓ Devis signé — les travaux vont pouvoir démarrer.</div>
             )}
+
+            {/* Téléchargement PDF — dès que le devis est prêt (approuvé/signé) */}
+            {peutTelecharger(selectedDevis.status) && (
+              <button onClick={() => telecharger(selectedDevis)} disabled={pdfEnCours}
+                className="w-full py-3 rounded-xl font-bold text-sm btn-press flex items-center justify-center gap-2 disabled:opacity-50"
+                style={{ background: 'var(--gold)', color: '#060D18' }}>
+                <Download size={16} /> {pdfEnCours ? 'Préparation…' : 'Télécharger le devis (PDF)'}
+              </button>
+            )}
+
             {<button onClick={() => handleDelete(selectedDevis)} className="w-full py-2 rounded-xl font-semibold text-xs btn-press flex items-center justify-center gap-1.5" style={{ background: 'rgba(248,113,113,0.1)', color: '#F87171' }}><Trash2 size={14}/> Supprimer ce devis</button>}
             <button onClick={() => setSelectedDevis(null)} className="w-full py-2.5 rounded-xl font-semibold text-sm btn-press" style={{ background: 'var(--dark-elevated)', color: 'var(--text-secondary)' }}>Fermer</button>
           </div>
