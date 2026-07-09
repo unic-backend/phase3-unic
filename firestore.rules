@@ -167,7 +167,11 @@ service cloud.firestore {
 
     // ==================== parametres (signature admin, etc.) ====================
     match /parametres/{id} {
-      allow read, write: if isAdmin();
+      // Lecture : tout utilisateur connecté — nécessaire pour que la signature
+      // UniC apparaisse sur les PDF téléchargés par les CLIENTS (devis/factures).
+      // Écriture : admin uniquement (personne d'autre ne peut changer la signature).
+      allow read: if isAuth();
+      allow write: if isAdmin();
     }
 
     // ==================== base_connaissances (IA) ====================

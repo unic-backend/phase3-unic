@@ -1,9 +1,10 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { getFacturesClient, signalerPaiement, supprimerFacture } from '../services/invoiceService'
+import { telechargerFacturePDF } from '../pdf/generatePdf'
 import { PAIEMENT } from '../config/paiement'
 import Toast from '../components/Toast'
-import { CreditCard, Copy, CheckCircle2, Receipt, Clock, Eye, X, Trash2 } from 'lucide-react'
+import { CreditCard, Copy, CheckCircle2, Receipt, Clock, Eye, X, Trash2, Download } from 'lucide-react'
 import SortSelect from '../components/SortSelect'
 import { trierListe, OPTIONS_TRI } from '../utils/tri'
 
@@ -16,6 +17,19 @@ export default function FacturesAvance() {
   const [filter, setFilter] = useState('Tous')
   const [sortKey, setSortKey] = useState('date_desc')
   const [showPayment, setShowPayment] = useState(false)
+  const [pdfEnCours, setPdfEnCours] = useState(false)
+
+  const telechargerPdf = async (facture) => {
+    setPdfEnCours(true)
+    try {
+      await telechargerFacturePDF(facture)
+    } catch (e) {
+      console.error('Erreur PDF facture:', e)
+      setToast({ message: 'Erreur lors du téléchargement. Réessayez.', type: 'error' })
+    } finally {
+      setPdfEnCours(false)
+    }
+  }
 
   useEffect(() => {
     let actif = true
@@ -156,6 +170,13 @@ export default function FacturesAvance() {
             {selectedFacture.status === 'Payée' && (
               <div className="rounded-xl p-3 text-center badge-success"><p className="text-xs font-semibold flex items-center justify-center gap-1"><CheckCircle2 size={14}/> Facture payée</p></div>
             )}
+
+            {/* Téléchargement PDF de la facture (avec les 2 signatures si signée) */}
+            <button onClick={() => telechargerPdf(selectedFacture)} disabled={pdfEnCours}
+              className="w-full py-3 rounded-xl font-bold text-sm btn-press flex items-center justify-center gap-2 disabled:opacity-50"
+              style={{ background: 'var(--gold)', color: '#060D18' }}>
+              <Download size={16} /> {pdfEnCours ? 'Préparation…' : 'Télécharger la facture (PDF)'}
+            </button>
 
             <button onClick={fermerModal} className="w-full py-2.5 rounded-xl font-semibold text-sm btn-press" style={{ background: 'var(--dark-elevated)', color: 'var(--text-secondary)' }}>Fermer</button>
             <button onClick={() => handleDeleteFacture(selectedFacture)} className="w-full py-2 rounded-xl font-semibold text-xs btn-press flex items-center justify-center gap-1.5" style={{ background: 'rgba(248,113,113,0.1)', color: '#F87171' }}>

@@ -53,6 +53,19 @@ export const getToutesFactures = async () => {
   }
 }
 
+// Recharge une facture fraîche depuis Firestore par son ID.
+// Essentiel avant génération PDF : garantit la signature client à jour.
+export const getFactureParId = async (factureId) => {
+  try {
+    const snap = await getDoc(doc(db, 'invoices', factureId))
+    if (!snap.exists()) return null
+    return { id: snap.id, ...snap.data() }
+  } catch (e) {
+    console.error('getFactureParId:', e)
+    return null
+  }
+}
+
 // Marquer payée (admin)
 // ==================== Signature électronique facture ====================
 // Même système que les devis : lien token → page publique → signature client.

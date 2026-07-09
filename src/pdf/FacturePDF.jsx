@@ -141,8 +141,9 @@ export default function FacturePDF({ facture }) {
           </View>
           <View style={s.signatureCol}>
             <Text style={s.signatureNom}>Client ({facture.clientNom || facture.clientEmail || ''})</Text>
-            <Text style={s.signatureLigne}>Signature : ___________________</Text>
-            <Text style={s.signatureLigne}>Date : ___________________</Text>
+            {facture.signatureClient && <Image src={facture.signatureClient} style={s.signatureImage} />}
+            <Text style={s.signatureLigne}>Signature : {facture.signatureClient ? '' : '___________________'}</Text>
+            <Text style={s.signatureLigne}>Date : {facture.signatureClient ? (facture.signatureClientDate?.seconds ? new Date(facture.signatureClientDate.seconds * 1000).toLocaleDateString('fr-FR') : '—') : '___________________'}</Text>
           </View>
         </View>
 

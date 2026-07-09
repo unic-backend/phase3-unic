@@ -53,7 +53,19 @@ export async function telechargerFacturePDF(facture) {
   const { pdf } = await import('@react-pdf/renderer')
   const { default: FacturePDF } = await import('./FacturePDF.jsx')
   const signatureAdmin = await getSignatureAdmin()
-  const donnees = { ...facture, dateAffichee: formatDateAffichee(facture.issueDate || facture.createdAt), signatureAdmin }
+
+  // Recharge la facture fraîche : garantit la signature client à jour
+  // (le client a pu signer entre-temps via le lien).
+  let factureAJour = facture
+  if (facture?.id) {
+    try {
+      const { getFactureParId } = await import('../services/invoiceService')
+      const fraiche = await getFactureParId(facture.id)
+      if (fraiche) factureAJour = fraiche
+    } catch { /* on garde la version fournie */ }
+  }
+
+  const donnees = { ...factureAJour, dateAffichee: formatDateAffichee(factureAJour.issueDate || factureAJour.createdAt), signatureAdmin }
   const blob = await pdf(<FacturePDF facture={donnees} />).toBlob()
-  declencherTelechargement(blob, `${facture.invoiceNumber || 'facture'}.pdf`)
+  declencherTelechargement(blob, `${factureAJour.invoiceNumber || 'facture'}.pdf`)
 }
