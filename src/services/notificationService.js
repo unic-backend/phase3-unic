@@ -1,5 +1,27 @@
-import { collection, addDoc, query, where, getDocs, updateDoc, doc, Timestamp } from 'firebase/firestore'
+import { collection, addDoc, query, where, getDocs, updateDoc, deleteDoc, doc, Timestamp } from 'firebase/firestore'
 import { db } from '../firebase/init'
+
+// Supprimer UNE notification (le propriétaire ou l'admin pour les forAdmins)
+export const supprimerNotification = async (notifId) => {
+  try {
+    await deleteDoc(doc(db, 'notifications', notifId))
+    return true
+  } catch (e) {
+    console.error('supprimerNotification:', e)
+    return false
+  }
+}
+
+// Tout effacer : supprime une liste de notifications (les siennes)
+export const supprimerToutesNotifications = async (notifIds) => {
+  try {
+    await Promise.all(notifIds.map(id => deleteDoc(doc(db, 'notifications', id))))
+    return true
+  } catch (e) {
+    console.error('supprimerToutesNotifications:', e)
+    return false
+  }
+}
 
 // Notification pour UN client précis (userId = uid du client)
 export const notifierClient = async (userId, { title, message, link = '' }) => {

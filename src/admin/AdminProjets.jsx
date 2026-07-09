@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import SearchBar from '../components/SearchBar'
-import { getTousProjets, creerProjet, changerEtape, ajouterPhoto, uploadPhotoFichier, ETAPES_CHANTIER } from '../services/projectService'
+import { getTousProjets, creerProjet, changerEtape, ajouterPhoto, uploadPhotoFichier, supprimerProjet, ETAPES_CHANTIER } from '../services/projectService'
 import { getTousDevis } from '../services/quoteService'
-import { Building2, Plus, ChevronRight, ChevronLeft, Camera, Upload, X, LayoutGrid, List } from 'lucide-react'
+import { Building2, Plus, ChevronRight, ChevronLeft, Camera, Upload, X, LayoutGrid, List, Trash2 } from 'lucide-react'
 
 export default function AdminProjets() {
   const [projets, setProjets] = useState([])
@@ -320,6 +320,21 @@ export default function AdminProjets() {
               </div>
             )}
 
+            <button
+              onClick={async () => {
+                if (!window.confirm(`Supprimer définitivement le projet "${selected.name}" ? Les photos et l'historique des étapes seront perdus. Cette action est irréversible.`)) return
+                if (await supprimerProjet(selected.id)) {
+                  setProjets(prev => prev.filter(p => p.id !== selected.id))
+                  setSelected(null)
+                  flash('Projet supprimé.')
+                } else {
+                  flash('Suppression impossible. Vérifie que les règles Firestore ont été republiées.')
+                }
+              }}
+              className="w-full py-2 rounded-xl font-semibold text-xs btn-press flex items-center justify-center gap-1.5"
+              style={{ background: 'rgba(248,113,113,0.1)', color: '#F87171', border: '1px solid rgba(248,113,113,0.2)' }}>
+              <Trash2 size={14} /> Supprimer ce projet
+            </button>
             <button onClick={() => setSelected(null)} className="w-full py-2.5 rounded-xl font-semibold text-sm btn-press"
               style={{ background: 'var(--dark-elevated)', color: 'var(--text-secondary)' }}>Fermer</button>
           </div>

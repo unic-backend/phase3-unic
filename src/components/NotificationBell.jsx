@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Bell, X } from 'lucide-react'
-import { getNotificationsClient, getNotificationsAdmin, marquerNotificationLue, marquerToutesLues } from '../services/notificationService'
+import { Bell, X, Trash2 } from 'lucide-react'
+import { getNotificationsClient, getNotificationsAdmin, marquerNotificationLue, marquerToutesLues, supprimerNotification, supprimerToutesNotifications } from '../services/notificationService'
 
 function tempsRelatif(timestamp) {
   if (!timestamp?.seconds) return ''
@@ -120,19 +120,47 @@ export default function NotificationBell({ mode, userId }) {
           )}
 
           {!loading && notifs.map(n => (
-            <button
-              key={n.id}
-              onClick={() => handleClickNotif(n)}
-              className={`w-full text-left p-4 border-b border-gray-50 hover:bg-gray-50 transition flex gap-3 items-start ${!n.read ? 'bg-blue-50/50' : ''}`}
-            >
-              {!n.read && <span className="w-2 h-2 rounded-full bg-[#F2C200] mt-1.5 shrink-0" />}
-              <div className={n.read ? 'pl-5' : ''}>
-                <p className="font-bold text-sm text-gray-800">{n.title}</p>
-                <p className="text-sm text-gray-500 mt-0.5">{n.message}</p>
-                <p className="text-xs text-gray-400 mt-1">{tempsRelatif(n.createdAt)}</p>
-              </div>
-            </button>
+            <div key={n.id} className={`w-full border-b border-gray-50 hover:bg-gray-50 transition flex gap-2 items-start ${!n.read ? 'bg-blue-50/50' : ''}`}>
+              <button
+                onClick={() => handleClickNotif(n)}
+                className="flex-1 text-left p-4 flex gap-3 items-start min-w-0"
+              >
+                {!n.read && <span className="w-2 h-2 rounded-full bg-[#F2C200] mt-1.5 shrink-0" />}
+                <div className={n.read ? 'pl-5' : ''}>
+                  <p className="font-bold text-sm text-gray-800">{n.title}</p>
+                  <p className="text-sm text-gray-500 mt-0.5">{n.message}</p>
+                  <p className="text-xs text-gray-400 mt-1">{tempsRelatif(n.createdAt)}</p>
+                </div>
+              </button>
+              <button
+                onClick={async (e) => {
+                  e.stopPropagation()
+                  if (await supprimerNotification(n.id)) {
+                    setNotifs(prev => prev.filter(x => x.id !== n.id))
+                  }
+                }}
+                className="p-2 mt-3 mr-2 rounded-lg shrink-0 text-gray-300 hover:text-red-400 transition btn-press"
+                aria-label="Supprimer cette notification"
+              >
+                <Trash2 size={14} />
+              </button>
+            </div>
           ))}
+
+          {/* Tout effacer — en bas de liste */}
+          {!loading && notifs.length > 0 && (
+            <button
+              onClick={async () => {
+                if (!window.confirm('Effacer toutes les notifications ?')) return
+                if (await supprimerToutesNotifications(notifs.map(n => n.id))) {
+                  setNotifs([])
+                }
+              }}
+              className="w-full py-3 text-xs font-semibold text-red-400 hover:bg-red-50 transition flex items-center justify-center gap-1.5"
+            >
+              <Trash2 size={13} /> Tout effacer
+            </button>
+          )}
         </div>
       )}
     </div>

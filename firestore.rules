@@ -110,7 +110,8 @@ service cloud.firestore {
       allow read:   if isAuth() && (resource.data.clientId == request.auth.uid || isAdmin());
       allow create: if isAuth() && isAdmin();
       allow update: if isAuth() && isAdmin();
-      allow delete: if false;
+      // Suppression: admin uniquement (le client ne peut pas effacer le suivi de chantier)
+      allow delete: if isAuth() && isAdmin();
     }
 
     // ==================== notifications ====================
@@ -132,7 +133,11 @@ service cloud.firestore {
         (resource.data.forAdmins == true && isAdmin()) ||
         resource.data.userId == request.auth.uid
       );
-      allow delete: if false;
+      // Suppression: chacun efface les siennes ; l'admin efface celles forAdmins
+      allow delete: if isAuth() && (
+        (resource.data.forAdmins == true && isAdmin()) ||
+        resource.data.userId == request.auth.uid
+      );
     }
 
     // ==================== prospects (page publique /discussion) ====================

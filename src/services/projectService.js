@@ -1,5 +1,16 @@
-import { collection, addDoc, updateDoc, doc, getDoc, query, where, getDocs, Timestamp } from 'firebase/firestore'
+import { collection, addDoc, updateDoc, deleteDoc, doc, getDoc, query, where, getDocs, Timestamp } from 'firebase/firestore'
 import { db } from '../firebase/init'
+
+// Supprimer définitivement un projet terminé (admin uniquement — règle Firestore)
+export const supprimerProjet = async (projetId) => {
+  try {
+    await deleteDoc(doc(db, 'projects', projetId))
+    return true
+  } catch (e) {
+    console.error('supprimerProjet:', e)
+    return false
+  }
+}
 
 // Les étapes d'un chantier (dans l'ordre)
 export const ETAPES_CHANTIER = [
