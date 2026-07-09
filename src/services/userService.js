@@ -41,3 +41,33 @@ export async function getUsersForSelect() {
     return []
   }
 }
+
+// Statistiques réelles d'inscription : nombre total de comptes CLIENTS
+// (comptes admin exclus) + nombre créés ce mois-ci, pour répondre à
+// "combien de personnes sont inscrites sur l'app ?"
+export async function getStatistiquesInscriptions() {
+  try {
+    const snap = await getDocs(collection(db, 'users'))
+    const maintenant = new Date()
+    const debutMois = new Date(maintenant.getFullYear(), maintenant.getMonth(), 1)
+
+    let total = 0
+    let ceMois = 0
+
+    snap.docs.forEach(d => {
+      const data = d.data()
+      if (data.isAdmin) return // on ne compte que les vrais clients
+      total += 1
+
+      const createdAt = data.createdAt?.toDate
+        ? data.createdAt.toDate()
+        : (data.createdAt ? new Date(data.createdAt) : null)
+      if (createdAt && createdAt >= debutMois) ceMois += 1
+    })
+
+    return { total, ceMois }
+  } catch (error) {
+    console.error('Erreur getStatistiquesInscriptions:', error)
+    return { total: 0, ceMois: 0 }
+  }
+}

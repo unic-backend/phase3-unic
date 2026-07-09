@@ -3,16 +3,18 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { getTousDevis } from '../services/quoteService'
 import { getToutesFactures } from '../services/invoiceService'
+import { getStatistiquesInscriptions } from '../services/userService'
 import AnimatedNumber from '../components/AnimatedNumber'
 import {
   FileText, Clock, CheckCircle2, Wallet, Users, Receipt,
   ChevronRight, TrendingUp, ArrowUpRight, Plus,
-  Building2, Eye
+  Building2, Eye, UserPlus
 } from 'lucide-react'
 
 export default function AdminDashboard() {
   const [devis, setDevis] = useState([])
   const [factures, setFactures] = useState([])
+  const [inscriptions, setInscriptions] = useState({ total: 0, ceMois: 0 })
   const [loading, setLoading] = useState(true)
   const { user } = useAuth()
   const navigate = useNavigate()
@@ -20,13 +22,15 @@ export default function AdminDashboard() {
   useEffect(() => {
     let actif = true
     async function charger() {
-      const [listDevis, listFactures] = await Promise.all([
+      const [listDevis, listFactures, statsInscriptions] = await Promise.all([
         getTousDevis(),
-        getToutesFactures()
+        getToutesFactures(),
+        getStatistiquesInscriptions()
       ])
       if (actif) {
         setDevis(listDevis)
         setFactures(listFactures)
+        setInscriptions(statsInscriptions)
         setLoading(false)
       }
     }
@@ -107,6 +111,32 @@ export default function AdminDashboard() {
           </div>
         </div>
         <ChevronRight size={20} />
+      </button>
+
+      {/* ========== CLIENTS INSCRITS ========== */}
+      <button
+        onClick={() => navigate('/admin/clients')}
+        className="w-full card-glass p-5 flex items-center gap-4 text-left animate-fade-in"
+        style={{ opacity: 0, animationDelay: '80ms' }}
+      >
+        <div className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0"
+          style={{ background: 'rgba(96,165,250,0.14)' }}>
+          <UserPlus size={26} style={{ color: '#60A5FA' }} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+            Clients inscrits sur l'app
+          </p>
+          <p className="text-3xl font-extrabold text-white mt-0.5" style={{ letterSpacing: '-0.02em' }}>
+            {loading ? '—' : <AnimatedNumber value={inscriptions.total} />}
+          </p>
+          {!loading && inscriptions.ceMois > 0 && (
+            <p className="text-xs font-medium mt-0.5" style={{ color: '#34D399' }}>
+              +{inscriptions.ceMois} ce mois-ci
+            </p>
+          )}
+        </div>
+        <ChevronRight size={20} style={{ color: 'var(--text-muted)' }} />
       </button>
 
       {/* ========== STATS CARDS ========== */}
