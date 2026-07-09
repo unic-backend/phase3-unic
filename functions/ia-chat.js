@@ -50,8 +50,6 @@ export default async (req) => {
   const questionEffective = question || (image ? 'Analyse cette image et donne ton avis professionnel.' : '')
 
   if (!questionEffective) return new Response(JSON.stringify({ error: 'Question vide' }), { status: 400 })
-  if (!process.env.CLAUDE_API_KEY)
-    return new Response(JSON.stringify({ error: 'Assistant IA non configuré.' }), { status: 500 })
 
   const aujourd_hui = dateAujourdhui()
   const annee = new Date().getFullYear()
@@ -218,27 +216,31 @@ ${baseInfo}`
 
   const systemPrompt = isAdmin ? adminPrompt : clientPrompt
 
-  // ── Messages multi-tour (mémoire complète de conversation) ─────────────────
-  const messages = []
-  for (const msg of historique.slice(-24)) {
-    if (msg.role === 'user' || msg.role === 'assistant')
-      messages.push({ role: msg.role, content: msg.content })
-  }
+  // ═══════════════════════════════════════════════════════════════════════════
+  // DOUBLE MOTEUR IA — Claude en priorité, Mistral en relais automatique
+  // Si Claude échoue (limite atteinte, quota, panne), Mistral prend le relais
+  // sans que l'utilisateur ne voie de coupure.
+  // ═══════════════════════════════════════════════════════════════════════════
 
-  // Message courant : avec image (multimodal) ou texte seul.
-  if (image) {
-    messages.push({
-      role: 'user',
-      content: [
-        { type: 'image', source: { type: 'base64', media_type: image.mediaType, data: image.base64 } },
-        { type: 'text', text: questionEffective },
-      ],
-    })
-  } else {
-    messages.push({ role: 'user', content: questionEffective })
-  }
+  // ── Moteur 1 : Claude (Anthropic) ──────────────────────────────────────────
+  async function appelerClaude() {
+    const messagesClaude = []
+    for (const msg of historique.slice(-24)) {
+      if (msg.role === 'user' || msg.role === 'assistant')
+        messagesClaude.push({ role: msg.role, content: msg.content })
+    }
+    if (image) {
+      messagesClaude.push({
+        role: 'user',
+        content: [
+          { type: 'image', source: { type: 'base64', media_type: image.mediaType, data: image.base64 } },
+          { type: 'text', text: questionEffective },
+        ],
+      })
+    } else {
+      messagesClaude.push({ role: 'user', content: questionEffective })
+    }
 
-  try {
     const r = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -250,21 +252,108 @@ ${baseInfo}`
         model: 'claude-sonnet-4-6',
         max_tokens: 2500,
         system: systemPrompt,
-        messages,
+        messages: messagesClaude,
       }),
     })
-
     if (!r.ok) {
       const errText = await r.text()
-      console.error('Erreur API Claude:', r.status, errText)
-      return new Response(JSON.stringify({ error: 'Service IA temporairement indisponible. Réessayez.' }), { status: 502 })
+      throw new Error(`Claude ${r.status}: ${errText.slice(0, 200)}`)
     }
-
     const data = await r.json()
     const reponse = data?.content?.find((b) => b.type === 'text')?.text || ''
-    return new Response(JSON.stringify({ reponse }), { headers: { 'content-type': 'application/json' } })
-  } catch (e) {
-    console.error('Erreur ia-chat:', e)
-    return new Response(JSON.stringify({ error: 'Erreur serveur. Réessayez.' }), { status: 500 })
+    if (!reponse) throw new Error('Claude: réponse vide')
+    return reponse
   }
+
+  // ── Moteur 2 : Mistral (relais) ────────────────────────────────────────────
+  // Format OpenAI-compatible : le system prompt est un message role:system.
+  // Vision : Mistral utilise pixtral avec image_url (data URI base64).
+  async function appelerMistral() {
+    const messagesMistral = [{ role: 'system', content: systemPrompt }]
+    for (const msg of historique.slice(-24)) {
+      if (msg.role === 'user' || msg.role === 'assistant')
+        messagesMistral.push({ role: msg.role, content: msg.content })
+    }
+    if (image) {
+      // Modèle vision de Mistral (pixtral) : contenu multimodal
+      messagesMistral.push({
+        role: 'user',
+        content: [
+          { type: 'text', text: questionEffective },
+          { type: 'image_url', image_url: `data:${image.mediaType};base64,${image.base64}` },
+        ],
+      })
+    } else {
+      messagesMistral.push({ role: 'user', content: questionEffective })
+    }
+
+    // pixtral gère texte + image ; il gère aussi le texte seul, donc on peut
+    // l'utiliser dans les deux cas pour simplifier.
+    const modele = image ? 'pixtral-12b-2409' : 'mistral-small-latest'
+
+    const r = await fetch('https://api.mistral.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.MISTRAL_API_KEY}`,
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: modele,
+        max_tokens: 2500,
+        messages: messagesMistral,
+      }),
+    })
+    if (!r.ok) {
+      const errText = await r.text()
+      throw new Error(`Mistral ${r.status}: ${errText.slice(0, 200)}`)
+    }
+    const data = await r.json()
+    const reponse = data?.choices?.[0]?.message?.content || ''
+    if (!reponse) throw new Error('Mistral: réponse vide')
+    return reponse
+  }
+
+  // ── Logique de bascule ─────────────────────────────────────────────────────
+  const claudeDispo = !!process.env.CLAUDE_API_KEY
+  const mistralDispo = !!process.env.MISTRAL_API_KEY
+
+  if (!claudeDispo && !mistralDispo) {
+    return new Response(JSON.stringify({ error: 'Assistant IA non configuré.' }), { status: 500 })
+  }
+
+  let reponse = null
+  let moteurUtilise = ''
+  const erreurs = []
+
+  // 1) On tente Claude en priorité
+  if (claudeDispo) {
+    try {
+      reponse = await appelerClaude()
+      moteurUtilise = 'claude'
+    } catch (e) {
+      erreurs.push(e.message)
+      console.error('Échec Claude, tentative Mistral:', e.message)
+    }
+  }
+
+  // 2) Si Claude a échoué (ou absent), on bascule sur Mistral
+  if (!reponse && mistralDispo) {
+    try {
+      reponse = await appelerMistral()
+      moteurUtilise = 'mistral'
+    } catch (e) {
+      erreurs.push(e.message)
+      console.error('Échec Mistral:', e.message)
+    }
+  }
+
+  // 3) Si les deux ont échoué
+  if (!reponse) {
+    console.error('Les deux moteurs IA ont échoué:', erreurs.join(' | '))
+    return new Response(JSON.stringify({ error: 'Service IA temporairement indisponible. Réessayez dans un instant.' }), { status: 502 })
+  }
+
+  return new Response(JSON.stringify({ reponse, moteur: moteurUtilise }), {
+    headers: { 'content-type': 'application/json' },
+  })
 }
