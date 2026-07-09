@@ -4,17 +4,19 @@ import { useAuth } from '../hooks/useAuth'
 import { getTousDevis } from '../services/quoteService'
 import { getToutesFactures } from '../services/invoiceService'
 import { getStatistiquesInscriptions } from '../services/userService'
+import { getStoriesActives } from '../services/storyService'
 import AnimatedNumber from '../components/AnimatedNumber'
 import {
   FileText, Clock, CheckCircle2, Wallet, Users, Receipt,
   ChevronRight, TrendingUp, ArrowUpRight, Plus,
-  Building2, Eye, UserPlus
+  Building2, Eye, UserPlus, Clapperboard
 } from 'lucide-react'
 
 export default function AdminDashboard() {
   const [devis, setDevis] = useState([])
   const [factures, setFactures] = useState([])
   const [inscriptions, setInscriptions] = useState({ total: 0, ceMois: 0 })
+  const [nbStories, setNbStories] = useState(0)
   const [loading, setLoading] = useState(true)
   const { user } = useAuth()
   const navigate = useNavigate()
@@ -22,15 +24,17 @@ export default function AdminDashboard() {
   useEffect(() => {
     let actif = true
     async function charger() {
-      const [listDevis, listFactures, statsInscriptions] = await Promise.all([
+      const [listDevis, listFactures, statsInscriptions, storiesActives] = await Promise.all([
         getTousDevis(),
         getToutesFactures(),
-        getStatistiquesInscriptions()
+        getStatistiquesInscriptions(),
+        getStoriesActives()
       ])
       if (actif) {
         setDevis(listDevis)
         setFactures(listFactures)
         setInscriptions(statsInscriptions)
+        setNbStories(storiesActives.length)
         setLoading(false)
       }
     }
@@ -139,7 +143,29 @@ export default function AdminDashboard() {
         <ChevronRight size={20} style={{ color: 'var(--text-muted)' }} />
       </button>
 
-      {/* ========== STATS CARDS ========== */}
+      {/* ========== RACCOURCI STORIES ========== */}
+      <button
+        onClick={() => navigate('/admin/stories')}
+        className="w-full card-glass p-5 flex items-center gap-4 text-left animate-fade-in"
+        style={{ opacity: 0, animationDelay: '120ms' }}
+      >
+        <div className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0"
+          style={{ background: 'rgba(246,195,68,0.14)' }}>
+          <Clapperboard size={26} style={{ color: 'var(--gold)' }} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+            Mes stories
+          </p>
+          <p className="text-lg font-extrabold text-white mt-0.5">
+            {loading ? '—' : nbStories > 0 ? `${nbStories} story${nbStories > 1 ? 's' : ''} active${nbStories > 1 ? 's' : ''}` : 'Aucune story active'}
+          </p>
+          <p className="text-xs font-medium mt-0.5" style={{ color: 'var(--gold)' }}>
+            Publier · voir les vues et les clics
+          </p>
+        </div>
+        <ChevronRight size={20} style={{ color: 'var(--text-muted)' }} />
+      </button>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         {loading ? (
           <>

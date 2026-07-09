@@ -188,7 +188,7 @@ service cloud.firestore {
         isAdmin() ||
         // Client : uniquement mise à jour des compteurs vues/clics
         request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly(['vues', 'vuePar', 'clics', 'clicPar'])
+          .hasOnly(['vues', 'vuePar', 'vuesDetail', 'clics', 'clicPar', 'clicsDetail'])
       );
     }
 

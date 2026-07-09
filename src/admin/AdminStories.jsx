@@ -39,6 +39,7 @@ export default function AdminStories() {
   const [projetType, setProjetType] = useState('')
   const [publishing, setPublishing] = useState(false)
   const [message, setMessage] = useState('')
+  const [detailOuvert, setDetailOuvert] = useState(null) // id de la story dépliée
   const fileRef = useRef(null)
 
   const flash = (t) => { setMessage(t); setTimeout(() => setMessage(''), 3500) }
@@ -195,37 +196,85 @@ export default function AdminStories() {
 
       {!loading && stories.map(s => {
         const action = ACTIONS_STORY.find(a => a.id === s.actionType)
+        const estOuvert = detailOuvert === s.id
+        const vuesDetail = (s.vuesDetail || []).slice().sort((a, b) => (b.date || 0) - (a.date || 0))
+        const clicsDetail = (s.clicsDetail || []).slice().sort((a, b) => (b.date || 0) - (a.date || 0))
+        const clicIds = new Set(clicsDetail.map(c => c.userId))
+        const fmtHeure = (ts) => ts ? new Date(ts).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''
         return (
-          <div key={s.id} className="card-dark p-3 flex gap-3 animate-fade-in" style={{ opacity: s.expiree ? 0.55 : 1 }}>
-            <div className="w-20 h-24 rounded-xl overflow-hidden shrink-0" style={{ background: '#000' }}>
-              {s.mediaType === 'video'
-                ? <video src={s.mediaUrl} className="w-full h-full object-cover" muted />
-                : <img src={s.mediaUrl} alt="" className="w-full h-full object-cover" />}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                {s.mediaType === 'video' ? <Film size={13} style={{ color: 'var(--gold)' }}/> : <ImageIcon size={13} style={{ color: 'var(--gold)' }}/>}
-                <span className="text-xs font-semibold" style={{ color: s.expiree ? '#F87171' : '#34D399' }}>
-                  <Clock size={11} className="inline mb-0.5" /> {s.expiree ? 'Expirée' : tempsRestant(s.expiresAt)}
-                </span>
+          <div key={s.id} className="card-dark p-3 animate-fade-in" style={{ opacity: s.expiree ? 0.6 : 1 }}>
+            <div className="flex gap-3">
+              <div className="w-20 h-24 rounded-xl overflow-hidden shrink-0" style={{ background: '#000' }}>
+                {s.mediaType === 'video'
+                  ? <video src={s.mediaUrl} className="w-full h-full object-cover" muted />
+                  : <img src={s.mediaUrl} alt="" className="w-full h-full object-cover" />}
               </div>
-              {s.texte && <p className="text-sm text-white truncate">{s.texte}</p>}
-              {action && action.id !== 'aucun' && (
-                <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>Bouton : {action.emoji} {action.label}</p>
-              )}
-              <div className="flex gap-4 mt-2">
-                <span className="text-xs flex items-center gap-1" style={{ color: 'var(--text-secondary)' }}>
-                  <Eye size={13} /> {s.vues || 0} vues
-                </span>
-                <span className="text-xs flex items-center gap-1" style={{ color: 'var(--gold)' }}>
-                  <MousePointerClick size={13} /> {s.clics || 0} clics
-                </span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  {s.mediaType === 'video' ? <Film size={13} style={{ color: 'var(--gold)' }}/> : <ImageIcon size={13} style={{ color: 'var(--gold)' }}/>}
+                  <span className="text-xs font-semibold" style={{ color: s.expiree ? '#F87171' : '#34D399' }}>
+                    <Clock size={11} className="inline mb-0.5" /> {s.expiree ? 'Expirée' : tempsRestant(s.expiresAt)}
+                  </span>
+                </div>
+                {s.texte && <p className="text-sm text-white truncate">{s.texte}</p>}
+                {action && action.id !== 'aucun' && (
+                  <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>Bouton : {action.emoji} {action.label}</p>
+                )}
+                {/* Stats cliquables → ouvrent le détail "qui a vu" */}
+                <button onClick={() => setDetailOuvert(estOuvert ? null : s.id)}
+                  className="flex gap-4 mt-2 btn-press">
+                  <span className="text-xs flex items-center gap-1" style={{ color: 'var(--text-secondary)' }}>
+                    <Eye size={13} /> {s.vues || 0} vues
+                  </span>
+                  <span className="text-xs flex items-center gap-1" style={{ color: 'var(--gold)' }}>
+                    <MousePointerClick size={13} /> {s.clics || 0} clics
+                  </span>
+                  <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{estOuvert ? '▲' : '▼'}</span>
+                </button>
               </div>
+              <button onClick={() => supprimer(s)} className="p-2 rounded-lg self-start shrink-0"
+                style={{ background: 'rgba(248,113,113,0.1)', color: '#F87171' }} aria-label="Supprimer">
+                <Trash2 size={15} />
+              </button>
             </div>
-            <button onClick={() => supprimer(s)} className="p-2 rounded-lg self-start shrink-0"
-              style={{ background: 'rgba(248,113,113,0.1)', color: '#F87171' }} aria-label="Supprimer">
-              <Trash2 size={15} />
-            </button>
+
+            {/* Panneau détaillé — qui a vu, façon WhatsApp */}
+            {estOuvert && (
+              <div className="mt-3 pt-3 space-y-2" style={{ borderTop: '1px solid var(--dark-border)' }}>
+                {vuesDetail.length === 0 ? (
+                  <p className="text-xs text-center py-2" style={{ color: 'var(--text-muted)' }}>
+                    Personne n'a encore vu cette story.
+                  </p>
+                ) : (
+                  <>
+                    <p className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+                      Vu par {vuesDetail.length} personne{vuesDetail.length > 1 ? 's' : ''}
+                    </p>
+                    {vuesDetail.map((v, i) => {
+                      const aClique = clicIds.has(v.userId)
+                      return (
+                        <div key={i} className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
+                            style={{ background: 'rgba(96,165,250,0.15)', color: '#60A5FA' }}>
+                            {(v.nom || 'C').charAt(0).toUpperCase()}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm text-white truncate">{v.nom || 'Client'}</p>
+                            <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{fmtHeure(v.date)}</p>
+                          </div>
+                          {aClique && (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 flex items-center gap-1"
+                              style={{ background: 'rgba(246,195,68,0.12)', color: 'var(--gold)' }}>
+                              <MousePointerClick size={10} /> A cliqué
+                            </span>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </>
+                )}
+              </div>
+            )}
           </div>
         )
       })}

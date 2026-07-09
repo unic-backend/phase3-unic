@@ -36,7 +36,7 @@ export default function StoryViewer({ stories, startIndex = 0, onClose }) {
 
   // Marquer la vue à chaque changement de story
   useEffect(() => {
-    if (story && user?.id) marquerVue(story.id, user.id)
+    if (story && user?.id) marquerVue(story.id, user.id, user.nom || user.email?.split('@')[0] || '')
   }, [story, user])
 
   // Progression automatique (image = timer, vidéo = suit la lecture)
@@ -71,7 +71,7 @@ export default function StoryViewer({ stories, startIndex = 0, onClose }) {
   }
 
   const handleAction = async () => {
-    if (user?.id && story) await marquerClic(story.id, user.id)
+    if (user?.id && story) await marquerClic(story.id, user.id, user.nom || user.email?.split('@')[0] || '')
     const type = story.actionType
     const projet = story.projetType || ''
     onClose()

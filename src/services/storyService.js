@@ -93,10 +93,14 @@ export async function publierStory(file, { texte = '', actionType = 'je-veux-ca'
       fichierAEnvoyer = file
     }
   } else {
-    // Vidéo : vérifier la durée, et refuser seulement si vraiment énorme (>100 Mo)
+    // Vidéo : vérifier la durée d'abord, puis la taille.
+    // La compression réelle se fait côté Cloudinary (à la réception et à la
+    // livraison), mais Cloudinary n'accepte pas plus de 100 Mo en entrée sur
+    // le plan gratuit. On bloque donc en amont avec un message clair.
     await verifierDureeVideo(file)
     if (file.size > MAX_VIDEO_MO * 1024 * 1024) {
-      throw new Error(`Vidéo trop lourde (max ${MAX_VIDEO_MO} Mo). Filme une séquence plus courte.`)
+      const tailleMo = Math.round(file.size / (1024 * 1024))
+      throw new Error(`Vidéo trop lourde (${tailleMo} Mo, max ${MAX_VIDEO_MO} Mo). Filme une séquence plus courte (15-20 s suffisent) ou baisse la qualité vidéo dans les réglages de ton téléphone.`)
     }
   }
 
@@ -192,8 +196,9 @@ export async function getToutesStories() {
 
 /**
  * Enregistre une vue (une seule par utilisateur, sans double comptage).
+ * Stocke aussi le nom et la date, pour afficher "qui a vu" côté admin.
  */
-export async function marquerVue(storyId, userId) {
+export async function marquerVue(storyId, userId, userNom = '') {
   if (!storyId || !userId) return
   try {
     const storyRef = doc(db, 'stories', storyId)
@@ -201,7 +206,12 @@ export async function marquerVue(storyId, userId) {
     if (!snap.exists()) return
     const dejaVu = (snap.data().vuePar || []).includes(userId)
     if (dejaVu) return
-    await updateDoc(storyRef, { vues: increment(1), vuePar: arrayUnion(userId) })
+    await updateDoc(storyRef, {
+      vues: increment(1),
+      vuePar: arrayUnion(userId),
+      // Liste détaillée : qui + quand (façon WhatsApp)
+      vuesDetail: arrayUnion({ userId, nom: userNom || 'Client', date: Date.now() }),
+    })
   } catch (e) {
     console.error('marquerVue:', e)
   }
@@ -209,8 +219,9 @@ export async function marquerVue(storyId, userId) {
 
 /**
  * Enregistre un clic sur le bouton d'action (une fois par utilisateur).
+ * Stocke aussi le nom, pour savoir qui est intéressé.
  */
-export async function marquerClic(storyId, userId) {
+export async function marquerClic(storyId, userId, userNom = '') {
   if (!storyId || !userId) return
   try {
     const storyRef = doc(db, 'stories', storyId)
@@ -218,7 +229,11 @@ export async function marquerClic(storyId, userId) {
     if (!snap.exists()) return
     const dejaClique = (snap.data().clicPar || []).includes(userId)
     if (dejaClique) return
-    await updateDoc(storyRef, { clics: increment(1), clicPar: arrayUnion(userId) })
+    await updateDoc(storyRef, {
+      clics: increment(1),
+      clicPar: arrayUnion(userId),
+      clicsDetail: arrayUnion({ userId, nom: userNom || 'Client', date: Date.now() }),
+    })
   } catch (e) {
     console.error('marquerClic:', e)
   }
