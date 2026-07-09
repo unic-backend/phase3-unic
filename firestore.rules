@@ -176,6 +176,22 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
+    // ==================== stories ====================
+    // L'admin publie ; tous les clients connectés lisent.
+    // Un client peut incrémenter vues/clics sur SA participation uniquement
+    // (les autres champs — média, texte, action — restent intouchables).
+    match /stories/{storyId} {
+      allow read:   if isAuth();
+      allow create: if isAuth() && isAdmin();
+      allow delete: if isAuth() && isAdmin();
+      allow update: if isAuth() && (
+        isAdmin() ||
+        // Client : uniquement mise à jour des compteurs vues/clics
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['vues', 'vuePar', 'clics', 'clicPar'])
+      );
+    }
+
     // ==================== DÉFAUT: tout bloquer ====================
     match /{document=**} {
       allow read, write: if false;

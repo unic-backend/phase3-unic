@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { creerDevis } from '../services/quoteService'
 import { creerProspectDepuisClient } from '../services/prospectService'
@@ -7,11 +7,16 @@ import { calculerPrixUnitaire, calculerMontant, estSurDevis } from '../utils/pri
 import Toast from '../components/Toast'
 import { Layers, DoorOpen, Paintbrush, Sparkles, Hammer, ArrowLeft, ArrowRight, Check } from 'lucide-react'
 
+const TYPES_VALIDES = ['faux-plafond', 'cloison', 'peinture', 'doublage', 'corniche', 'renovation']
+
 export default function NewDevis() {
+  const [searchParams] = useSearchParams()
+  // Type pré-sélectionné depuis une story ("Je veux ça")
+  const typeInitial = TYPES_VALIDES.includes(searchParams.get('type')) ? searchParams.get('type') : ''
   const [step, setStep] = useState(1)
   const [toast, setToast] = useState(null)
   const [loading, setLoading] = useState(false)
-  const [formData, setFormData] = useState({ type: '', surface: '', description: '', localisation: 'Dakar', urgence: 'ASAP', budget: '', photos: [], avecPeinture: true })
+  const [formData, setFormData] = useState({ type: typeInitial, surface: '', description: '', localisation: 'Dakar', urgence: 'ASAP', budget: '', photos: [], avecPeinture: true })
   const navigate = useNavigate()
   const { user } = useAuth()
 

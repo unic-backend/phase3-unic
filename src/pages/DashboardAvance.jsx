@@ -4,6 +4,8 @@ import { useAuth } from '../hooks/useAuth'
 import { getDevisClient } from '../services/quoteService'
 import { getFacturesClient } from '../services/invoiceService'
 import { getProjetsClient, ETAPES_CHANTIER } from '../services/projectService'
+import { getStoriesActives } from '../services/storyService'
+import StoryViewer from '../components/StoryViewer'
 import AnimatedNumber from '../components/AnimatedNumber'
 import { FileText, Clock, CheckCircle2, Wallet, Building2, AlertTriangle, ArrowRight, Plus, ChevronRight, Images } from 'lucide-react'
 
@@ -21,15 +23,18 @@ export default function DashboardAvance() {
   const [projets, setProjets] = useState([])
   const [loading, setLoading] = useState(true)
   const [barsReady, setBarsReady] = useState(false)
+  const [stories, setStories] = useState([])
+  const [viewerOuvert, setViewerOuvert] = useState(false)
 
   useEffect(() => {
     let actif = true
     async function charger() {
       if (!user?.id) { setLoading(false); return }
-      const [devis, factures, projetsData] = await Promise.all([
-        getDevisClient(user.id), getFacturesClient(user.id), getProjetsClient(user.id)
+      const [devis, factures, projetsData, storiesData] = await Promise.all([
+        getDevisClient(user.id), getFacturesClient(user.id), getProjetsClient(user.id), getStoriesActives()
       ])
       if (!actif) return
+      setStories(storiesData)
       const totalDevis = devis.length
       const enAttente = devis.filter(d => d.status === 'En attente').length
       const approuves = devis.filter(d => d.status === 'Approuvé').length
@@ -82,6 +87,38 @@ export default function DashboardAvance() {
         </h1>
         <p className="mt-1" style={{ color: 'var(--text-secondary)' }}>Voici un résumé de vos activités</p>
       </div>
+
+      {/* Stories UniC — visibles seulement s'il y en a d'actives */}
+      {stories.length > 0 && (
+        <div className="animate-fade-in">
+          <button onClick={() => setViewerOuvert(true)} className="flex items-center gap-3 btn-press">
+            <div className="relative w-16 h-16 rounded-full p-[3px]"
+              style={{ background: 'linear-gradient(135deg, #C89B2F, #F6C344)' }}>
+              <div className="w-full h-full rounded-full overflow-hidden" style={{ border: '2px solid var(--dark-bg)', background: '#000' }}>
+                {stories[0].mediaType === 'video'
+                  ? <video src={stories[0].mediaUrl} className="w-full h-full object-cover" muted />
+                  : <img src={stories[0].mediaUrl} alt="Story" className="w-full h-full object-cover" />}
+              </div>
+              {stories.length > 1 && (
+                <span className="absolute -bottom-1 -right-1 min-w-[22px] h-[22px] px-1 rounded-full text-[11px] font-bold flex items-center justify-center"
+                  style={{ background: 'var(--gold)', color: '#060D18', border: '2px solid var(--dark-bg)' }}>
+                  {stories.length}
+                </span>
+              )}
+            </div>
+            <div className="text-left">
+              <p className="text-sm font-bold text-white">Nouveautés UniC ✨</p>
+              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                {stories.length} story{stories.length > 1 ? 's' : ''} à découvrir
+              </p>
+            </div>
+          </button>
+        </div>
+      )}
+
+      {viewerOuvert && (
+        <StoryViewer stories={stories} startIndex={0} onClose={() => setViewerOuvert(false)} />
+      )}
 
       {/* Quick Action */}
       <button onClick={() => navigate('/client/devis/new')}

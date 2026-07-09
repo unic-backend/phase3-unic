@@ -44,6 +44,7 @@ const AdminSignature          = lazy(() => import('./admin/AdminSignature'))
 const AdminDashboardFinancier = lazy(() => import('./admin/AdminDashboardFinancier'))
 const AdminDepenses           = lazy(() => import('./admin/AdminDepenses'))
 const AdminPortfolio          = lazy(() => import('./admin/AdminPortfolio'))
+const AdminStories            = lazy(() => import('./admin/AdminStories'))
 const AdminCalendrier         = lazy(() => import('./admin/AdminCalendrier'))
 const AdminOpportunites       = lazy(() => import('./admin/AdminOpportunites'))
 
@@ -123,6 +124,7 @@ export default function App() {
               <Route path="finances" element={<AdminDashboardFinancier />} />
               <Route path="depenses" element={<AdminDepenses />} />
               <Route path="portfolio" element={<AdminPortfolio />} />
+              <Route path="stories" element={<AdminStories />} />
               <Route path="calendrier" element={<AdminCalendrier />} />
               <Route path="opportunites" element={<AdminOpportunites />} />
             </Route>
