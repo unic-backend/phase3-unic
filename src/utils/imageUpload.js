@@ -3,7 +3,7 @@
 // utilise pour les photos de chantier (clé ImgBB partagée).
 const IMGBB_API_KEY = '4dff6612cbda7c80c5cdd6b982ed6075'
 
-async function compresserImage(file, maxWidth = 1600, quality = 0.85) {
+export async function compresserImage(file, maxWidth = 1600, quality = 0.85) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
     reader.onerror = () => reject(new Error('Lecture impossible'))

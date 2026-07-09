@@ -119,7 +119,7 @@ export default function AdminStories() {
                 <Film size={28} style={{ color: 'var(--gold)' }} />
               </div>
               <p className="text-sm font-semibold text-white">Choisir une photo ou une vidéo</p>
-              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Photo max 10 Mo · Vidéo max 30s / 30 Mo</p>
+              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Photo compressée automatiquement · Vidéo max 30s</p>
             </button>
           ) : (
             <div className="relative rounded-2xl overflow-hidden" style={{ background: '#000' }}>

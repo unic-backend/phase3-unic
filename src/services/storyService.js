@@ -18,6 +18,7 @@ import {
   collection, addDoc, getDocs, doc, getDoc, updateDoc, deleteDoc,
   query, orderBy, Timestamp, increment, arrayUnion,
 } from 'firebase/firestore'
+import { compresserImage } from '../utils/imageUpload'
 
 // ── Configuration Cloudinary ──────────────────────────────────────────────────
 // Hébergement gratuit des médias (photos + vidéos), sans carte bancaire.
@@ -38,8 +39,12 @@ export const ACTIONS_STORY = [
 ]
 
 // Limites média
-const MAX_IMAGE_MO = 10
-const MAX_VIDEO_MO = 30   // ~30s de vidéo compressée téléphone
+// Photos : compressées automatiquement avant envoi → aucune limite bloquante
+// pour l'utilisateur (une photo Samsung de 12 Mo devient ~1 Mo).
+// Vidéos : envoyées telles quelles puis compressées par Cloudinary à la
+// livraison. On accepte jusqu'à 100 Mo en entrée pour couvrir les vidéos
+// brutes de smartphone.
+const MAX_VIDEO_MO = 100
 const MAX_VIDEO_DUREE_S = 35 // tolérance au-delà de 30s
 
 /**
@@ -76,18 +81,36 @@ export async function publierStory(file, { texte = '', actionType = 'je-veux-ca'
   const estImage = file.type.startsWith('image/')
   if (!estVideo && !estImage) throw new Error('Format non supporté (photo ou vidéo uniquement).')
 
-  const maxMo = estVideo ? MAX_VIDEO_MO : MAX_IMAGE_MO
-  if (file.size > maxMo * 1024 * 1024) {
-    throw new Error(`Fichier trop lourd (max ${maxMo} Mo pour ${estVideo ? 'une vidéo' : 'une image'}).`)
+  let fichierAEnvoyer = file
+
+  if (estImage) {
+    // Compression automatique de la photo (une photo Samsung de 12 Mo passe
+    // à ~1 Mo, sans perte visible). Format story vertical : largeur max 1280px.
+    try {
+      fichierAEnvoyer = await compresserImage(file, 1280, 0.82)
+    } catch {
+      // Si la compression échoue, on tente d'envoyer l'original (rare)
+      fichierAEnvoyer = file
+    }
+  } else {
+    // Vidéo : vérifier la durée, et refuser seulement si vraiment énorme (>100 Mo)
+    await verifierDureeVideo(file)
+    if (file.size > MAX_VIDEO_MO * 1024 * 1024) {
+      throw new Error(`Vidéo trop lourde (max ${MAX_VIDEO_MO} Mo). Filme une séquence plus courte.`)
+    }
   }
-  if (estVideo) await verifierDureeVideo(file)
 
   // Upload média sur Cloudinary (endpoint unsigned, adapté image ou vidéo)
   const resource = estVideo ? 'video' : 'image'
   const formData = new FormData()
-  formData.append('file', file)
+  formData.append('file', fichierAEnvoyer)
   formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET)
   formData.append('folder', 'stories')
+  // Cloudinary compresse la vidéo côté serveur à la réception :
+  // q_auto = qualité automatique optimale, format le plus léger conservé.
+  if (estVideo) {
+    formData.append('quality', 'auto')
+  }
 
   const uploadUrl = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/${resource}/upload`
   const res = await fetch(uploadUrl, { method: 'POST', body: formData })
@@ -97,8 +120,13 @@ export async function publierStory(file, { texte = '', actionType = 'je-veux-ca'
     throw new Error(detail || 'Échec de l\'envoi du média. Réessaie.')
   }
   const data = await res.json()
-  const mediaUrl = data.secure_url
-  // public_id sert à supprimer le média plus tard (avec le préfixe dossier)
+  // Pour les vidéos : on demande à Cloudinary une version compressée à la
+  // livraison (q_auto,f_auto) en insérant les transformations dans l'URL.
+  // Ça réduit fortement le poids côté client sans toucher au fichier source.
+  let mediaUrl = data.secure_url
+  if (estVideo && mediaUrl.includes('/upload/')) {
+    mediaUrl = mediaUrl.replace('/upload/', '/upload/q_auto,f_auto/')
+  }
   const publicId = data.public_id
 
   // Métadonnées Firestore
