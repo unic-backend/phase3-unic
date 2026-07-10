@@ -5,6 +5,7 @@ import { getTousDevis } from '../services/quoteService'
 import { getToutesFactures } from '../services/invoiceService'
 import { getStatistiquesInscriptions } from '../services/userService'
 import { getStoriesActives } from '../services/storyService'
+import ATraiterAujourdhui from '../components/ATraiterAujourdhui'
 import AnimatedNumber from '../components/AnimatedNumber'
 import {
   FileText, Clock, CheckCircle2, Wallet, Users, Receipt,
@@ -98,6 +99,9 @@ export default function AdminDashboard() {
           Voici un aperçu de votre activité
         </p>
       </div>
+
+      {/* ========== À TRAITER AUJOURD'HUI ========== */}
+      <ATraiterAujourdhui />
 
       {/* ========== CRÉER FACTURE — Mobile Quick Action ========== */}
       <button

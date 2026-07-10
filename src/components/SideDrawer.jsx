@@ -3,7 +3,7 @@ import { useAuth } from '../hooks/useAuth'
 import { isAdminEmail } from '../config/admins'
 import {
   X, User, Headphones, Phone, ShieldCheck, UserCircle, LogOut, Brain, Users2, PenTool,
-  TrendingUp, Receipt, Images, Calendar, Search, Clapperboard
+  TrendingUp, Receipt, Images, Calendar, Search, Clapperboard, Star
 } from 'lucide-react'
 
 // Menu latéral premium (style Revolut / Notion)
@@ -44,6 +44,7 @@ export default function SideDrawer({ open, onClose, mode = 'client' }) {
     items.push({ icon: Calendar, label: 'Calendrier', action: () => go('/admin/calendrier') })
     items.push({ icon: Images, label: 'Portfolio', action: () => go('/admin/portfolio') })
     items.push({ icon: Clapperboard, label: 'Stories', action: () => go('/admin/stories') })
+    items.push({ icon: Star, label: 'Avis clients', action: () => go('/admin/avis') })
     items.push({ icon: Search, label: 'Appels d\'offres', action: () => go('/admin/opportunites') })
   }
 

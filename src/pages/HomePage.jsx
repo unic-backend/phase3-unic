@@ -6,6 +6,7 @@ import InstallPrompt from '../components/InstallPrompt'
 import Hero from '../components/Hero'
 import Services from '../components/Services'
 import Tarifs from '../components/Tarifs'
+import Temoignages from '../components/Temoignages'
 import Galerie from '../components/Galerie'
 import FAQ from '../components/FAQ'
 import Contact from '../components/Contact'
@@ -30,6 +31,7 @@ export default function HomePage() {
       <Services />
       <Tarifs />
       <Galerie />
+      <Temoignages />
       <FAQ />
       <Contact />
       <Footer />

@@ -6,6 +6,7 @@ import { getFacturesClient } from '../services/invoiceService'
 import { getProjetsClient, ETAPES_CHANTIER } from '../services/projectService'
 import { getStoriesActives } from '../services/storyService'
 import StoryViewer from '../components/StoryViewer'
+import InviteAvis from '../components/InviteAvis'
 import AnimatedNumber from '../components/AnimatedNumber'
 import { FileText, Clock, CheckCircle2, Wallet, Building2, AlertTriangle, ArrowRight, Plus, ChevronRight, Images } from 'lucide-react'
 
@@ -119,6 +120,9 @@ export default function DashboardAvance() {
       {viewerOuvert && (
         <StoryViewer stories={stories} startIndex={0} onClose={() => setViewerOuvert(false)} />
       )}
+
+      {/* Invitation à donner un avis (projets livrés) */}
+      <InviteAvis />
 
       {/* Quick Action */}
       <button onClick={() => navigate('/client/devis/new')}
