@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import Header from '../components/Header'
 import InstallPrompt from '../components/InstallPrompt'
+import BoutonAppFlottant from '../components/BoutonAppFlottant'
 import Hero from '../components/Hero'
 import Services from '../components/Services'
 import Tarifs from '../components/Tarifs'
@@ -35,6 +36,7 @@ export default function HomePage() {
       <FAQ />
       <Contact />
       <Footer />
+      <BoutonAppFlottant />
     </div>
   )
 }
