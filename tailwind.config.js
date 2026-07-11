@@ -69,9 +69,9 @@ export default {
         },
         // NEW for Loading
         spinDash: {
-          '0%': { strokeDasharray: '100,200', strokedashoffset: '0' },
-          '50%': { strokeDasharray: '150,150', strokedashoffset: '-25' },
-          '100%': { strokeDasharray: '200,100', strokedashoffset: '-50' },
+          '0%': { strokeDasharray: '100,200', 'stroke-dashoffset': '0' },
+          '50%': { strokeDasharray: '150,150', 'stroke-dashoffset': '-25' },
+          '100%': { strokeDasharray: '200,100', 'stroke-dashoffset': '-50' },
         },
         shimmer: {
           '0%': { backgroundPosition: '-200px 0' },
