@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import Toast from '../components/Toast'
+import InstallPrompt from '../components/InstallPrompt'
 import { LogIn, Mail, Lock, Eye, EyeOff } from 'lucide-react'
 import logo from '../assets/logo.webp'
 
@@ -44,6 +45,11 @@ export default function Login() {
           <img src={logo} alt="UniC Plaquiste" className="h-16 w-auto mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-white">Bon retour</h1>
           <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>Connectez-vous à votre espace</p>
+        </div>
+
+        {/* Installer l'app — bouton toujours cliquable */}
+        <div className="mb-5">
+          <InstallPrompt compact />
         </div>
 
         {/* Form card */}
