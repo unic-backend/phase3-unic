@@ -76,7 +76,7 @@ export default function Header() {
               <span className="text-sm font-bold max-w-[120px] truncate">{user.nom || 'Utilisateur'}</span>
               <button
                 onClick={handleLogout}
-                className="bg-[#F2C200] text-[#1 text-[#1A3FA0] px-4 py-2 rounded-lg font-bold
+                className="bg-[#F2C200] text-[#1A3FA0] px-4 py-2 rounded-lg font-bold
                   hover:bg-yellow-400 transition transform hover:scale-[1.02] hover:shadow-lg
                   duration-300 ease-out active:scale-[0.98]"
               >
@@ -120,18 +120,16 @@ export default function Header() {
       {/* Overlay pour fermer le menu en cliquant à l'extérieur */}
       {menuOuvert && (
         <div
-          className="fixed inset-0 bg-black/40 z-50"
+          className="fixed inset-0 bg-black/40 z-40"
           onClick={() => setMenuOuvert(false)}
         />
       )}
 
       {/* Menu mobile - toujours présent dans le JSX lorsqu'ouvert */}
       {menuOuvert && (
-        <nav className="fixed inset-0 z-60 flex flex-col items-center justify-center bg-[#1A3FA0]
+        <nav className={`fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#1A3FA0]
           transform transition-transform duration-300
-          translate-y-0"
-          // When closed, we translate it up out of view
-          className={`${menuOuvert ? 'translate-y-0' : '-translate-y-full'}`}
+          ${menuOuvert ? 'translate-y-0' : '-translate-y-full'}`}
         >
           <div className="space-y-6">
             {SECTIONS.map((s) => (
@@ -170,7 +168,7 @@ export default function Header() {
                   <Link
                     to="/signup"
                     onClick={() => setMenuOuvert(false)}
-                    className="block w-full text-center bg-[#F2C200] text-[#1A3FA0] px-4 py-3 rounded-lg font-bold
+                    className="block w-full text-center bg-[#F2C200] text-[#1A3FA0] px-4 py-2 rounded-lg font-bold
                       hover:bg-yellow-400 transition"
                   >
                     S'inscrire
