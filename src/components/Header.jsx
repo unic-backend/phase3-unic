@@ -154,7 +154,7 @@ export default function Header() {
 
           {/* Menu - slide down / fade in & slide up / fade out */}
           <nav
-            className={`md:hidden relative z-50 bg-[#1A3FA0] border-t border-white/10 px-4 py-3 space-y-1 shadow-xl
+            className={`md:hidden fixed inset-0 z-60 bg-[#1A3FA0] border-t border-white/10 px-4 py-3 space-y-1 shadow-xl
               ${menuOuvert && !exiting ? 'animate-slideDownFadeIn' : exiting ? 'animate-slideUpFadeOut' : ''}`}
           >
             {SECTIONS.map((s, index) => (
@@ -206,7 +206,7 @@ export default function Header() {
                         setExiting(false)
                       }, 300)
                     }}
-                    className="block w-full text-center bg-[#F2C200] text-[#1A3FA0] px-4 py-3 rounded-lg font-bold
+                    className="block w-full text-center bg-[#F2C200] text-[#1A3FA0] px-4 py-2 rounded-lg font-bold
                       hover:bg-yellow-400 transition"
                   >
                     S'inscrire
