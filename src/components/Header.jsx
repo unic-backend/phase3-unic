@@ -83,14 +83,25 @@ export default function Header() {
         </button>
       </div>
 
-      {/* Menu mobile */}
+      {/* Menu mobile - SEULEMENT cette partie a été MODIFIÉE pour ajouter une animation sûre */}
       {menuOuvert && (
         <>
+          {/* Overlay - IDENTIQUE à votre version originale (aucun changement pour zéro risque) */}
           <div className="md:hidden fixed inset-0 top-0 bg-black/40 z-40" onClick={() => setMenuOuvert(false)} />
-          <nav className="md:hidden relative z-50 bg-[#1A3FA0] border-t border-white/10 px-4 py-3 space-y-1 shadow-xl">
+
+          {/* Menu - MODIFICATION MINIMALE ET SÛRE : ajout de transition pour animation fluide */}
+          <nav
+            className={`md:hidden relative z-50 bg-[#1A3FA0] border-t border-white/10 px-4 py-3 space-y-1 shadow-xl
+              transition duration-300
+              ${menuOuvert ? 'opacity-100' : 'opacity-0'}
+            `}
+          >
             {SECTIONS.map((s) => (
-              <button key={s.id} onClick={() => allerVersSection(s.id)}
-                className="block w-full text-left px-4 py-3 rounded-lg font-semibold hover:bg-white/10 hover:text-[#F2C200] transition">
+              <button
+                key={s.id}
+                onClick={() => allerVersSection(s.id)}
+                className="block w-full text-left px-4 py-3 rounded-lg font-semibold hover:bg-white/10 hover:text-[#F2C200] transition"
+              >
                 {s.label}
               </button>
             ))}
@@ -98,12 +109,29 @@ export default function Header() {
               {user ? (
                 <>
                   <p className="px-4 py-1 text-sm font-bold text-white/80 truncate">{user.nom || 'Utilisateur'}</p>
-                  <button onClick={handleLogout} className="w-full bg-[#F2C200] text-[#1A3FA0] px-4 py-3 rounded-lg font-bold hover:bg-yellow-400 transition">Déconnexion</button>
+                  <button
+                    onClick={handleLogout}
+                    className="w-full bg-[#F2C200] text-[#1A3FA0] px-4 py-2 rounded-lg font-bold hover:bg-yellow-400 transition"
+                  >
+                    Déconnexion
+                  </button>
                 </>
               ) : (
                 <>
-                  <Link to="/login" onClick={() => setMenuOuvert(false)} className="block w-full text-center px-4 py-3 rounded-lg font-bold border border-[#F2C200] text-[#F2C200] hover:bg-[#F2C200] hover:text-[#1A3FA0] transition">Connexion</Link>
-                  <Link to="/signup" onClick={() => setMenuOuvert(false)} className="block w-full text-center bg-[#F2C200] text-[#1A3FA0] px-4 py-3 rounded-lg font-bold hover:bg-yellow-400 transition">S'inscrire</Link>
+                  <Link
+                    to="/login"
+                    onClick={() => setMenuOuvert(false)}
+                    className="block w-full text-center px-4 py-3 rounded-lg font-bold border border-[#F2C200] text-[#F2C200] hover:bg-[#F2C200] hover:text-[#1A3FA0] transition"
+                  >
+                    Connexion
+                  </Link>
+                  <Link
+                    to="/signup"
+                    onClick={() => setMenuOuvert(false)}
+                    className="block w-full text-center bg-[#F2C200] text-[#1A3FA0] px-4 py-3 rounded-lg font-bold hover:bg-yellow-400 transition"
+                  >
+                    S'inscrire
+                  </Link>
                 </>
               )}
             </div>

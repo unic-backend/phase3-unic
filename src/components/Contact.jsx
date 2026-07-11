@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { Phone, Mail, MapPin, MessageCircle } from 'lucide-react'
 
 export default function Contact() {
@@ -10,19 +10,86 @@ export default function Contact() {
     message: ''
   })
   const [submitted, setSubmitted] = useState(false)
+  const [errors, setErrors] = useState({})
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const handleChange = (e) => {
-    setFormData({...formData, [e.target.name]: e.target.value})
-  }
+  // Gestion du changement de champ avec validation en temps réel
+  const handleChange = useCallback((e) => {
+    const { name, value } = e.target
+    setFormData(prev => ({ ...prev, [name]: value }))
+    validateField(name, value)
+  }, [])
 
-  const handleSubmit = (e) => {
+  // Fonction de validation simple et fiable
+  const validateField = useCallback((name, value) => {
+    // Supprimer les espaces en début/fin pour éviter les erreurs dues aux espaces accidentels
+    const trimmed = value.trim()
+
+    // Règles de validation pour chaque champ
+    let errorMessage = ""
+
+   if (name === "nom") {
+  // Nom : juste requis (pas vide après trim) - ACCEPTE TOUS LES NOMS FRANÇAIS
+  if (!trimmed) errorMessage = "Ce champ est requis"
+  // ACCEPTE TOUT LE RESTE : Jean-Pierre, O'Neil, Marie Louise, René, Zoé, etc.
+} else if (name === "email") {
+
+      if (!trimmed) errorMessage = "Ce champ est requis"
+      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) errorMessage = "Email invalide"
+    }
+    else if (name === "telephone") {
+      // Téléphone optionnel, mais si rempli doit être valide
+      if (trimmed && !/^[\d\s\+\-\(\)]+$/.test(trimmed)) {
+        errorMessage = "Numéro invalide (chiffres, espaces, +, -, (, ) seulement)"
+      }
+    }
+    else if (name === "sujet") {
+      if (!trimmed) errorMessage = "Ce champ est requis"
+      else if (trimmed.length < 5) errorMessage = "Sujet trop court (minimum 5 caractères)"
+    }
+    else if (name === "message") {
+      if (!trimmed) errorMessage = "Ce champ est requis"
+      else if (trimmed.length < 10) errorMessage = "Message trop court (minimum 10 caractères)"
+    }
+
+    // Mettre à jour l'état des erreurs
+    setErrors(prev => ({ ...prev, [name]: errorMessage }))
+    return errorMessage === "" // Retourner true si pas d'erreur
+  }, [])
+
+  // Gestion de la soumission du formulaire
+  const handleSubmit = useCallback(async (e) => {
     e.preventDefault()
-    setSubmitted(true)
-    setTimeout(() => {
-      setSubmitted(false)
-      setFormData({ nom: '', email: '', telephone: '', sujet: '', message: '' })
-    }, 3000)
-  }
+    setIsSubmitting(true)
+
+    // Valider TOUS les champs avant soumission
+    const isFormValid = Object.keys(formData).every(key =>
+      validateField(key, formData[key])
+    )
+
+    if (isFormValid) {
+      try {
+        // Simulation d'envoi (à remplacer par votre véritable appel API/Firebase)
+        await new Promise(resolve => setTimeout(resolve, 1500))
+
+        // Réinitialiser le formulaire après succès
+        setSubmitted(true)
+        setFormData({
+          nom: '',
+          email: '',
+          telephone: '',
+          sujet: '',
+          message: ''
+        })
+        setErrors({}) // Effacer les erreurs
+      } catch (error) {
+        console.error("Erreur d'envoi:", error)
+        alert("Une erreur est survenue. Veuillez réessayer.")
+      }
+    }
+
+    setIsSubmitting(false)
+  }, [formData, validateField])
 
   return (
     <section id="contact" className="py-20 px-6 bg-gray-50">
@@ -31,9 +98,14 @@ export default function Contact() {
           Parlons de Votre Projet
         </h2>
 
+        {/* Sections infos (inchangées) */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
           <div className="bg-white p-8 rounded-xl shadow-lg text-center hover:shadow-xl transition animate-fade-in">
-            <div className="flex justify-center mb-4"><div className="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center"><Phone size={26} strokeWidth={2} className="text-[#1A3FA0]" /></div></div>
+            <div className="flex justify-center mb-4">
+              <div className="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center">
+                <Phone size={26} strokeWidth={2} className="text-[#1A3FA0]" />
+              </div>
+            </div>
             <h3 className="font-bold text-[#1A3FA0] mb-2 text-lg">Téléphone</h3>
             <a href="tel:+221777085092" className="text-gray-600 hover:text-[#F2C200] font-bold">
               +221 77 708 50 92
@@ -41,7 +113,11 @@ export default function Contact() {
           </div>
 
           <div className="bg-white p-8 rounded-xl shadow-lg text-center hover:shadow-xl transition animate-fade-in">
-            <div className="flex justify-center mb-4"><div className="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center"><Mail size={26} strokeWidth={2} className="text-[#1A3FA0]" /></div></div>
+            <div className="flex justify-center mb-4">
+              <div className="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center">
+                <Mail size={26} strokeWidth={2} className="text-[#1A3FA0]" />
+              </div>
+            </div>
             <h3 className="font-bold text-[#1A3FA0] mb-2 text-lg">Email</h3>
             <a href="mailto:Unicplaquiste@gmail.com" className="text-gray-600 hover:text-[#F2C200] font-bold">
               Unicplaquiste@gmail.com
@@ -49,12 +125,17 @@ export default function Contact() {
           </div>
 
           <div className="bg-white p-8 rounded-xl shadow-lg text-center hover:shadow-xl transition animate-fade-in">
-            <div className="flex justify-center mb-4"><div className="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center"><MapPin size={26} strokeWidth={2} className="text-[#1A3FA0]" /></div></div>
+            <div className="flex justify-center mb-4">
+              <div className="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center">
+                <MapPin size={26} strokeWidth={2} className="text-[#1A3FA0]" />
+              </div>
+            </div>
             <h3 className="font-bold text-[#1A3FA0] mb-2 text-lg">Localisation</h3>
             <p className="text-gray-600 font-bold">Guelle Tapée, Dakar</p>
           </div>
         </div>
 
+        {/* Formulaire de contact amélioré */}
         <div className="bg-gradient-to-br from-[#1A3FA0] to-[#0D1B4B] rounded-2xl p-10 text-white">
           <h3 className="text-2xl font-bold mb-8 text-center">Envoyez-nous un message</h3>
 
@@ -65,6 +146,7 @@ export default function Contact() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Champs du formulaire */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <input
                 type="text"
@@ -115,14 +197,26 @@ export default function Contact() {
               required
             />
 
+            {/* Affichage des erreurs sous chaque champ */}
+            {errors.nom && <p className="text-red-500 text-sm mt-1">{errors.nom}</p>}
+            {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
+            {errors.telephone && <p className="text-red-500 text-sm mt-1">{errors.telephone}</p>}
+            {errors.sujet && <p className="text-red-500 text-sm mt-1">{errors.sujet}</p>}
+            {errors.message && <p className="text-red-500 text-sm mt-1">{errors.message}</p>}
+
+            {/* Boutons d'action */}
             <div className="flex gap-4">
-              <button 
+              <button
                 type="submit"
-                className="flex-1 bg-[#F2C200] text-[#1A3FA0] py-4 rounded-lg font-bold text-lg hover:bg-yellow-400 transition transform hover:scale-105"
+                disabled={isSubmitting || Object.values(errors).some(error => error !== "")}
+                className={`flex-1 bg-[#F2C200] text-[#1A3FA0] py-4 rounded-lg font-bold text-lg
+                  hover:bg-yellow-400 transition transform hover:scale-105
+                  ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}
+                  ${Object.values(errors).some(error => error !== "") ? 'opacity-50' : ''}`}
               >
-                Envoyer ma demande
+                {isSubmitting ? 'Envoi en cours...' : 'Envoyer ma demande'}
               </button>
-              <a 
+              <a
                 href="https://wa.me/221777085092"
                 target="_blank"
                 rel="noopener noreferrer"
