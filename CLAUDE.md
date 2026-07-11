@@ -1,4 +1,4 @@
-# 🧠 CLAUDE.md — RÈGLES PERMANENTES DE TRAVAIL (UniC Plaquiste) — v2
+# 🧠 CLAUDE.md — RÈGLES PERMANENTES DE TRAVAIL (UniC Plaquiste) — v3
 
 > Ce fichier est lu automatiquement par Claude Code à chaque session.
 > Il définit QUI je suis, COMMENT tu dois travailler, et ce que tu ne dois JAMAIS oublier.
@@ -27,6 +27,19 @@
 
 ---
 
+## 🛠️ COMMENT TU TRAVAILLES (ABSOLU)
+
+1. **Tu modifies les fichiers DIRECTEMENT sur mon ordinateur.** Tu ne m'envoies **JAMAIS** de bout de code à copier-coller moi-même. **JAMAIS de demi-code.** C'est toi qui fais tout le travail dans les fichiers.
+2. Après **chaque fichier modifié**, tu me dis simplement :
+   - ✅ **Fichier** : {nom}
+   - 🔧 **Ce que j'ai changé** : {explication simple}
+   - 💡 **Ce que ça améliore** : {bénéfice concret pour moi ou mes clients}
+   - 🔍 **Vérifié** : X fois
+3. À la fin de chaque mission, tu me fais un **résumé complet** : tout ce qui a changé, tout ce qui est amélioré, tout ce que tu as vérifié.
+4. Si tu apprends une nouvelle règle ou un nouveau piège pendant le travail → **propose-moi de l'ajouter à ce fichier** et fais-le si je dis oui.
+
+---
+
 ## 🧠 MÉMOIRE — TRÈS IMPORTANT
 
 - Tu **gardes toujours le contexte** grâce à ce fichier.
@@ -39,7 +52,6 @@
   6. `src/config/admins.js` (emails admin)
   7. `src/services/` (logique métier)
 - Si tu oublies quelque chose, **relis ce fichier avant de me poser une question**.
-- Quand on prend une décision importante ensemble, **propose-moi de l'ajouter à ce fichier** pour ne jamais la perdre.
 
 ---
 
@@ -50,9 +62,8 @@
 3. Tu cherches la **VRAIE cause racine** d'un problème, jamais le symptôme :
    - Enquête sur : architecture, dépendances, configuration, logique, données, environnement.
    - Tu n'appliques une solution **qu'après avoir confirmé la cause**.
-   - Tu m'expliques la cause vérifiée, sans spéculation.
    - Solutions **permanentes** uniquement, jamais de bricolage temporaire.
-4. Tu compares plusieurs approches et tu choisis la plus solide. Si une meilleure solution existe que ce que je demande, tu me le dis et tu expliques pourquoi.
+4. Si une meilleure solution existe que ce que je demande, tu me le dis et tu expliques pourquoi, simplement.
 
 ---
 
@@ -72,42 +83,35 @@
 
 **Tu vérifies ton code 4 à 5 fois AVANT de l'enregistrer.** À chaque passe, tu cherches :
 
-**Passe 1 — Logique et syntaxe**
-- Bugs de logique, erreurs de syntaxe, erreurs d'exécution, erreurs de type
-
-**Passe 2 — Liens et références**
-- Imports manquants/cassés, routes cassées, images/icônes cassées, dépendances manquantes, variables d'environnement
-
-**Passe 3 — Interface et responsive**
-- Affichage mobile/tablette/PC, états de chargement, états vides, gestion d'erreurs, cohérence visuelle, accessibilité (navigation clavier)
-
-**Passe 4 — Performance et sécurité**
-- Lenteurs, code mort/inutile/dupliqué, failles de sécurité, requêtes réseau, warnings/erreurs console React
-
-**Passe 5 — Cas limites et régressions**
-- Scénarios inhabituels, workflows cassés, calculs incorrects, **est-ce que les fonctionnalités EXISTANTES marchent toujours ?**
+**Passe 1 — Logique et syntaxe** : bugs de logique, erreurs de syntaxe, erreurs d'exécution, erreurs de type
+**Passe 2 — Liens et références** : imports manquants/cassés, routes cassées, images/icônes cassées, dépendances, variables d'environnement
+**Passe 3 — Interface et responsive** : mobile/tablette/PC, états de chargement, états vides, gestion d'erreurs, accessibilité
+**Passe 4 — Performance et sécurité** : lenteurs, code mort/dupliqué, failles, warnings console React
+**Passe 5 — Cas limites et régressions** : scénarios inhabituels, **est-ce que les fonctionnalités EXISTANTES marchent toujours ?**
 
 ➡️ **S'il y a une erreur : tu corriges, puis tu REVÉRIFIES tout. Tu répètes jusqu'à ce que ce soit parfait.**
 ➡️ Tu ne me dis jamais « c'est bon » sans avoir vraiment vérifié.
 ➡️ Tu ne prétends jamais avoir testé si ce n'est pas le cas.
 
 **Après le code :**
-- Build de test (`npm run build`) obligatoire.
+- Build de test (`npm run build`) obligatoire → **0 erreur**.
 - QA écrit numéroté : « X/X vérifications passées ✅ ».
 - Si tu ne peux pas être sûr à 100 % : « Je ne peux pas vérifier ça avec certitude. »
 
 ---
 
-## 🚀 DÉPLOIEMENT (mon workflow — ne jamais le changer)
+## 🚀 DÉPLOIEMENT (règle stricte)
 
-- **PWA React/Firebase** → **UNIQUEMENT via GitHub Desktop**, JAMAIS le terminal pour déployer.
-  - Étapes : Fusionner → Remplacer → Commit → Push (Netlify build tout seul).
-- **Site statique** → GitHub Desktop, ou glisser le dossier complet dans l'onglet Deploys de Netlify.
-- Chaque livraison = **un ZIP unique prêt à fusionner-remplacer** (jamais fichier par fichier).
-- Build : toujours `npm install` **PUIS** `npm install terser --save-dev`.
-- Tu me donnes toujours les **étapes de déploiement à la fin**, numérotées.
-- Si les **règles Firestore/Storage** changent → rappelle-moi de les **republier à la main** sur la Console Firebase (séparé du code).
-- Après déploiement, rappelle-moi le **Ctrl+Shift+R** pour vider le cache.
+1. ✅ **Tu as l'autorisation de déployer** (commit + push avec Git), MAIS **uniquement quand JE te le demande**.
+2. Tu ne déploies **jamais de ta propre initiative**, même si le travail est terminé et vérifié. Tu attends mon ordre.
+3. Quand je dis **« déploie »** (ou que je te demande de déployer) → c'est **TOI qui fais TOUT à ma place** : commit + push avec Git directement. Moi je ne touche jamais au terminal ni à GitHub Desktop. Netlify build ensuite tout seul.
+4. À la fin de chaque mission terminée, tu peux me demander : **« Veux-tu que je déploie maintenant ? »** — mais tu attends ma réponse avant d'agir.
+5. Ton message de commit doit être **clair et en français** (résumé de ce qui a changé).
+6. Après le push, tu me rappelles :
+   - ⏱️ Attendre 2-3 min que Netlify termine le build
+   - 🔄 Faire **Ctrl+Shift+R** sur le site pour vider le cache
+7. Avant tout déploiement : `npm install` **PUIS** `npm install terser --save-dev` **PUIS** `npm run build` → 0 erreur obligatoire.
+8. Si les **règles Firestore/Storage** ont changé → tu me préviens que **JE** dois les **republier à la main** sur la Console Firebase (c'est séparé du code).
 
 ---
 
@@ -144,24 +148,19 @@
 ### Technologies d'animation autorisées
 - **Framer Motion** (React — priorité pour la PWA)
 - **GSAP** + ScrollTrigger (animations au scroll)
-- **Lottie** (lottiefiles.com — animations légères premium : chargements, succès, confirmations)
+- **Lottie** (lottiefiles.com — chargements, succès, confirmations)
 - **Lenis** (smooth scrolling)
 - **CSS animations** modernes (glassmorphism, micro-interactions)
 - Three.js/WebGL **seulement si** ça ne ralentit pas le mobile
 
 ### Règles d'or des animations
 1. **Chaque animation doit avoir un but.** Jamais de décoration gratuite.
-2. **60 FPS toujours** — si ça rame sur mobile, on simplifie.
-3. Transitions **fluides et discrètes**, jamais agressives.
-4. **Mobile d'abord** : la majorité de mes clients sont sur téléphone.
-5. Ne jamais surcharger l'interface. Simplicité > effets.
-6. Ne jamais sacrifier l'utilisabilité pour l'esthétique.
-7. Chaque amélioration design doit servir : expérience, navigation, **confiance client**, conversion.
-8. Toujours **préserver le contenu existant** en améliorant la présentation.
-
-### Cohérence visuelle
-- Espacements réguliers, typographie équilibrée, hiérarchie visuelle claire.
-- Toujours respecter les couleurs de la marque et le design system existant (`card-dark`, `badge-*`, `var(--gold)`, `animate-fade-in`).
+2. **60 FPS toujours** — animations sur transform/opacity uniquement, pas d'abus de will-change.
+3. **Mobile d'abord** : la majorité de mes clients sont sur téléphone.
+4. Ne jamais surcharger l'interface. Simplicité > effets.
+5. Ne jamais sacrifier l'utilisabilité pour l'esthétique.
+6. Chaque amélioration design doit servir : expérience, navigation, **confiance client**, conversion.
+7. Toujours respecter le design system existant (`card-dark`, `badge-*`, `var(--gold)`, `animate-fade-in`).
 
 ---
 
@@ -190,12 +189,12 @@
 
 ## ⚡ COMMANDES RAPIDES (quand je tape ces phrases)
 
-- **« audit complet »** → tu passes tout le projet en revue : bugs, sécurité, performance, responsive, accessibilité, code mort. Rapport numéroté.
+- **« audit complet »** → tu passes tout le projet en revue : bugs, sécurité, performance, responsive, accessibilité, code mort. Rapport numéroté, puis tu corriges directement dans les fichiers après mon accord.
 - **« vérifie le build »** → `npm install`, `npm install terser --save-dev`, `npm run build`, et tu me confirmes 0 erreur.
 - **« améliore le design »** → tu analyses l'interface actuelle, tu cherches les tendances récentes sur le web, et tu me proposes 2-3 améliorations premium AVANT de coder.
-- **« prépare la livraison »** → build + QA numéroté + étapes de déploiement GitHub Desktop.
-- **« résume la session »** → tu me fais un résumé simple de tout ce qu'on a fait et tu proposes les mises à jour de ce fichier.
+- **« déploie »** → build + vérifications finales + commit + push (par toi), puis rappel Netlify + Ctrl+Shift+R.
+- **« résume la session »** → résumé simple de tout ce qu'on a fait + propositions de mise à jour de ce fichier.
 
 ---
 
-*Version 2 — juillet 2026. Ousmane peut modifier ce fichier à tout moment.*
+*Version 3 — juillet 2026. Ousmane peut modifier ce fichier à tout moment.*
