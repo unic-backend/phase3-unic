@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { X, Smartphone, ArrowRight } from 'lucide-react'
+import { X, ArrowRight } from 'lucide-react'
 import logo from '../assets/logo.webp'
 
 /**
@@ -18,6 +18,8 @@ export default function BoutonAppFlottant() {
   const [deferredPrompt, setDeferredPrompt] = useState(null)
   const [visible, setVisible] = useState(true)
   const [etendu, setEtendu] = useState(false)
+  const [mounted, setMounted] = useState(false)
+  const [exiting, setExiting] = useState(false)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -45,10 +47,19 @@ export default function BoutonAppFlottant() {
     }
   }, [])
 
+  // Indique que le composant a monté pour déclencher l'animation d'entrée
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
   const fermer = (e) => {
     e.stopPropagation()
-    setVisible(false)
-    sessionStorage.setItem('bouton-app-ferme', '1')
+    setExiting(true)
+    // Laisse l'animation de sortie se jouer avant de masquer définitivement
+    setTimeout(() => {
+      setVisible(false)
+      sessionStorage.setItem('bouton-app-ferme', '1')
+    }, 200) // doit correspondre à la durée de l'animation de sortie
   }
 
   const agir = async () => {
@@ -69,12 +80,19 @@ export default function BoutonAppFlottant() {
   const label = deferredPrompt ? "Installer l'application" : "Ouvrir l'application"
 
   return (
-    <div className="fixed z-50 flex items-center"
-      style={{ bottom: 'max(1.25rem, env(safe-area-inset-bottom))', right: '1rem' }}>
+    <div
+      className={`fixed z-50 flex items-center
+        ${mounted && !exiting ? 'animate-[slideUp_300ms_ease-out] animate-[fadeIn_300ms_ease-out]' : ''}
+        ${exiting ? 'animate-[fadeOutSlideDown_200ms_ease-in]' : ''}`}
+      style={{ bottom: 'max(1.25rem, env(safe-area-inset-bottom))', right: '1rem' }}
+    >
       <button
         onClick={agir}
         onMouseEnter={() => setEtendu(true)}
-        className="group flex items-center gap-2.5 rounded-full shadow-2xl transition-all duration-300 btn-press"
+        onMouseLeave={() => setEtendu(false)}
+        className="group flex items-center gap-2.5 rounded-full shadow-2xl transition-all duration-300 btn-press
+          hover:scale-[1.02] hover:shadow-3xl hover:-translate-y-1
+          active:scale-95 active:shadow-[0_0_0_2px_rgba(255,255,255,0.2)]"
         style={{
           background: 'linear-gradient(135deg, #1A3FA0, #2A5BD7)',
           padding: etendu ? '0.7rem 1.1rem 0.7rem 0.7rem' : '0.7rem',
@@ -83,14 +101,15 @@ export default function BoutonAppFlottant() {
       >
         {/* Logo dans un rond */}
         <span className="relative flex items-center justify-center shrink-0">
-          <span className="absolute inline-flex h-full w-full rounded-full opacity-40 animate-ping"
+          <span className="absolute inline-flex h-full w-full rounded-full opacity-40 animate-pulse-slow"
             style={{ background: '#F2C200' }} />
           <img src={logo} alt="UniC" className="relative w-9 h-9 rounded-full object-cover"
             style={{ border: '2px solid rgba(255,255,255,0.3)' }} />
         </span>
 
         {/* Libellé (visible quand étendu) */}
-        <span className="flex items-center gap-1.5 overflow-hidden transition-all duration-300 whitespace-nowrap"
+        <span className={`flex items-center gap-1.5 overflow-hidden transition-all duration-300 whitespace-nowrap
+          ${etendu ? 'animate-fadeInSlide' : ''}`}
           style={{ maxWidth: etendu ? '220px' : '0px', opacity: etendu ? 1 : 0 }}>
           <span className="text-white font-bold text-sm">{label}</span>
           <ArrowRight size={15} className="text-white/80" />
@@ -99,7 +118,8 @@ export default function BoutonAppFlottant() {
 
       {/* Bouton fermer (petit, en haut à droite du bouton) */}
       <button onClick={fermer} aria-label="Fermer"
-        className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center shadow-md"
+        className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center shadow-md
+          hover:rotate-6 hover:scale-105 transition-transform duration-200"
         style={{ background: '#0C1829', border: '1px solid rgba(255,255,255,0.15)' }}>
         <X size={11} color="#8899B4" />
       </button>
