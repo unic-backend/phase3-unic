@@ -1,10 +1,10 @@
-import { useState, useCallback } from 'react'
+import { useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { Menu, X } from 'lucide-react'
 import logo from '../assets/logo.webp'
 
-// Sections ancrees de la page d'accueil. 'accueil' = haut de page.
+// Sections ancrées de la page d'accueil. 'accueil' = haut de page.
 const SECTIONS = [
   { id: 'accueil', label: 'Accueil' },
   { id: 'services', label: 'Services' },
@@ -18,7 +18,6 @@ export default function Header() {
   const navigate = useNavigate()
   const location = useLocation()
   const [menuOuvert, setMenuOuvert] = useState(false)
-  const [exiting, setExiting] = useState(false)
 
   const handleLogout = () => {
     logout()
@@ -29,14 +28,7 @@ export default function Header() {
   // Défilement fluide vers une section. Si on n'est pas sur la home,
   // on y navigue d'abord, puis on scrolle une fois le DOM rendu.
   const allerVersSection = useCallback((id) => {
-    // Fermer le menu (avec animation de sortie) si ouvert
-    if (menuOuvert) {
-      setExiting(true)
-      setTimeout(() => {
-        setMenuOuvert(false)
-        setExiting(false)
-      }, 300) // doit correspondre à la durée de l'animation de sortie
-    }
+    setMenuOuvert(false)
     const scroller = () => {
       if (id === 'accueil') { window.scrollTo({ top: 0, behavior: 'smooth' }); return }
       const el = document.getElementById(id)
@@ -84,7 +76,7 @@ export default function Header() {
               <span className="text-sm font-bold max-w-[120px] truncate">{user.nom || 'Utilisateur'}</span>
               <button
                 onClick={handleLogout}
-                className="bg-[#F2C200] text-[#1A3FA0] px-4 py-2 rounded-lg font-bold
+                className="bg-[#F2C200] text-[#1 text-[#1A3FA0] px-4 py-2 rounded-lg font-bold
                   hover:bg-yellow-400 transition transform hover:scale-[1.02] hover:shadow-lg
                   duration-300 ease-out active:scale-[0.98]"
               >
@@ -115,19 +107,9 @@ export default function Header() {
 
         {/* Bouton menu mobile */}
         <button
-          onClick={() => {
-            if (menuOuvert) {
-              setExiting(true)
-              setTimeout(() => {
-                setMenuOuvert(false)
-                setExiting(false)
-              }, 300)
-            } else {
-              setMenuOuvert(true)
-            }
-          }}
-          className={`md:hidden p-2 rounded-lg hover:bg-white/10 transition
-            transform transition-transform duration-300 hover:scale-[1.05]`}
+          onClick={() => setMenuOuvert(!menuOuvert)}
+          className="md:hidden p-2 rounded-lg hover:bg-white/10 transition
+            transform transition-transform duration-300 hover:scale-[1.05]"
           aria-label={menuOuvert ? 'Fermer le menu' : 'Ouvrir le menu'}
           aria-expanded={menuOuvert}
         >
@@ -135,40 +117,34 @@ export default function Header() {
         </button>
       </div>
 
-      {/* Menu mobile - avec animation d'entrée et de sortie */}
-      {menuOuvert || exiting && (
-        <>
-          {/* Overlay - fondu d'entrée/sortie */}
-          <div
-            className={`md:hidden fixed inset-0 top-0 bg-black/40 z-40
-              transition-opacity duration-300
-              ${menuOuvert && !exiting ? 'opacity-100' : exiting ? 'opacity-100' : 'opacity-0'}`}
-            onClick={() => {
-              setExiting(true)
-              setTimeout(() => {
-                setMenuOuvert(false)
-                setExiting(false)
-              }, 300)
-            }}
-          />
+      {/* Overlay pour fermer le menu en cliquant à l'extérieur */}
+      {menuOuvert && (
+        <div
+          className="fixed inset-0 bg-black/40 z-50"
+          onClick={() => setMenuOuvert(false)}
+        />
+      )}
 
-          {/* Menu - slide down / fade in & slide up / fade out */}
-          <nav
-            className={`md:hidden fixed inset-0 z-60 bg-[#1A3FA0] border-t border-white/10 px-4 py-3 space-y-1 shadow-xl
-              ${menuOuvert && !exiting ? 'animate-slideDownFadeIn' : exiting ? 'animate-slideUpFadeOut' : ''}`}
-          >
-            {SECTIONS.map((s, index) => (
+      {/* Menu mobile - toujours présent dans le JSX lorsqu'ouvert */}
+      {menuOuvert && (
+        <nav className="fixed inset-0 z-60 flex flex-col items-center justify-center bg-[#1A3FA0]
+          transform transition-transform duration-300
+          translate-y-0"
+          // When closed, we translate it up out of view
+          className={`${menuOuvert ? 'translate-y-0' : '-translate-y-full'}`}
+        >
+          <div className="space-y-6">
+            {SECTIONS.map((s) => (
               <button
                 key={s.id}
                 onClick={() => allerVersSection(s.id)}
                 className="block w-full text-left px-4 py-3 rounded-lg font-semibold
                   hover:bg-white/10 hover:text-[#F2C200] transition"
-                style={{ animationDelay: `${index * 100}ms` }}
               >
                 {s.label}
               </button>
             ))}
-            <div className="pt-2 mt-2 border-t border-white/10 space-y-2">
+            <div className="pt-4 mt-4 border-t border-white/10 space-y-4">
               {user ? (
                 <>
                   <p className="px-4 py-1 text-sm font-bold text-white/80 truncate">{user.nom || 'Utilisateur'}</p>
@@ -184,13 +160,7 @@ export default function Header() {
                 <>
                   <Link
                     to="/login"
-                    onClick={() => {
-                      setExiting(true)
-                      setTimeout(() => {
-                        setMenuOuvert(false)
-                        setExiting(false)
-                      }, 300)
-                    }}
+                    onClick={() => setMenuOuvert(false)}
                     className="block w-full text-center px-4 py-3 rounded-lg font-bold
                       border border-[#F2C200] text-[#F2C200] hover:bg-[#F2C200] hover:text-[#1A3FA0]
                       transition"
@@ -199,14 +169,8 @@ export default function Header() {
                   </Link>
                   <Link
                     to="/signup"
-                    onClick={() => {
-                      setExiting(true)
-                      setTimeout(() => {
-                        setMenuOuvert(false)
-                        setExiting(false)
-                      }, 300)
-                    }}
-                    className="block w-full text-center bg-[#F2C200] text-[#1A3FA0] px-4 py-2 rounded-lg font-bold
+                    onClick={() => setMenuOuvert(false)}
+                    className="block w-full text-center bg-[#F2C200] text-[#1A3FA0] px-4 py-3 rounded-lg font-bold
                       hover:bg-yellow-400 transition"
                   >
                     S'inscrire
@@ -214,8 +178,8 @@ export default function Header() {
                 </>
               )}
             </div>
-          </nav>
-        </>
+          </div>
+        </nav>
       )}
     </header>
   )
