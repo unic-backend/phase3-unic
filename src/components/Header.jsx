@@ -1,10 +1,10 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { Menu, X } from 'lucide-react'
 import logo from '../assets/logo.webp'
 
-// Sections ancrées de la page d'accueil. 'accueil' = haut de page.
+// Sections ancrees de la page d'accueil. 'accueil' = haut de page.
 const SECTIONS = [
   { id: 'accueil', label: 'Accueil' },
   { id: 'services', label: 'Services' },
@@ -25,7 +25,7 @@ export default function Header() {
     setMenuOuvert(false)
   }
 
-  // Défilement fluide vers une section. Si on n'est pas sur la home,
+  // Defilement fluide vers une section. Si on n'est pas sur la home,
   // on y navigue d'abord, puis on scrolle une fois le DOM rendu.
   const allerVersSection = useCallback((id) => {
     setMenuOuvert(false)
@@ -46,24 +46,14 @@ export default function Header() {
     <header className="bg-[#1A3FA0] text-white shadow-lg sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
         {/* Logo */}
-        <button
-          onClick={() => allerVersSection('accueil')}
-          className="flex items-center hover:opacity-80 transition shrink-0 hover:-translate-y-1 transition-transform duration-300"
-          aria-label="Accueil UniC Plaquiste"
-        >
+        <button onClick={() => allerVersSection('accueil')} className="flex items-center hover:opacity-80 transition shrink-0" aria-label="Accueil UniC Plaquiste">
           <img src={logo} alt="UNIC PLAQUISTE" className="h-11 sm:h-12 w-auto" />
         </button>
 
         {/* Navigation desktop */}
         <nav className="hidden md:flex gap-7 items-center">
           {SECTIONS.map((s) => (
-            <button
-              key={s.id}
-              onClick={() => allerVersSection(s.id)}
-              className={`relative inline-block hover:text-[#F2C200] transition font-semibold text-sm
-                after:content-[''] after:absolute after:-bottom-[2px] after:left-0 after:h-0.5 after:w-0
-                after:bg-[#F2C200] after:transition-all after:duration-300 hover:after:w-full`}
-            >
+            <button key={s.id} onClick={() => allerVersSection(s.id)} className="hover:text-[#F2C200] transition font-semibold text-sm">
               {s.label}
             </button>
           ))}
@@ -74,110 +64,57 @@ export default function Header() {
           {user ? (
             <>
               <span className="text-sm font-bold max-w-[120px] truncate">{user.nom || 'Utilisateur'}</span>
-              <button
-                onClick={handleLogout}
-                className="bg-[#F2C200] text-[#1A3FA0] px-4 py-2 rounded-lg font-bold
-                  hover:bg-yellow-400 transition transform hover:scale-[1.02] hover:shadow-lg
-                  duration-300 ease-out active:scale-[0.98]"
-              >
+              <button onClick={handleLogout} className="bg-[#F2C200] text-[#1A3FA0] px-4 py-2 rounded-lg font-bold hover:bg-yellow-400 transition">
                 Déconnexion
               </button>
             </>
           ) : (
             <>
-              <Link
-                to="/login"
-                className="hover:text-[#F2C200] transition font-bold text-sm
-                  hover:scale-[1.02] hover:shadow-lg
-                  duration-300 ease-out active:scale-[0.98]"
-              >
-                Connexion
-              </Link>
-              <Link
-                to="/signup"
-                className="bg-[#F2C200] text-[#1A3FA0] px-4 py-2 rounded-lg font-bold
-                  hover:bg-yellow-400 transition transform hover:scale-[1.02] hover:shadow-lg
-                  duration-300 ease-out active:scale-[0.98] text-sm"
-              >
-                S'inscrire
-              </Link>
+              <Link to="/login" className="hover:text-[#F2C200] transition font-bold text-sm">Connexion</Link>
+              <Link to="/signup" className="bg-[#F2C200] text-[#1A3FA0] px-4 py-2 rounded-lg font-bold hover:bg-yellow-400 transition text-sm">S'inscrire</Link>
             </>
           )}
         </div>
 
-        {/* Bouton menu mobile */}
-        <button
-          onClick={() => setMenuOuvert(!menuOuvert)}
-          className="md:hidden p-2 rounded-lg hover:bg-white/10 transition
-            transform transition-transform duration-300 hover:scale-[1.05]"
-          aria-label={menuOuvert ? 'Fermer le menu' : 'Ouvrir le menu'}
-          aria-expanded={menuOuvert}
-        >
-          {menuOuvert ? <X size={24} /> : <Menu size={24} />}
-        </button>
+        {/* Mobile : bouton Espace client TOUJOURS visible + menu hamburger */}
+        <div className="md:hidden flex items-center gap-2">
+          <Link to={user ? '/client/dashboard' : '/login'}
+            className="bg-[#F2C200] text-[#1A3FA0] px-3 py-2 rounded-lg font-bold text-xs whitespace-nowrap active:scale-95 transition">
+            {user ? 'Mon espace' : 'Espace client'}
+          </Link>
+          <button onClick={() => setMenuOuvert((v) => !v)} className="p-2 rounded-lg hover:bg-white/10 transition"
+            aria-label={menuOuvert ? 'Fermer le menu' : 'Ouvrir le menu'} aria-expanded={menuOuvert}>
+            {menuOuvert ? <X size={24} /> : <Menu size={24} />}
+          </button>
+        </div>
       </div>
 
-      {/* Overlay pour fermer le menu en cliquant à l'extérieur */}
+      {/* Menu mobile */}
       {menuOuvert && (
-        <div
-          className="fixed inset-0 bg-black/40 z-40"
-          onClick={() => setMenuOuvert(false)}
-        />
-      )}
-
-      {/* Menu mobile - toujours présent dans le JSX lorsqu'ouvert */}
-      {menuOuvert && (
-        <nav className={`fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#1A3FA0]
-          transform transition-transform duration-300
-          ${menuOuvert ? 'translate-y-0' : '-translate-y-full'}`}
-        >
-          <div className="space-y-6">
+        <>
+          <div className="md:hidden fixed inset-0 top-0 bg-black/40 z-40" onClick={() => setMenuOuvert(false)} />
+          <nav className="md:hidden relative z-50 bg-[#1A3FA0] border-t border-white/10 px-4 py-3 space-y-1 shadow-xl">
             {SECTIONS.map((s) => (
-              <button
-                key={s.id}
-                onClick={() => allerVersSection(s.id)}
-                className="block w-full text-left px-4 py-3 rounded-lg font-semibold
-                  hover:bg-white/10 hover:text-[#F2C200] transition"
-              >
+              <button key={s.id} onClick={() => allerVersSection(s.id)}
+                className="block w-full text-left px-4 py-3 rounded-lg font-semibold hover:bg-white/10 hover:text-[#F2C200] transition">
                 {s.label}
               </button>
             ))}
-            <div className="pt-4 mt-4 border-t border-white/10 space-y-4">
+            <div className="pt-2 mt-2 border-t border-white/10 space-y-2">
               {user ? (
                 <>
                   <p className="px-4 py-1 text-sm font-bold text-white/80 truncate">{user.nom || 'Utilisateur'}</p>
-                  <button
-                    onClick={handleLogout}
-                    className="w-full bg-[#F2C200] text-[#1A3FA0] px-4 py-2 rounded-lg font-bold
-                      hover:bg-yellow-400 transition"
-                  >
-                    Déconnexion
-                  </button>
+                  <button onClick={handleLogout} className="w-full bg-[#F2C200] text-[#1A3FA0] px-4 py-3 rounded-lg font-bold hover:bg-yellow-400 transition">Déconnexion</button>
                 </>
               ) : (
                 <>
-                  <Link
-                    to="/login"
-                    onClick={() => setMenuOuvert(false)}
-                    className="block w-full text-center px-4 py-3 rounded-lg font-bold
-                      border border-[#F2C200] text-[#F2C200] hover:bg-[#F2C200] hover:text-[#1A3FA0]
-                      transition"
-                  >
-                    Connexion
-                  </Link>
-                  <Link
-                    to="/signup"
-                    onClick={() => setMenuOuvert(false)}
-                    className="block w-full text-center bg-[#F2C200] text-[#1A3FA0] px-4 py-2 rounded-lg font-bold
-                      hover:bg-yellow-400 transition"
-                  >
-                    S'inscrire
-                  </Link>
+                  <Link to="/login" onClick={() => setMenuOuvert(false)} className="block w-full text-center px-4 py-3 rounded-lg font-bold border border-[#F2C200] text-[#F2C200] hover:bg-[#F2C200] hover:text-[#1A3FA0] transition">Connexion</Link>
+                  <Link to="/signup" onClick={() => setMenuOuvert(false)} className="block w-full text-center bg-[#F2C200] text-[#1A3FA0] px-4 py-3 rounded-lg font-bold hover:bg-yellow-400 transition">S'inscrire</Link>
                 </>
               )}
             </div>
-          </div>
-        </nav>
+          </nav>
+        </>
       )}
     </header>
   )
