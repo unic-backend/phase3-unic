@@ -89,11 +89,17 @@ export default function Login() {
           </button>
         </div>
 
-        {/* Signup link */}
-        <p className="text-center mt-6 text-sm" style={{ color: 'var(--text-secondary)' }}>
-          Pas de compte ?{' '}
-          <a href="/signup" className="font-semibold" style={{ color: 'var(--gold)' }}>S'inscrire</a>
-        </p>
+        {/* Créer un compte — bouton bien visible pour les nouveaux clients */}
+        <div className="mt-6 pt-5 text-center" style={{ borderTop: '1px solid var(--dark-border)' }}>
+          <p className="text-sm mb-3" style={{ color: 'var(--text-secondary)' }}>
+            Vous êtes nouveau chez UniC Plaquiste ?
+          </p>
+          <a href="/signup"
+            className="block w-full py-3 rounded-xl font-bold text-sm text-center btn-press transition"
+            style={{ border: '2px solid var(--gold)', color: 'var(--gold)' }}>
+            Créer un compte gratuitement
+          </a>
+        </div>
       </div>
 
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}

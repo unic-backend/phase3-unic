@@ -84,10 +84,16 @@ export default function Signup() {
           </button>
         </div>
 
-        <p className="text-center mt-6 text-sm" style={{ color: 'var(--text-secondary)' }}>
-          Déjà un compte ?{' '}
-          <a href="/login" className="font-semibold" style={{ color: 'var(--gold)' }}>Se connecter</a>
-        </p>
+        <div className="mt-6 pt-5 text-center" style={{ borderTop: '1px solid var(--dark-border)' }}>
+          <p className="text-sm mb-3" style={{ color: 'var(--text-secondary)' }}>
+            Vous avez déjà un compte ?
+          </p>
+          <a href="/login"
+            className="block w-full py-3 rounded-xl font-bold text-sm text-center btn-press transition"
+            style={{ border: '2px solid var(--gold)', color: 'var(--gold)' }}>
+            Se connecter
+          </a>
+        </div>
       </div>
 
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}

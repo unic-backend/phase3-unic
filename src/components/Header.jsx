@@ -76,12 +76,25 @@ export default function Header() {
           )}
         </div>
 
-        {/* Mobile : bouton Espace client TOUJOURS visible + menu hamburger */}
-        <div className="md:hidden flex items-center gap-2">
-          <Link to={user ? '/client/dashboard' : '/login'}
-            className="bg-[#F2C200] text-[#1A3FA0] px-3 py-2 rounded-lg font-bold text-xs whitespace-nowrap active:scale-95 transition">
-            {user ? 'Mon espace' : 'Espace client'}
-          </Link>
+        {/* Mobile : Connexion + S'inscrire TOUJOURS visibles + menu hamburger */}
+        <div className="md:hidden flex items-center gap-1.5">
+          {user ? (
+            <Link to="/client/dashboard"
+              className="bg-[#F2C200] text-[#1A3FA0] px-3 py-2 rounded-lg font-bold text-xs whitespace-nowrap active:scale-95 transition">
+              Mon espace
+            </Link>
+          ) : (
+            <>
+              <Link to="/login"
+                className="px-2.5 py-2 rounded-lg font-bold text-xs whitespace-nowrap active:scale-95 transition border border-[#F2C200] text-[#F2C200]">
+                Connexion
+              </Link>
+              <Link to="/signup"
+                className="bg-[#F2C200] text-[#1A3FA0] px-2.5 py-2 rounded-lg font-bold text-xs whitespace-nowrap active:scale-95 transition">
+                S'inscrire
+              </Link>
+            </>
+          )}
           <button onClick={() => setMenuOuvert((v) => !v)} className="p-2 rounded-lg hover:bg-white/10 transition"
             aria-label={menuOuvert ? 'Fermer le menu' : 'Ouvrir le menu'} aria-expanded={menuOuvert}>
             {menuOuvert ? <X size={24} /> : <Menu size={24} />}
