@@ -1,0 +1,20 @@
+# En-têtes de sécurité HTTP — appliqués par Netlify à toutes les pages.
+# Protection niveau serveur, invisible pour les utilisateurs.
+
+/*
+  # Personne ne peut afficher ton app dans une iframe (anti-clickjacking :
+  # empêche un site pirate de superposer ton app pour voler des clics/identifiants)
+  X-Frame-Options: DENY
+  # Le navigateur respecte strictement les types de fichiers déclarés
+  # (empêche d'exécuter un fichier déguisé en image)
+  X-Content-Type-Options: nosniff
+  # Limite les infos envoyées aux sites externes quand on clique un lien
+  Referrer-Policy: strict-origin-when-cross-origin
+  # Coupe l'accès aux capteurs inutilisés (micro, géolocalisation...)
+  # La caméra reste accessible (photos de devis / stories)
+  Permissions-Policy: microphone=(), geolocation=(), payment=(), usb=()
+
+# Le Service Worker doit toujours être rechargé frais (jamais mis en cache
+# par le navigateur), sinon les mises à jour de l'app ne se propagent pas.
+/sw.js
+  Cache-Control: no-cache, no-store, must-revalidate

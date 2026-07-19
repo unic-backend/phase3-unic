@@ -22,4 +22,13 @@ if (import.meta.env.PROD && 'serviceWorker' in navigator) {
       // Échec silencieux : l'app fonctionne normalement sans SW.
     })
   })
+  // Quand une NOUVELLE version de l'app prend le contrôle (après un déploiement),
+  // on recharge l'onglet une seule fois : les utilisateurs ont toujours la
+  // dernière version sans devoir rafraîchir à la main.
+  let dejaRecharge = false
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (dejaRecharge) return
+    dejaRecharge = true
+    window.location.reload()
+  })
 }

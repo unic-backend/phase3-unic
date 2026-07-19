@@ -3,15 +3,22 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#1A3FA0" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#060D18" media="(prefers-color-scheme: dark)" />
     <meta name="theme-color" content="#1A3FA0" />
+    <!-- Mode nuit natif : claviers, listes déroulantes et barres de défilement
+         s'affichent sombres, assortis à l'app (sinon ils restent blancs) -->
+    <meta name="color-scheme" content="dark" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <!-- Barre de statut iOS noire, assortie au thème sombre de l'app installée -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
     <title>UniC Plaquiste — Rénovation & Décoration à Dakar</title>
     <meta name="description" content="UniC Plaquiste: Faux plafonds BA13, cloisons, peinture, décoration à Dakar. 8 ans d'expérience, 100+ projets réalisés." />
     <meta name="keywords" content="plaquiste Dakar, BA13, faux plafonds, cloisons, peinture, décoration, rénovation" />
     <link rel="manifest" href="/manifest.json" />
     <link rel="icon" href="/icon-192.webp" />
-    <link rel="apple-touch-icon" href="/icon-192.webp" />
+    <!-- iOS exige du PNG pour l'icône d'écran d'accueil (le webp donne une icône vide) -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />

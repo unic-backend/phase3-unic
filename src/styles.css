@@ -432,3 +432,47 @@ input:disabled, textarea:disabled, select:disabled {
   background: var(--dark-bg);
   min-height: 100vh;
 }
+
+/* ── Mode nuit natif ──────────────────────────────────────────────────────────
+   Les contrôles du navigateur (claviers, listes déroulantes, calendriers,
+   barres de défilement) s'affichent sombres, assortis à l'app.
+   Sans ça, ils restent blancs et jurent avec le thème. */
+:root {
+  color-scheme: dark;
+}
+
+/* ── Adaptation écran mobile : hauteur dynamique ──────────────────────────────
+   100vh (ancienne unité) ignore la barre d'adresse du navigateur mobile :
+   des boutons en bas d'écran peuvent se retrouver cachés derrière.
+   100dvh (unité moderne) suit la vraie hauteur visible. Ce bloc corrige
+   d'un coup tous les h-screen / min-h-screen de l'app. */
+@supports (height: 100dvh) {
+  .h-screen { height: 100dvh; }
+  .min-h-screen { min-height: 100dvh; }
+  #root { min-height: 100dvh; }
+}
+
+/* ── Sélection de texte aux couleurs de la marque ────────────────────────────*/
+::selection {
+  background: rgba(246, 195, 68, 0.35);
+  color: #fff;
+}
+
+/* ── Focus clavier visible (accessibilité) ────────────────────────────────────
+   Un liseré doré apparaît quand on navigue au clavier (Tab),
+   invisible au clic/tactile pour ne pas gêner. */
+:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ── FIX iOS : zoom automatique sur les champs ────────────────────────────────
+   Safari iPhone zoome automatiquement quand un champ a une police < 16px,
+   et la page reste souvent coincée zoomée. On force 16px sur mobile :
+   le zoom ne se déclenche plus, la saisie reste confortable. */
+@media (max-width: 767px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
