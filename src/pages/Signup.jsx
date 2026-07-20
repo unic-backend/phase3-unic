@@ -63,7 +63,9 @@ export default function Signup() {
             <div className="relative">
               <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
               <input type={showPass ? 'text' : 'password'} name="password" value={formData.password} onChange={handleChange} className={`${ic} pr-11`} placeholder="Mot de passe (min. 6)" required autoComplete="new-password" disabled={loading} />
-              <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-4 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }}>
+              <button type="button" onClick={() => setShowPass(!showPass)}
+                aria-label={showPass ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                className="absolute right-0 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center" style={{ color: 'var(--text-muted)' }}>
                 {showPass ? <EyeOff size={16}/> : <Eye size={16}/>}
               </button>
             </div>

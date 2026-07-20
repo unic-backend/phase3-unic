@@ -68,7 +68,8 @@ export default function Login() {
               <input type={showPassword ? 'text' : 'password'} name="password" value={formData.password} onChange={handleChange}
                 className={`${inputClass} pr-11`} placeholder="Votre mot de passe" required autoComplete="current-password" disabled={loading} />
               <button type="button" onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-4 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }}>
+                aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                className="absolute right-0 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center" style={{ color: 'var(--text-muted)' }}>
                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>

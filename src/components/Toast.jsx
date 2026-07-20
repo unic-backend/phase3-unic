@@ -25,6 +25,8 @@ export default function Toast({ message, type = 'success', duration = 3000, onCl
 
   return (
     <div
+      role="status"
+      aria-live={type === 'error' ? 'assertive' : 'polite'}
       className={`${bgColor} text-white px-5 py-4 rounded-2xl shadow-lg flex items-center gap-3 animate-slide-up fixed left-4 right-4 md:left-auto md:right-6 bottom-20 md:bottom-6 z-[60] md:max-w-sm`}
       style={{ marginBottom: 'env(safe-area-inset-bottom)' }}
     >

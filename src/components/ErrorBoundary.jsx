@@ -92,7 +92,11 @@ export default class ErrorBoundary extends Component {
             </button>
           </div>
           <p style={{ color: '#4A5B73', fontSize: '11px', marginTop: '20px' }}>
-            Si le problème persiste : WhatsApp +221 77 708 50 92
+            Si le problème persiste :{' '}
+            <a href="https://wa.me/221777085092" target="_blank" rel="noopener noreferrer"
+              style={{ color: '#F6C344', fontWeight: 700, textDecoration: 'underline' }}>
+              WhatsApp +221 77 708 50 92
+            </a>
           </p>
         </div>
       </div>

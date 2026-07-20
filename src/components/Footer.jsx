@@ -35,10 +35,10 @@ export default function Footer() {
           <div className="animate-fade-in">
             <h4 className="font-bold mb-6 text-lg">Nous Suivre</h4>
             <div className="flex gap-4">
-              <a href="https://facebook.com" className="hover:text-[#F2C200] transition"><Facebook size={22} /></a>
-              <a href="https://instagram.com" className="hover:text-[#F2C200] transition"><Instagram size={22} /></a>
-              <a href="https://tiktok.com" className="hover:text-[#F2C200] transition"><Music2 size={22} /></a>
-              <a href="https://wa.me/221777085092" className="hover:text-[#F2C200] transition"><MessageCircle size={22} /></a>
+              <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" aria-label="Facebook UniC Plaquiste" className="hover:text-[#F2C200] transition p-1.5 -m-1.5 rounded-full"><Facebook size={22} /></a>
+              <a href="https://instagram.com/unic_plaquiste" target="_blank" rel="noopener noreferrer" aria-label="Instagram UniC Plaquiste" className="hover:text-[#F2C200] transition p-1.5 -m-1.5 rounded-full"><Instagram size={22} /></a>
+              <a href="https://tiktok.com/@unic_plaquiste" target="_blank" rel="noopener noreferrer" aria-label="TikTok UniC Plaquiste" className="hover:text-[#F2C200] transition p-1.5 -m-1.5 rounded-full"><Music2 size={22} /></a>
+              <a href="https://wa.me/221777085092" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp UniC Plaquiste" className="hover:text-[#F2C200] transition p-1.5 -m-1.5 rounded-full"><MessageCircle size={22} /></a>
             </div>
           </div>
         </div>

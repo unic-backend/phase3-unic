@@ -5,8 +5,8 @@ export default function Hero() {
       <div className="absolute w-96 h-96 bg-[#F2C200] opacity-10 rounded-full -top-48 -left-48 animate-pulse-4s [animation-delay:0ms]"></div>
       <div className="absolute w-96 h-96 bg-[#F2C200] opacity-10 rounded-full -bottom-48 -right-48 animate-pulse-4s [animation-delay:2000ms]"></div>
 
-      <div className="relative z-10 text-center px-6 max-w-4xl mx-auto">
-        <h1 className="text-7xl md:text-8xl font-bold mb-6 animate-fadeInUp">
+      <div className="relative z-10 text-center px-6 max-w-4xl mx-auto min-w-0 w-full">
+        <h1 className="text-5xl sm:text-7xl md:text-8xl font-bold mb-6 animate-fadeInUp">
           UNIC <span className="text-[#F2C200] drop-shadow-lg hover:scale-[1.02] transition-transform duration-300">PLAQUISTE</span>
         </h1>
 
