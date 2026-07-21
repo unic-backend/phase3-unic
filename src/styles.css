@@ -467,6 +467,38 @@ input:disabled, textarea:disabled, select:disabled {
   border-radius: 4px;
 }
 
+/* ── Reveal : apparition fluide au défilement ─────────────────────────────────
+   Pattern du standard AOS (28k étoiles GitHub), sans dépendance.
+   Piloté par le composant Reveal.jsx (IntersectionObserver).
+   Transform + opacity uniquement : animations GPU, fluides même
+   sur les téléphones modestes. */
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition:
+    opacity 0.65s ease,
+    transform 0.65s cubic-bezier(0.2, 0.65, 0.3, 1);
+  will-change: opacity, transform;
+}
+.reveal.reveal-visible {
+  opacity: 1;
+  transform: none;
+  will-change: auto;
+}
+
+/* ── Cartes : léger soulèvement au survol (desktop uniquement) ────────────────
+   @media (hover:hover) = seulement les appareils avec une vraie souris.
+   Sur tactile, rien ne bouge (pas de survol fantôme au tap). */
+@media (hover: hover) {
+  .card-glass, .card-dark {
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+  }
+  .card-glass:hover, .card-dark:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+  }
+}
+
 /* ── FIX iOS : zoom automatique sur les champs ────────────────────────────────
    Safari iPhone zoome automatiquement quand un champ a une police < 16px,
    et la page reste souvent coincée zoomée. On force 16px sur mobile :

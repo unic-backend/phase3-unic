@@ -12,6 +12,7 @@ import Galerie from '../components/Galerie'
 import FAQ from '../components/FAQ'
 import Contact from '../components/Contact'
 import Footer from '../components/Footer'
+import Reveal from '../components/Reveal'
 
 export default function HomePage() {
   const { user, loading } = useAuth()
@@ -29,12 +30,13 @@ export default function HomePage() {
       <Header />
       <InstallPrompt />
       <Hero />
-      <Services />
-      <Tarifs />
-      <Galerie />
-      <Temoignages />
-      <FAQ />
-      <Contact />
+      {/* Apparition fluide des sections au défilement (pattern AOS) */}
+      <Reveal><Services /></Reveal>
+      <Reveal delay={60}><Tarifs /></Reveal>
+      <Reveal><Galerie /></Reveal>
+      <Reveal delay={60}><Temoignages /></Reveal>
+      <Reveal><FAQ /></Reveal>
+      <Reveal delay={60}><Contact /></Reveal>
       <Footer />
       <BoutonAppFlottant />
     </div>
