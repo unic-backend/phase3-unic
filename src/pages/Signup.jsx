@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import Toast from '../components/Toast'
+import InstallPrompt from '../components/InstallPrompt'
 import { UserPlus, User, Mail, Phone, Lock, Eye, EyeOff } from 'lucide-react'
 import logo from '../assets/logo.webp'
 
@@ -44,6 +45,11 @@ export default function Signup() {
           <img src={logo} alt="UniC" className="h-14 w-auto mx-auto mb-3" />
           <h1 className="text-2xl font-bold text-white">Créer un compte</h1>
           <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>Rejoignez UniC Plaquiste</p>
+        </div>
+
+        {/* Installer l'app — visible dès l'inscription */}
+        <div className="mb-5">
+          <InstallPrompt compact />
         </div>
 
         <div className="rounded-2xl p-5 space-y-4" style={{ background: 'var(--dark-surface)', border: '1px solid var(--dark-border)' }}>

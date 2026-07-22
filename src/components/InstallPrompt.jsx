@@ -94,12 +94,14 @@ export default function InstallPrompt({ compact = false }) {
         <div className="bg-gradient-to-r from-[#1A3FA0] to-[#0D1B4B] py-4 px-6">
           <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
             <div className="text-white text-center sm:text-left">
-              <p className="font-bold text-lg">📲 Installer l'application UniC Plaquiste</p>
-              <p className="text-sm text-blue-200">Accédez plus vite à votre espace client, sans passer par le navigateur</p>
+              <p className="font-bold text-lg">📲 Installez l'application UniC Plaquiste</p>
+              <p className="text-sm text-blue-200">
+                Gratuit · s'ajoute à votre écran d'accueil comme WhatsApp · rien à télécharger sur Play Store
+              </p>
             </div>
             <button onClick={handleInstall}
-              className="bg-[#F2C200] text-[#1A3FA0] px-6 py-3 rounded-2xl font-bold hover:bg-yellow-400 transition whitespace-nowrap btn-press shadow-lg">
-              Installer l'app
+              className="bg-[#F2C200] text-[#1A3FA0] px-6 py-3 rounded-2xl font-bold hover:bg-yellow-400 transition whitespace-nowrap btn-press shadow-lg flex items-center gap-2">
+              <Download size={18} /> Installer sur mon téléphone
             </button>
           </div>
         </div>
