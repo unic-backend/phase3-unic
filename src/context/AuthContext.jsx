@@ -9,6 +9,7 @@ import {
 import { auth, db } from '../firebase/init'
 import { doc, setDoc, getDoc, deleteDoc, collection, getDocs, query, where, writeBatch } from 'firebase/firestore'
 import { isAdminEmail } from '../config/admins'
+import { notifierAdmins } from '../services/notificationService'
 
 const AuthContext = createContext()
 
@@ -91,6 +92,17 @@ export function AuthProvider({ children }) {
         isAdmin: isAdminUser,
         createdAt: new Date()
       }, { merge: true }).catch(err => console.error('Firestore error:', err))
+
+      // Prévenir les admins qu'un nouveau client vient de s'inscrire.
+      // Non bloquant : si la notification échoue, l'inscription réussit quand même.
+      // (On ne se notifie pas soi-même quand c'est un compte admin.)
+      if (!isAdminUser) {
+        notifierAdmins({
+          title: 'Nouveau client inscrit 🎉',
+          message: `${nom || emailLower} vient de créer un compte${telephone ? ' · ' + telephone : ''}`,
+          link: '/admin/clients'
+        })
+      }
 
       // onAuthStateChanged va mettre à jour l'utilisateur automatiquement
       return { success: true }
