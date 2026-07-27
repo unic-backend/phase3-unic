@@ -5,17 +5,16 @@ import { getStorage } from 'firebase/storage'
 import { getAnalytics } from 'firebase/analytics'
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCfgMA9uzhvAOhSBedETfAZqpxqh8OfbRA",
-  authDomain: "unic-plaquiste.firebaseapp.com",
-  projectId: "unic-plaquiste",
-  storageBucket: "unic-plaquiste.firebasestorage.app",
-  messagingSenderId: "308052390634",
-  appId: "1:308052390634:web:1f4a5134705cf1173c1d93",
-  measurementId: "G-CZ17XNSJQN"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 }
 
 // Initialiser Firebase
-console.log(firebaseConfig)
 const app = initializeApp(firebaseConfig)
 
 
