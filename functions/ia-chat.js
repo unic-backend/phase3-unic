@@ -8,6 +8,14 @@ const JWKS = createRemoteJWKSet(
   new URL('https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com')
 )
 
+// Même liste que src/config/admins.js et firestore.rules — dupliquée ici
+// car cette fonction Netlify n'a pas accès au code src/ de l'app.
+const ADMIN_EMAILS = [
+  'admin@unicplaquiste.com',
+  'unicplaquiste@gmail.com',
+  'odiop2020@gmail.com',
+]
+
 async function verifierUtilisateur(authHeader) {
   if (!authHeader || !authHeader.startsWith('Bearer '))
     throw new Error('Vous devez être connecté pour utiliser l\'assistant.')
@@ -40,8 +48,12 @@ export default async (req) => {
   const question   = (body.question || '').trim()
   const contexte   = Array.isArray(body.contexte) ? body.contexte : []
   const historique  = Array.isArray(body.historique) ? body.historique : []
-  const isAdmin     = body.isAdmin === true
-  const stats       = body.stats || ''
+  // Sécurité : le mode admin ne peut pas être décidé par le client (body.isAdmin
+  // était auparavant utilisé tel quel, ce qui permettait à n'importe quel
+  // utilisateur connecté de s'octroyer le mode admin). On le vérifie ici contre
+  // la vraie liste d'admins, à partir de l'email authentifié par le token.
+  const isAdmin     = ADMIN_EMAILS.includes(userEmail)
+  const stats       = isAdmin ? (body.stats || '') : ''
   // Image jointe pour analyse vision : { base64, mediaType }
   const image       = (body.image && body.image.base64 && body.image.mediaType) ? body.image : null
 
