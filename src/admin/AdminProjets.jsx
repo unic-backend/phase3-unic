@@ -181,7 +181,7 @@ export default function AdminProjets() {
                         setDragOverEtape(null)
                         if (projetId) deplacerAEtape(projetId, etapeIdx)
                       }}
-                      className="w-[260px] shrink-0 rounded-2xl p-3 transition"
+                      className="w-[85vw] max-w-[260px] shrink-0 rounded-2xl p-3 transition"
                       style={{
                         background: estCible ? 'rgba(246,195,68,0.08)' : 'var(--dark-surface)',
                         border: `1px solid ${estCible ? 'var(--gold)' : 'var(--dark-border)'}`,

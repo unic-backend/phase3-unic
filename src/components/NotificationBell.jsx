@@ -105,7 +105,7 @@ export default function NotificationBell({ mode, userId }) {
                   Tout marquer comme lu
                 </button>
               )}
-              <button onClick={() => setOpen(false)} className="text-gray-400 hover:text-gray-600 btn-press">
+              <button onClick={() => setOpen(false)} aria-label="Fermer" className="p-2.5 -m-2.5 text-gray-400 hover:text-gray-600 btn-press">
                 <X size={18} />
               </button>
             </div>

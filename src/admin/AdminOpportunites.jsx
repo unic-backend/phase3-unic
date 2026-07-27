@@ -208,8 +208,8 @@ export default function AdminOpportunites() {
           <div className="flex items-center gap-2" style={{ color: '#F87171' }}>
             <Bell size={15} /> <p className="text-sm font-bold">{rappelsEchus.length} rappel(s) actif(s)</p>
           </div>
-          {rappelsEchus.slice(0, 3).map((r, i) => (
-            <button key={i} onClick={() => setSelectionne(r.opportunite)}
+          {rappelsEchus.slice(0, 3).map((r) => (
+            <button key={r.opportunite.id} onClick={() => setSelectionne(r.opportunite)}
               className="text-xs block w-full text-left pl-5" style={{ color: '#FCA5A5' }}>
               • {r.rappel.message || r.opportunite.titre} — {r.rappel.date}
             </button>

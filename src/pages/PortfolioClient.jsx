@@ -101,7 +101,7 @@ export default function PortfolioClient() {
             <div className="flex items-center justify-between p-4 shrink-0"
               style={{ borderBottom: '1px solid var(--dark-border)' }}>
               <p className="font-bold text-white truncate">{selectionne.titre}</p>
-              <button onClick={() => setSelectionne(null)} style={{ color: 'var(--text-muted)' }}>
+              <button onClick={() => setSelectionne(null)} aria-label="Fermer" className="p-2.5 -m-2.5" style={{ color: 'var(--text-muted)' }}>
                 <X size={20} />
               </button>
             </div>
@@ -111,7 +111,7 @@ export default function PortfolioClient() {
               {selectionne.photos?.length > 0 && (
                 <div className="flex gap-2 p-3 overflow-x-auto">
                   {selectionne.photos.map((url, i) => (
-                    <img key={i} src={url} alt=""
+                    <img key={i} src={url} alt={`${selectionne.titre || 'Photo du projet'} ${i + 1}`}
                       className="h-40 w-56 object-cover rounded-xl shrink-0"
                       loading="lazy" />
                   ))}

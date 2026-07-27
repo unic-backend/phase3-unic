@@ -188,8 +188,8 @@ function Formulaire({ uid }) {
           <div className="flex gap-2 mt-2 flex-wrap">
             {photos.map((url) => (
               <div key={url} className="relative w-16 h-16 rounded-lg overflow-hidden">
-                <img src={url} alt="" className="w-full h-full object-cover" />
-                <button type="button" onClick={() => retirerPhoto(url)} className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.6)' }}>
+                <img src={url} alt="Photo à envoyer" className="w-full h-full object-cover" />
+                <button type="button" onClick={() => retirerPhoto(url)} aria-label="Retirer cette photo" className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.6)' }}>
                   <X size={11} color="white" />
                 </button>
               </div>
@@ -245,7 +245,7 @@ function Chat({ uid, prospect }) {
     <>
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 max-w-lg w-full mx-auto">
         {messages.map((m, i) => (
-          <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+          <div key={`${m.timestamp?.seconds ?? i}-${m.timestamp?.nanoseconds ?? i}-${m.role}`} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div className="max-w-[85%] rounded-2xl px-4 py-2.5 text-sm whitespace-pre-wrap"
               style={m.role === 'user' ? { background: 'var(--gold)', color: '#060D18' } : { background: 'var(--dark-elevated)', border: '1px solid var(--dark-border)', color: 'white' }}>
               {m.content}

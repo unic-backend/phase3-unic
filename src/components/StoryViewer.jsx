@@ -110,7 +110,7 @@ export default function StoryViewer({ stories, startIndex = 0, onClose }) {
           <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold" style={{ background: 'var(--gold)', color: '#060D18' }}>UP</div>
           <span className="text-white text-sm font-semibold">UniC Plaquiste</span>
         </div>
-        <button onClick={onClose} className="w-9 h-9 flex items-center justify-center rounded-full" style={{ background: 'rgba(0,0,0,0.4)' }}>
+        <button onClick={onClose} aria-label="Fermer" className="w-11 h-11 flex items-center justify-center rounded-full" style={{ background: 'rgba(0,0,0,0.4)' }}>
           <X size={20} color="white" />
         </button>
       </div>
@@ -123,7 +123,7 @@ export default function StoryViewer({ stories, startIndex = 0, onClose }) {
           <video ref={videoRef} src={story.mediaUrl} className="max-w-full max-h-full object-contain"
             autoPlay playsInline onTimeUpdate={onVideoTime} onEnded={suivant} />
         ) : (
-          <img src={story.mediaUrl} alt="" className="max-w-full max-h-full object-contain" />
+          <img src={story.mediaUrl} alt="Story" className="max-w-full max-h-full object-contain" />
         )}
 
         {/* Zones de navigation tactile (gauche = précédent, droite = suivant) */}

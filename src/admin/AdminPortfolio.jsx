@@ -104,12 +104,12 @@ export default function AdminPortfolio() {
           <div className="card-dark w-full max-w-md max-h-[85vh] flex flex-col animate-fade-in">
             <div className="flex items-center justify-between p-4 shrink-0" style={{ borderBottom: '1px solid var(--dark-border)' }}>
               <p className="font-bold text-white truncate">{selectionne.titre}</p>
-              <button onClick={() => setSelectionne(null)} style={{ color: 'var(--text-muted)' }}><X size={20} /></button>
+              <button onClick={() => setSelectionne(null)} aria-label="Fermer" className="p-2.5 -m-2.5" style={{ color: 'var(--text-muted)' }}><X size={20} /></button>
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
               {selectionne.photos?.length > 0 && (
                 <div className="flex gap-2 overflow-x-auto">
-                  {selectionne.photos.map((url, i) => <img key={i} src={url} alt="" className="h-28 w-40 object-cover rounded-xl shrink-0" />)}
+                  {selectionne.photos.map((url, i) => <img key={i} src={url} alt={`${selectionne.titre || 'Photo du projet'} ${i + 1}`} className="h-28 w-40 object-cover rounded-xl shrink-0" />)}
                 </div>
               )}
               <div className="grid grid-cols-2 gap-2 text-sm">
@@ -133,7 +133,7 @@ export default function AdminPortfolio() {
           <div className="card-dark p-5 w-full max-w-md max-h-[85vh] flex flex-col animate-fade-in">
             <div className="flex items-center justify-between mb-3 shrink-0">
               <p className="font-bold text-white">Nouveau projet</p>
-              <button onClick={() => setShowForm(false)} style={{ color: 'var(--text-muted)' }}><X size={20} /></button>
+              <button onClick={() => setShowForm(false)} aria-label="Fermer" className="p-2.5 -m-2.5" style={{ color: 'var(--text-muted)' }}><X size={20} /></button>
             </div>
             <div className="flex-1 overflow-y-auto space-y-3">
               <input value={form.titre} onChange={e => setForm({...form, titre: e.target.value})} placeholder="Titre du projet (ex: Faux plafond Villa X)" className={ic} />
@@ -160,6 +160,7 @@ export default function AdminPortfolio() {
                     <div key={i} className="relative w-16 h-16">
                       <img src={url} className="w-full h-full object-cover rounded-lg" alt="" />
                       <button type="button" onClick={() => setForm(prev => ({ ...prev, photos: prev.photos.filter((_,j) => j !== i) }))}
+                        aria-label="Retirer cette photo"
                         className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center" style={{ background: '#F87171' }}>
                         <X size={10} color="white" />
                       </button>
