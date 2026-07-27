@@ -597,7 +597,7 @@ export default function AIChat({
 
             {/* 4 cartes actions */}
             <div className="grid grid-cols-2 gap-2.5">
-              {actions.map((a, i) => <QuickActionCard key={i} action={a} onSend={sendMessage} disabled={isTyping} />)}
+              {actions.map((a) => <QuickActionCard key={a.label} action={a} onSend={sendMessage} disabled={isTyping} />)}
             </div>
 
             {/* Séparateur */}

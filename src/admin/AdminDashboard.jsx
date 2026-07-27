@@ -243,7 +243,7 @@ export default function AdminDashboard() {
           const Icon = a.icon
           return (
             <button
-              key={i}
+              key={a.path}
               onClick={() => navigate(a.path)}
               className="card-dark p-4 flex flex-col items-center gap-2.5 btn-press animate-fade-in"
               style={{ opacity: 0, animationDelay: `${400 + i * 60}ms` }}

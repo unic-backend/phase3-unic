@@ -79,7 +79,7 @@ export default function SideDrawer({ open, onClose, mode = 'client' }) {
               <p className="text-xs text-gray-400 truncate">{user?.email}</p>
             </div>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 active:scale-90 transition">
+          <button onClick={onClose} aria-label="Fermer" className="p-2.5 -m-2.5 text-gray-400 hover:text-gray-600 active:scale-90 transition">
             <X size={24} />
           </button>
         </div>

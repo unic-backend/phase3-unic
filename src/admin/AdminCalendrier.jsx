@@ -102,21 +102,21 @@ export default function AdminCalendrier() {
 
         {/* Grille calendrier */}
         <div className="grid grid-cols-7 gap-0.5">
-          {jours.map((jour, i) => {
+          {jours.map((jour) => {
             const ds = jour.toISOString().slice(0, 10)
             const estMoisActuel = jour.getMonth() === mois
             const estAujourdhui = ds === aujourdhui
             const evts = evtsParDate[ds] || []
             return (
-              <button key={i} onClick={() => evts.length && setSelectionne({ date: ds, evts })}
+              <button key={ds} onClick={() => evts.length && setSelectionne({ date: ds, evts })}
                 className={`min-h-[44px] p-1 rounded-lg text-left transition ${evts.length ? 'hover:opacity-80' : ''}`}
                 style={{ background: estAujourdhui ? 'rgba(242,194,0,0.12)' : 'transparent', border: estAujourdhui ? '1px solid rgba(242,194,0,0.4)' : '1px solid transparent' }}>
                 <p className={`text-xs font-medium ${estAujourdhui ? '' : ''}`}
                   style={{ color: estAujourdhui ? 'var(--gold)' : estMoisActuel ? 'white' : 'var(--text-muted)' }}>
                   {jour.getDate()}
                 </p>
-                {evts.slice(0, 2).map((e, j) => (
-                  <div key={j} className="mt-0.5 px-1 rounded text-[9px] truncate font-medium" style={{ background: `${e.couleur}25`, color: e.couleur }}>
+                {evts.slice(0, 2).map((e) => (
+                  <div key={`${e.projet?.id || e.devis?.id}-${e.type}`} className="mt-0.5 px-1 rounded text-[9px] truncate font-medium" style={{ background: `${e.couleur}25`, color: e.couleur }}>
                     {e.titre}
                   </div>
                 ))}
