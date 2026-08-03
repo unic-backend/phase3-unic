@@ -42,16 +42,16 @@ export default function ForgotPassword() {
           <h1 className="text-2xl font-bold text-white">Mot de passe oublié</h1>
           <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>Entrez votre email pour réinitialiser</p>
         </div>
-        <div className="rounded-2xl p-6 space-y-5" style={{ background: 'var(--dark-surface)', border: '1px solid var(--dark-border)' }}>
+        <form onSubmit={handleSubmit} className="rounded-2xl p-6 space-y-5" style={{ background: 'var(--dark-surface)', border: '1px solid var(--dark-border)' }}>
           <div className="relative">
             <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
-            <input type="email" value={email} onChange={e => setEmail(e.target.value)}
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)} aria-label="Adresse email"
               className="w-full pl-11 pr-4 py-3.5 rounded-xl text-sm text-white outline-none bg-[#0C1829] border border-[rgba(255,255,255,0.06)] placeholder-[#4A5B73] focus:border-[#F6C344]"
               placeholder="votre@email.com" required autoComplete="email" disabled={loading} />
           </div>
-          <button onClick={handleSubmit} disabled={loading} className="w-full py-3.5 rounded-xl font-semibold text-sm btn-press disabled:opacity-50 flex items-center justify-center gap-2"
+          <button type="submit" disabled={loading} className="w-full py-3.5 rounded-xl font-semibold text-sm btn-press disabled:opacity-50 flex items-center justify-center gap-2"
             style={{ background: 'var(--gold)', color: '#060D18' }}>{loading ? 'Envoi...' : 'Envoyer les instructions'}</button>
-        </div>
+        </form>
         <p className="text-center mt-6 text-sm"><Link to="/login" className="font-semibold flex items-center justify-center gap-1" style={{ color: 'var(--gold)' }}><ArrowLeft size={14}/> Retour connexion</Link></p>
       </div>
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}

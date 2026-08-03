@@ -52,34 +52,34 @@ export default function Signup() {
           <InstallPrompt compact />
         </div>
 
-        <div className="rounded-2xl p-5 space-y-4" style={{ background: 'var(--dark-surface)', border: '1px solid var(--dark-border)' }}>
+        <form onSubmit={handleSubmit} className="rounded-2xl p-5 space-y-4" style={{ background: 'var(--dark-surface)', border: '1px solid var(--dark-border)' }}>
           <div className="space-y-3">
             <div className="relative">
               <User size={16} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
-              <input type="text" name="nom" value={formData.nom} onChange={handleChange} className={ic} placeholder="Votre nom complet" required autoComplete="name" disabled={loading} />
+              <input type="text" name="nom" value={formData.nom} onChange={handleChange} aria-label="Nom complet" className={ic} placeholder="Votre nom complet" required autoComplete="name" disabled={loading} />
             </div>
             <div className="relative">
               <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
-              <input type="email" name="email" value={formData.email} onChange={handleChange} className={ic} placeholder="votre@email.com" required autoComplete="email" inputMode="email" disabled={loading} />
+              <input type="email" name="email" value={formData.email} onChange={handleChange} aria-label="Adresse email" className={ic} placeholder="votre@email.com" required autoComplete="email" inputMode="email" disabled={loading} />
             </div>
             <div className="relative">
               <Phone size={16} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
-              <input type="tel" name="telephone" value={formData.telephone} onChange={handleChange} className={ic} placeholder="+221 77 000 00 00" required autoComplete="tel" inputMode="tel" disabled={loading} />
+              <input type="tel" name="telephone" value={formData.telephone} onChange={handleChange} aria-label="Numéro de téléphone" className={ic} placeholder="+221 77 000 00 00" required autoComplete="tel" inputMode="tel" disabled={loading} />
             </div>
             <div className="relative">
               <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
-              <input type={showPass ? 'text' : 'password'} name="password" value={formData.password} onChange={handleChange} className={`${ic} pr-11`} placeholder="Mot de passe (min. 6)" required autoComplete="new-password" disabled={loading} />
-              <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-4 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }}>
+              <input type={showPass ? 'text' : 'password'} name="password" value={formData.password} onChange={handleChange} aria-label="Mot de passe" className={`${ic} pr-11`} placeholder="Mot de passe (min. 6)" required autoComplete="new-password" disabled={loading} />
+              <button type="button" onClick={() => setShowPass(!showPass)} aria-label={showPass ? 'Masquer le mot de passe' : 'Afficher le mot de passe'} className="absolute right-2 top-1/2 -translate-y-1/2 p-2" style={{ color: 'var(--text-muted)' }}>
                 {showPass ? <EyeOff size={16}/> : <Eye size={16}/>}
               </button>
             </div>
             <div className="relative">
               <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
-              <input type="password" name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} className={ic} placeholder="Confirmer le mot de passe" required autoComplete="new-password" disabled={loading} />
+              <input type="password" name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} aria-label="Confirmer le mot de passe" className={ic} placeholder="Confirmer le mot de passe" required autoComplete="new-password" disabled={loading} />
             </div>
           </div>
 
-          <button onClick={handleSubmit} disabled={loading}
+          <button type="submit" disabled={loading}
             className="w-full py-3.5 rounded-xl font-semibold text-sm btn-press disabled:opacity-50 flex items-center justify-center gap-2 transition"
             style={{ background: 'var(--gold)', color: '#060D18' }}>
             {loading ? (
@@ -88,7 +88,7 @@ export default function Signup() {
               <><UserPlus size={16} /> Créer mon compte</>
             )}
           </button>
-        </div>
+        </form>
 
         <div className="mt-6 pt-5 text-center" style={{ borderTop: '1px solid var(--dark-border)' }}>
           <p className="text-sm mb-3" style={{ color: 'var(--text-secondary)' }}>

@@ -53,22 +53,22 @@ export default function Login() {
         </div>
 
         {/* Form card */}
-        <div className="rounded-2xl p-6 space-y-5"
+        <form onSubmit={handleSubmit} className="rounded-2xl p-6 space-y-5"
           style={{ background: 'var(--dark-surface)', border: '1px solid var(--dark-border)' }}>
 
           <div className="space-y-4">
             <div className="relative">
               <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
-              <input type="email" name="email" value={formData.email} onChange={handleChange}
+              <input type="email" name="email" value={formData.email} onChange={handleChange} aria-label="Adresse email"
                 className={inputClass} placeholder="votre@email.com" required autoComplete="email" inputMode="email" disabled={loading} />
             </div>
 
             <div className="relative">
               <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
-              <input type={showPassword ? 'text' : 'password'} name="password" value={formData.password} onChange={handleChange}
+              <input type={showPassword ? 'text' : 'password'} name="password" value={formData.password} onChange={handleChange} aria-label="Mot de passe"
                 className={`${inputClass} pr-11`} placeholder="Votre mot de passe" required autoComplete="current-password" disabled={loading} />
-              <button type="button" onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-4 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }}>
+              <button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-2" style={{ color: 'var(--text-muted)' }}>
                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
@@ -78,7 +78,7 @@ export default function Login() {
             <a href="/forgot-password" className="text-xs font-medium" style={{ color: 'var(--gold)' }}>Mot de passe oublié ?</a>
           </div>
 
-          <button onClick={handleSubmit} disabled={loading}
+          <button type="submit" disabled={loading}
             className="w-full py-3.5 rounded-xl font-semibold text-sm btn-press disabled:opacity-50 flex items-center justify-center gap-2 transition"
             style={{ background: 'var(--gold)', color: '#060D18' }}>
             {loading ? (
@@ -87,7 +87,7 @@ export default function Login() {
               <><LogIn size={16} /> Se connecter</>
             )}
           </button>
-        </div>
+        </form>
 
         {/* Créer un compte — bouton bien visible pour les nouveaux clients */}
         <div className="mt-6 pt-5 text-center" style={{ borderTop: '1px solid var(--dark-border)' }}>

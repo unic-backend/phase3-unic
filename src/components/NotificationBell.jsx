@@ -93,43 +93,46 @@ export default function NotificationBell({ mode, userId }) {
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-80 max-w-[90vw] bg-white rounded-2xl shadow-2xl border border-gray-100 z-50 max-h-[70vh] overflow-y-auto animate-scale-in">
-          <div className="flex justify-between items-center p-4 border-b border-gray-100 gap-2">
-            <h3 className="font-bold text-[#1A3FA0]">Notifications</h3>
+        <div className="absolute right-0 mt-2 w-80 max-w-[90vw] rounded-2xl shadow-2xl z-50 max-h-[70vh] overflow-y-auto animate-scale-in"
+          style={{ background: 'var(--dark-surface)', border: '1px solid var(--dark-border)' }}>
+          <div className="flex justify-between items-center p-4 gap-2" style={{ borderBottom: '1px solid var(--dark-border)' }}>
+            <h3 className="font-bold text-white">Notifications</h3>
             <div className="flex items-center gap-3">
               {nonLues > 0 && (
                 <button
                   onClick={handleMarquerToutesLues}
-                  className="text-xs font-bold text-[#1A3FA0] hover:underline btn-press whitespace-nowrap"
+                  className="text-xs font-bold hover:underline btn-press whitespace-nowrap"
+                  style={{ color: 'var(--gold)' }}
                 >
                   Tout marquer comme lu
                 </button>
               )}
-              <button onClick={() => setOpen(false)} aria-label="Fermer" className="p-2.5 -m-2.5 text-gray-400 hover:text-gray-600 btn-press">
+              <button onClick={() => setOpen(false)} aria-label="Fermer" className="p-2.5 -m-2.5 hover:text-white btn-press" style={{ color: 'var(--text-muted)' }}>
                 <X size={18} />
               </button>
             </div>
           </div>
 
           {loading && (
-            <p className="text-center text-gray-400 text-sm py-8">Chargement...</p>
+            <p className="text-center text-sm py-8" style={{ color: 'var(--text-muted)' }}>Chargement...</p>
           )}
 
           {!loading && notifs.length === 0 && (
-            <p className="text-center text-gray-400 text-sm py-8">Aucune notification pour le moment.</p>
+            <p className="text-center text-sm py-8" style={{ color: 'var(--text-muted)' }}>Aucune notification pour le moment.</p>
           )}
 
           {!loading && notifs.map(n => (
-            <div key={n.id} className={`w-full border-b border-gray-50 hover:bg-gray-50 transition flex gap-2 items-start ${!n.read ? 'bg-blue-50/50' : ''}`}>
+            <div key={n.id} className="w-full flex gap-2 items-start transition"
+              style={{ borderBottom: '1px solid var(--dark-border)', background: !n.read ? 'rgba(246,195,68,0.06)' : 'transparent' }}>
               <button
                 onClick={() => handleClickNotif(n)}
                 className="flex-1 text-left p-4 flex gap-3 items-start min-w-0"
               >
                 {!n.read && <span className="w-2 h-2 rounded-full bg-[#F2C200] mt-1.5 shrink-0" />}
                 <div className={n.read ? 'pl-5' : ''}>
-                  <p className="font-bold text-sm text-gray-800">{n.title}</p>
-                  <p className="text-sm text-gray-500 mt-0.5">{n.message}</p>
-                  <p className="text-xs text-gray-400 mt-1">{tempsRelatif(n.createdAt)}</p>
+                  <p className="font-bold text-sm text-white">{n.title}</p>
+                  <p className="text-sm mt-0.5" style={{ color: 'var(--text-secondary)' }}>{n.message}</p>
+                  <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{tempsRelatif(n.createdAt)}</p>
                 </div>
               </button>
               <button
@@ -139,7 +142,8 @@ export default function NotificationBell({ mode, userId }) {
                     setNotifs(prev => prev.filter(x => x.id !== n.id))
                   }
                 }}
-                className="p-2 mt-3 mr-2 rounded-lg shrink-0 text-gray-300 hover:text-red-400 transition btn-press"
+                className="p-2 mt-3 mr-2 rounded-lg shrink-0 hover:text-red-400 transition btn-press"
+                style={{ color: 'var(--text-muted)' }}
                 aria-label="Supprimer cette notification"
               >
                 <Trash2 size={14} />
@@ -156,7 +160,7 @@ export default function NotificationBell({ mode, userId }) {
                   setNotifs([])
                 }
               }}
-              className="w-full py-3 text-xs font-semibold text-red-400 hover:bg-red-50 transition flex items-center justify-center gap-1.5"
+              className="w-full py-3 text-xs font-semibold text-red-400 hover:bg-red-500/10 transition flex items-center justify-center gap-1.5"
             >
               <Trash2 size={13} /> Tout effacer
             </button>

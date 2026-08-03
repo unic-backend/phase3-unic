@@ -85,7 +85,7 @@ export default function AdminPortfolio() {
             <button key={p.id} onClick={() => setSelectionne(p)} className="card-dark overflow-hidden text-left transition hover:opacity-90">
               <div className="aspect-video w-full overflow-hidden" style={{ background: 'var(--dark-elevated)' }}>
                 {p.photos?.[0]
-                  ? <img src={p.photos[0]} alt={p.titre} className="w-full h-full object-cover" />
+                  ? <img src={p.photos[0]} alt={p.titre} loading="lazy" className="w-full h-full object-cover" />
                   : <div className="w-full h-full flex items-center justify-center"><Images size={24} style={{ color: 'var(--text-muted)' }} /></div>}
               </div>
               <div className="p-3">
