@@ -13,6 +13,9 @@
   # Coupe l'accès aux capteurs inutilisés (micro, géolocalisation...)
   # La caméra reste accessible (photos de devis / stories)
   Permissions-Policy: microphone=(), geolocation=(), payment=(), usb=()
+  # SEO/confidentialité : interdit à Google d'indexer cette app privée
+  # (double sécurité avec robots.txt et la balise <meta name="robots"> du index.html)
+  X-Robots-Tag: noindex, nofollow
 
 # Le Service Worker doit toujours être rechargé frais (jamais mis en cache
 # par le navigateur), sinon les mises à jour de l'app ne se propagent pas.
